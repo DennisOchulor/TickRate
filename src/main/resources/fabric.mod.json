@@ -1,0 +1,41 @@
+{
+	"schemaVersion": 1,
+	"id": "tickrate",
+	"version": "${version}",
+	"name": "TickRate",
+	"description": "Tick chunks/entities at different rates.",
+	"authors": [
+		"Ninjaking312"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "MIT",
+	"icon": "assets/tickrate/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"io.github.dennisochulor.tickrate.TickRate"
+		],
+		"client": [
+			"io.github.dennisochulor.tickrate.TickRateClient"
+		],
+		"fabric-datagen": [
+			"io.github.dennisochulor.tickrate.TickRateDataGenerator"
+		]
+	},
+	"mixins": [
+		"tickrate.mixins.json",
+		{
+			"config": "tickrate.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=${loader_version}",
+		"minecraft": "${minecraft_version}",
+		"java": ">=21",
+		"fabric-api": ">=${fabric_version}"
+	}
+}

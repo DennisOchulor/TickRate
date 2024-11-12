@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "package": "io.github.dennisochulor.tickrate.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "EntityMixin",
+    "MinecraftServerMixin",
+    "ServerTickManagerMixin",
+    "TickCommandMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+	}
+}
