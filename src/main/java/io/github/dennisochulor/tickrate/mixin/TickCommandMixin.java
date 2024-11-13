@@ -11,6 +11,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.command.TickCommand;
+import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
@@ -18,6 +19,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 
 import java.util.Collection;
+import java.util.Locale;
 
 @Mixin(TickCommand.class)
 public class TickCommandMixin {
@@ -98,24 +100,32 @@ public class TickCommandMixin {
 
     @Unique
     private static int executeChunkRate(ServerCommandSource source, BlockPos blockPos, float rate) {
-        //ChunkPos.toLong(pos)
-        return 0;
+        TickRateTickManager tickManager = (TickRateTickManager) source.getServer().getTickManager();
+        tickManager.tickRate$setChunkRate(rate, source.getWorld().getRegistryKey(), blockPos);
+        String string = String.format(Locale.ROOT, "%.1f", rate);
+        source.sendFeedback(() -> Text.of("Successfully set rate of the specified chunk to " + string), true);
+        return (int) rate;
     }
 
     @Unique
     private static int executeChunkQuery(ServerCommandSource source, BlockPos blockPos) {
-        return 0;
+        TickRateTickManager tickManager = (TickRateTickManager) source.getServer().getTickManager();
+        return (int) tickManager.tickRate$getChunkRate(source.getWorld().getRegistryKey(), blockPos);
     }
 
     @Unique
     private static int executeEntityRate(ServerCommandSource source, Collection<? extends Entity> entities, float rate) {
-        return 0;
+        TickRateTickManager tickManager = (TickRateTickManager) source.getServer().getTickManager();
+        tickManager.tickRate$setEntityRate(rate, entities);
+        String string = String.format(Locale.ROOT, "%.1f", rate);
+        source.sendFeedback(() -> Text.of("Successfully set rate of the specified entities to " + string), true);
+        return (int) rate;
     }
 
     @Unique
     private static int executeEntityQuery(ServerCommandSource source, Entity entity) {
-        return 0;
+        TickRateTickManager tickManager = (TickRateTickManager) source.getServer().getTickManager();
+        return (int) tickManager.tickRate$getEntityRate(entity);
     }
-
 
 }
