@@ -1,4 +1,4 @@
-package io.github.dennisochulor.tickrate.mixin;
+package io.github.dennisochulor.tickrate;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.registry.RegistryKey;
@@ -13,6 +13,7 @@ public interface TickRateTickManager {
     public void tickRate$serverStopped();
     public boolean tickRate$shouldTickEntity(Entity entity);
     public boolean tickRate$shouldTickChunk(RegistryKey<World> registryKey, BlockPos pos);
+    public boolean tickRate$shouldTickServer();
     public void tickRate$ticked();
     public void tickRate$setEntityRate(float rate, Collection<? extends Entity> entities);
     public float tickRate$getEntityRate(Entity entity);

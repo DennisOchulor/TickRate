@@ -1,5 +1,6 @@
 package io.github.dennisochulor.tickrate.mixin;
 
+import io.github.dennisochulor.tickrate.TickRateTickManager;
 import net.minecraft.entity.Entity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
@@ -15,6 +16,9 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,9 +34,14 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     @Unique private final Map<String,Float> entities = new HashMap<>(); // uuid -> tickRate
     @Unique private final Map<String,Float> chunks = new HashMap<>(); // world-longChunkPos -> tickRate
     @Shadow @Final private MinecraftServer server;
-    @Unique private final File datafile = server.isDedicated() ? server.getRunDirectory().resolve("world/data/TickRateData.nbt").toFile() : server.getRunDirectory().resolve("saves/" + server.getSaveProperties().getLevelName() + "/data/TickRateData.nbt").toFile();
+    @Unique private File datafile;
 
     @Shadow public abstract void setTickRate(float tickRate);
+
+    @Inject(method = "<init>(Lnet/minecraft/server/MinecraftServer;)V", at = @At("TAIL"))
+    public void ServerTickManager(MinecraftServer server, CallbackInfo ci) {
+        datafile = server.isDedicated() ? server.getRunDirectory().resolve("world/data/TickRateData.nbt").toFile() : server.getRunDirectory().resolve("saves/" + server.getSaveProperties().getLevelName() + "/data/TickRateData.nbt").toFile();
+    }
 
     public void tickRate$serverStarted() {
         if(datafile.exists()) {
@@ -45,6 +54,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
                 NbtOps.INSTANCE.getMap(nbt.get("chunks")).getOrThrow().entries().forEach(pair -> {
                     chunks.put(NbtOps.INSTANCE.getStringValue(pair.getFirst()).getOrThrow(), NbtOps.INSTANCE.getNumberValue(pair.getSecond()).getOrThrow().floatValue());
                 });
+                updateFastestTicker();
             }
             catch (IOException e) {
                 throw new RuntimeException(e);
@@ -80,14 +90,18 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     public boolean tickRate$shouldTickChunk(RegistryKey<World> registryKey, BlockPos pos) {
         Float tickRate = chunks.get(registryKey.getRegistry().toString() + "-" + ChunkPos.toLong(pos));
         if(tickRate == null) // follow nominal rate
-            return internalShouldTick(nominalTickRate);
+            return tickRate$shouldTickServer();
         else
             return internalShouldTick(tickRate);
     }
 
+    public boolean tickRate$shouldTickServer() {
+        return internalShouldTick(nominalTickRate);
+    }
+
     public void tickRate$ticked() {
         ticks++;
-        if(ticks >= tickRate) ticks = 0;
+        if(ticks > tickRate) ticks = 1;
     }
 
     public void tickRate$setEntityRate(float rate, Collection<? extends Entity> entities) {
@@ -119,8 +133,16 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
 
     @Unique
     private boolean internalShouldTick(float tickRate) {
-        if(tickRate == 0) return false;
-        //todo
+        double d = (this.tickRate-1)/(tickRate+1);
+        if(tickRate == this.tickRate) return true;
+        if(ticks == 1) return Math.ceil(1+(1*d)) == 1;
+
+        double eventsToTick = (ticks-1)/d;
+        if(eventsToTick >= tickRate) return Math.ceil(1+(tickRate*d)) == ticks;
+        double floorEventToTick = Math.floor(eventsToTick);
+        double ceilEventToTick = Math.ceil(eventsToTick);
+        if(Math.ceil(1+(floorEventToTick*d)) == ticks) return true;
+        return Math.ceil(1+(ceilEventToTick*d)) == ticks;
     }
 
     @Unique
