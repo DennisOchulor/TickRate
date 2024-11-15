@@ -11,8 +11,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.function.BooleanSupplier;
-
 @Mixin(MinecraftServer.class)
 public abstract class MinecraftServerMixin {
 
@@ -29,6 +27,8 @@ public abstract class MinecraftServerMixin {
 		TickRateTickManager tickManager = (TickRateTickManager) this.getTickManager();
 		if(tickManager.tickRate$shouldTickServer()) instance.tick();
 	}
+
+
 
 
 

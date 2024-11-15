@@ -1,23 +1,23 @@
 package io.github.dennisochulor.tickrate;
 
 import net.minecraft.entity.Entity;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 import java.util.Collection;
 
 public interface TickRateTickManager {
 
-    public void tickRate$serverStarted();
-    public void tickRate$serverStopped();
-    public boolean tickRate$shouldTickEntity(Entity entity);
-    public boolean tickRate$shouldTickChunk(RegistryKey<World> registryKey, BlockPos pos);
-    public boolean tickRate$shouldTickServer();
-    public void tickRate$ticked();
-    public void tickRate$setEntityRate(float rate, Collection<? extends Entity> entities);
-    public float tickRate$getEntityRate(Entity entity);
-    public void tickRate$setChunkRate(float rate, RegistryKey<World> registryKey, BlockPos pos);
-    public float tickRate$getChunkRate(RegistryKey<World> registryKey, BlockPos pos);
+    void tickRate$serverStarted();
+    void tickRate$serverStopped();
+    boolean tickRate$shouldTickEntity(Entity entity);
+    boolean tickRate$shouldTickChunk(World world, long chunkPos);
+    boolean tickRate$shouldTickServer();
+    void tickRate$setServerRate(float rate);
+    float tickRate$getServerRate();
+    void tickRate$ticked();
+    void tickRate$setEntityRate(float rate, Collection<? extends Entity> entities);
+    float tickRate$getEntityRate(Entity entity);
+    void tickRate$setChunkRate(float rate, World world, long chunkPos);
+    float tickRate$getChunkRate(World world, long chunkPos);
 
 }

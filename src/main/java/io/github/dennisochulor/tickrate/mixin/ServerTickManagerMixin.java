@@ -5,10 +5,8 @@ import net.minecraft.entity.Entity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.ServerTickManager;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.tick.TickManager;
@@ -84,11 +82,11 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         if(tickRate != null)
             return internalShouldTick(tickRate);
         else
-            return tickRate$shouldTickChunk(entity.getWorld().getRegistryKey(),entity.getBlockPos());
+            return tickRate$shouldTickChunk(entity.getWorld(),entity.getChunkPos().toLong());
     }
 
-    public boolean tickRate$shouldTickChunk(RegistryKey<World> registryKey, BlockPos pos) {
-        Float tickRate = chunks.get(registryKey.getRegistry().toString() + "-" + ChunkPos.toLong(pos));
+    public boolean tickRate$shouldTickChunk(World world, long chunkPos) {
+        Float tickRate = chunks.get(world.getRegistryKey().getValue() + "-" + chunkPos);
         if(tickRate == null) // follow nominal rate
             return tickRate$shouldTickServer();
         else
@@ -99,31 +97,42 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         return internalShouldTick(nominalTickRate);
     }
 
+    public void tickRate$setServerRate(float rate) {
+        nominalTickRate = rate;
+        updateFastestTicker();
+    }
+
+    public float tickRate$getServerRate() {
+        return nominalTickRate;
+    }
+
     public void tickRate$ticked() {
         ticks++;
         if(ticks > tickRate) ticks = 1;
     }
 
     public void tickRate$setEntityRate(float rate, Collection<? extends Entity> entities) {
-        entities.forEach(e -> this.entities.put(e.getUuidAsString(), rate));
+        if(rate == 0) entities.forEach(e -> this.entities.remove(e.getUuidAsString()));
+        else entities.forEach(e -> this.entities.put(e.getUuidAsString(), rate));
         updateFastestTicker();
     }
 
     public float tickRate$getEntityRate(Entity entity) {
         Float rate = entities.get(entity.getUuidAsString());
         if(rate != null) return rate;
-        rate = chunks.get(entity.getWorld().getRegistryKey().getRegistry().toString() + "-" + ChunkPos.toLong(entity.getBlockPos()));
+        rate = chunks.get(entity.getWorld().getRegistryKey().getValue() + "-" + ChunkPos.toLong(entity.getBlockPos()));
         if(rate != null) return rate;
         return nominalTickRate;
     }
 
-    public void tickRate$setChunkRate(float rate, RegistryKey<World> registryKey, BlockPos pos) {
-        chunks.put(registryKey.getRegistry().toString() + "-" + ChunkPos.toLong(pos), rate);
+    public void tickRate$setChunkRate(float rate, World world, long chunkPos) {
+        if(rate == 0) chunks.remove(world.getRegistryKey().getValue() + "-" + chunkPos);
+        else chunks.put(world.getRegistryKey().getValue() + "-" + chunkPos, rate);
         updateFastestTicker();
     }
 
-    public float tickRate$getChunkRate(RegistryKey<World> registryKey, BlockPos pos) {
-        Float rate = chunks.get(registryKey.getRegistry().toString() + "-" + ChunkPos.toLong(pos));
+    public float tickRate$getChunkRate(World world, long chunkPos) {
+        Float rate = chunks.get(world.getRegistryKey().getValue() + "-" + chunkPos);
         if(rate != null) return rate;
         return nominalTickRate;
     }
@@ -133,6 +142,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
 
     @Unique
     private boolean internalShouldTick(float tickRate) {
+        // attempt to evenly space out the exact number of ticks
         double d = (this.tickRate-1)/(tickRate+1);
         if(tickRate == this.tickRate) return true;
         if(ticks == 1) return Math.ceil(1+(1*d)) == 1;
@@ -147,13 +157,15 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
 
     @Unique
     private void updateFastestTicker() {
-        float fastest = tickRate;
+        float fastest = 1.0f;
+        fastest = Math.max(fastest, nominalTickRate);
         for(float rate : entities.values())
             fastest = Math.max(fastest,rate);
         for(float rate : chunks.values())
             fastest = Math.max(fastest,rate);
         if(fastest != tickRate) {
             setTickRate(fastest);
+            ticks = 1; // reset it
         }
     }
 
