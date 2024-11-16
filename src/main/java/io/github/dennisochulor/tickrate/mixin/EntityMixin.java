@@ -21,4 +21,17 @@ public abstract class EntityMixin {
         TickRateTickManager tickManager = (TickRateTickManager) this.getServer().getTickManager();
         if(reason.shouldDestroy()) tickManager.tickRate$setEntityRate(0.0f, List.of((Entity)(Object)this));
     }
+
+    public void tickiii(CallbackInfo ci) {
+        Entity e = (Entity) (Object) this;
+        if(e.isPlayer()) {
+            var a = Thread.currentThread().getStackTrace();
+            for(int i=0;i<10;i++){
+                System.out.println(a[i]);
+            }
+        }
+    }
+
+
+
 }

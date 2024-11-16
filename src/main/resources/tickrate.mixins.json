@@ -5,9 +5,12 @@
   "mixins": [
     "EntityMixin",
     "MinecraftServerMixin",
+    "ServerPlayNetworkHandlerMixin",
     "ServerTickManagerMixin",
     "ServerWorldMixin",
-    "TickCommandMixin"
+    "TickCommandMixin",
+    "UpdateTickRateS2CPacketMixin",
+    "WorldTickSchedulerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

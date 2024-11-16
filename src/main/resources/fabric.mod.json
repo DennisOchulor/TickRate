@@ -8,8 +8,7 @@
 		"Ninjaking312"
 	],
 	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
+		"sources": "https://github.com/DennisOchulor/TickRate"
 	},
 	"license": "MIT",
 	"icon": "assets/tickrate/icon.png",
@@ -20,9 +19,6 @@
 		],
 		"client": [
 			"io.github.dennisochulor.tickrate.TickRateClient"
-		],
-		"fabric-datagen": [
-			"io.github.dennisochulor.tickrate.TickRateDataGenerator"
 		]
 	},
 	"mixins": [
