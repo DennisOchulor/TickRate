@@ -3,8 +3,10 @@
   "package": "io.github.dennisochulor.tickrate.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "ChunkTickSchedulerMixin",
     "EntityMixin",
     "MinecraftServerMixin",
+    "ServerLoginNetworkHandlerMixin",
     "ServerPlayNetworkHandlerMixin",
     "ServerTickManagerMixin",
     "ServerWorldMixin",

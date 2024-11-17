@@ -3,11 +3,16 @@ package io.github.dennisochulor.tickrate.mixin;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.llamalad7.mixinextras.sugar.ref.LocalBooleanRef;
 import io.github.dennisochulor.tickrate.TickRateTickManager;
+import io.github.dennisochulor.tickrate.TickRateWorldTickScheduler;
+import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
+import net.minecraft.fluid.Fluid;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.profiler.Profiler;
 import net.minecraft.world.tick.TickManager;
+import net.minecraft.world.tick.WorldTickScheduler;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -21,6 +26,10 @@ public abstract class ServerWorldMixin {
 
     @Shadow public abstract TickManager getTickManager();
 
+    @Shadow @Final private WorldTickScheduler<Block> blockTickScheduler;
+
+    @Shadow @Final private WorldTickScheduler<Fluid> fluidTickScheduler;
+
     @ModifyVariable(method = "tick(Ljava/util/function/BooleanSupplier;)V", at = @At("STORE"), ordinal = 0)
     private boolean tick$shouldTick(boolean value) {
         TickRateTickManager tickManager = (TickRateTickManager) getTickManager();
@@ -30,6 +39,8 @@ public abstract class ServerWorldMixin {
     @Inject(method = "tick(Ljava/util/function/BooleanSupplier;)V",  at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiler/Profiler;push(Ljava/lang/String;)V", args = "ldc=tickPending"))
     private void tick$modifyBl(CallbackInfo ci, @Local LocalBooleanRef bl) {
         bl.set(true);
+        ((TickRateWorldTickScheduler)this.blockTickScheduler).tickRate$setWorld((ServerWorld) (Object)this); // this sucks man...
+        ((TickRateWorldTickScheduler)this.fluidTickScheduler).tickRate$setWorld((ServerWorld) (Object)this); // this sucks man...
     }
 
     @Inject(method = "tick(Ljava/util/function/BooleanSupplier;)V",  at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiler/Profiler;swap(Ljava/lang/String;)V", args = "ldc=raid"))
