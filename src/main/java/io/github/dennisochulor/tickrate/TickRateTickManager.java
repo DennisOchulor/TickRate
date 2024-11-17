@@ -17,7 +17,13 @@ public interface TickRateTickManager {
     void tickRate$ticked();
     void tickRate$setEntityRate(float rate, Collection<? extends Entity> entities);
     float tickRate$getEntityRate(Entity entity);
+    void tickRate$setEntityFrozen(boolean frozen, Collection<? extends Entity> entities);
+    boolean tickRate$stepEntity(int steps, Collection<? extends Entity> entities);
+    boolean tickRate$sprintEntity(int ticks, Collection<? extends Entity> entities);
     void tickRate$setChunkRate(float rate, World world, long chunkPos);
     float tickRate$getChunkRate(World world, long chunkPos);
+    void tickRate$setChunkFrozen(boolean frozen, World world, long chunkPos);
+    boolean tickRate$stepChunk(int steps, World world, long chunkPos);
+    boolean tickRate$sprintChunk(int ticks, World world, long chunkPos);
 
 }

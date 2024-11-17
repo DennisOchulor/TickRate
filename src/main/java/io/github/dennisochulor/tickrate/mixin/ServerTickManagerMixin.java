@@ -31,6 +31,8 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     @Unique private int ticks = 0;
     @Unique private final Map<String,Float> entities = new HashMap<>(); // uuid -> tickRate
     @Unique private final Map<String,Float> chunks = new HashMap<>(); // world-longChunkPos -> tickRate
+    @Unique private final Map<String,Integer> steps = new HashMap<>(); // uuid/world-longChunkPos -> steps, if steps==0, then it's frozen
+    @Unique private final Map<String,Integer> sprinting = new HashMap<>(); // uuid/world-longChunkPos -> sprintTicks
     @Shadow @Final private MinecraftServer server;
     @Unique private File datafile;
 
@@ -124,6 +126,8 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         if(rate != null) return rate;
         return nominalTickRate;
     }
+
+    //todo
 
     public void tickRate$setChunkRate(float rate, World world, long chunkPos) {
         if(rate == 0) chunks.remove(world.getRegistryKey().getValue() + "-" + chunkPos);
