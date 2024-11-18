@@ -7,6 +7,7 @@ import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.ServerTickManager;
+import net.minecraft.util.TimeHelper;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.tick.TickManager;
@@ -17,6 +18,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,14 +35,38 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     @Unique private final Map<String,Float> chunks = new HashMap<>(); // world-longChunkPos -> tickRate
     @Unique private final Map<String,Integer> steps = new HashMap<>(); // uuid/world-longChunkPos -> steps, if steps==0, then it's frozen
     @Unique private final Map<String,Integer> sprinting = new HashMap<>(); // uuid/world-longChunkPos -> sprintTicks
+    @Unique private int sprintAvgTicksPerSecond = -1;
     @Shadow @Final private MinecraftServer server;
     @Unique private File datafile;
 
     @Shadow public abstract void setTickRate(float tickRate);
 
+    @Shadow public abstract boolean isSprinting();
+
+    @Shadow public abstract boolean stopStepping();
+
     @Inject(method = "<init>(Lnet/minecraft/server/MinecraftServer;)V", at = @At("TAIL"))
     public void ServerTickManager(MinecraftServer server, CallbackInfo ci) {
         datafile = server.isDedicated() ? server.getRunDirectory().resolve("world/data/TickRateData.nbt").toFile() : server.getRunDirectory().resolve("saves/" + server.getSaveProperties().getLevelName() + "/data/TickRateData.nbt").toFile();
+    }
+
+    @Inject(method = "step", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickManager;sendStepPacket()V"))
+    public void serverTickManager$step(int ticks, CallbackInfoReturnable<Boolean> cir) {
+        setTickRate(nominalTickRate);
+    }
+
+    @Inject(method = "stopStepping", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickManager;sendStepPacket()V"))
+    public void stopStepping(CallbackInfoReturnable<Boolean> cir) {
+        updateFastestTicker();
+    }
+
+    @Override
+    public void step() {
+        this.shouldTick = !this.frozen || this.stepTicks > 0;
+        if (this.stepTicks > 0) {
+            if(this.stepTicks == 1) stopStepping();
+            else this.stepTicks--;
+        }
     }
 
     public void tickRate$serverStarted() {
@@ -80,22 +106,61 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     }
 
     public boolean tickRate$shouldTickEntity(Entity entity) {
+        if(isSprinting()) return true;
+        if(isFrozen()) return isStepping();
+
+        if(sprinting.computeIfPresent(entity.getUuidAsString(), (k,v) -> {
+            if(v == 0) return null;
+            return --v;
+        }) != null) return true;
+
+        if(steps.getOrDefault(entity.getUuidAsString(),-1) == 0) return false;
+
         Float tickRate = entities.get(entity.getUuidAsString());
+        boolean shouldTick;
         if(tickRate != null)
-            return internalShouldTick(tickRate);
+            shouldTick = internalShouldTick(tickRate);
         else
-            return tickRate$shouldTickChunk(entity.getWorld(),entity.getChunkPos().toLong());
+            shouldTick = tickRate$shouldTickChunk(entity.getWorld(),entity.getChunkPos().toLong());
+
+        steps.computeIfPresent(entity.getUuidAsString(),(k,v) -> {
+            if(v > 0 && shouldTick) return --v;
+            return v;
+        });
+
+        return shouldTick;
     }
 
     public boolean tickRate$shouldTickChunk(World world, long chunkPos) {
-        Float tickRate = chunks.get(world.getRegistryKey().getValue() + "-" + chunkPos);
+        if(isSprinting()) return true;
+        if(isFrozen()) return isStepping();
+
+        String key = world.getRegistryKey().getValue() + "-" + chunkPos;
+        if(sprinting.computeIfPresent(key, (k,v) -> {
+            if(v == 0) return null;
+            return --v;
+        }) != null) return true;
+
+        if(steps.getOrDefault(key,-1) == 0) return false;
+
+        Float tickRate = chunks.get(key);
+        boolean shouldTick;
         if(tickRate == null) // follow nominal rate
-            return tickRate$shouldTickServer();
+            shouldTick = tickRate$shouldTickServer();
         else
-            return internalShouldTick(tickRate);
+            shouldTick = internalShouldTick(tickRate);
+
+        steps.computeIfPresent(key,(k,v) -> {
+            if(v > 0 && shouldTick) return --v;
+            return v;
+        });
+
+        return shouldTick;
     }
 
     public boolean tickRate$shouldTickServer() {
+        if(isSprinting()) return true;
+        if(isFrozen()) return isStepping();
         return internalShouldTick(nominalTickRate);
     }
 
@@ -109,8 +174,18 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     }
 
     public void tickRate$ticked() {
-        ticks++;
-        if(ticks > tickRate) ticks = 1;
+        if(!sprinting.isEmpty()) {
+            ticks++;
+            if(ticks > sprintAvgTicksPerSecond) {
+                ticks = 1;
+                sprintAvgTicksPerSecond = (int) (TimeHelper.SECOND_IN_NANOS / server.getAverageNanosPerTick());
+            }
+        }
+        else {
+            sprintAvgTicksPerSecond = -1;
+            ticks++;
+            if(ticks > tickRate) ticks = 1;
+        }
     }
 
     public void tickRate$setEntityRate(float rate, Collection<? extends Entity> entities) {
@@ -127,7 +202,33 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         return nominalTickRate;
     }
 
-    //todo
+    public void tickRate$setEntityFrozen(boolean frozen, Collection<? extends Entity> entities) {
+        if(frozen) {
+            entities.forEach(e -> steps.put(e.getUuidAsString(),0));
+            entities.forEach(e -> { // if sprinting, stop the sprint
+               if(sprinting.containsKey(e.getUuidAsString())) sprinting.put(e.getUuidAsString(),0);
+            });
+        }
+        else {
+            entities.forEach(e -> steps.remove(e.getUuidAsString()));
+        }
+    }
+
+    public boolean tickRate$stepEntity(int steps, Collection<? extends Entity> entities) {
+        if(entities.stream().anyMatch(e -> !this.steps.containsKey(e.getUuidAsString()))) {
+            return false; // some are not frozen, error
+        }
+        entities.forEach(e -> this.steps.put(e.getUuidAsString(), steps));
+        return true;
+    }
+
+    public boolean tickRate$sprintEntity(int ticks, Collection<? extends Entity> entities) {
+        if(entities.stream().anyMatch(e -> this.steps.containsKey(e.getUuidAsString()))) {
+            return false; // some are frozen, error
+        }
+        entities.forEach(e -> this.sprinting.put(e.getUuidAsString(), ticks));
+        return true;
+    }
 
     public void tickRate$setChunkRate(float rate, World world, long chunkPos) {
         if(rate == 0) chunks.remove(world.getRegistryKey().getValue() + "-" + chunkPos);
@@ -141,14 +242,41 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         return nominalTickRate;
     }
 
+    public void tickRate$setChunkFrozen(boolean frozen, World world, long chunkPos) {
+        String key = world.getRegistryKey().getValue() + "-" + chunkPos;
+        if(frozen) {
+            steps.put(key,0);
+            if(sprinting.containsKey(key)) sprinting.put(key,0); // if sprinting, stop the sprint
+        }
+        else {
+            steps.remove(key);
+        }
+    }
+
+    public boolean tickRate$stepChunk(int steps, World world, long chunkPos) {
+        String key = world.getRegistryKey().getValue() + "-" + chunkPos;
+        if(!this.steps.containsKey(key)) return false; // not frozen, cannot step
+        this.steps.put(key,steps);
+        return true;
+    }
+
+    public boolean tickRate$sprintChunk(int ticks, World world, long chunkPos) {
+        String key = world.getRegistryKey().getValue() + "-" + chunkPos;
+        if(this.steps.containsKey(key)) return false; // frozen, cannot sprint
+        this.sprinting.put(key,ticks);
+        return true;
+    }
+
 
     // PRIVATE METHODS
 
     @Unique
     private boolean internalShouldTick(float tickRate) {
         // attempt to evenly space out the exact number of ticks
-        double d = (this.tickRate-1)/(tickRate+1);
-        if(tickRate == this.tickRate) return true;
+        float fastestTickRate = sprintAvgTicksPerSecond==-1 ? this.tickRate : sprintAvgTicksPerSecond;
+
+        double d = (fastestTickRate-1)/(tickRate+1);
+        if(tickRate == fastestTickRate) return true;
         if(ticks == 1) return Math.ceil(1+(1*d)) == 1;
 
         double eventsToTick = (ticks-1)/d;
@@ -161,6 +289,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
 
     @Unique
     private void updateFastestTicker() {
+        if(isStepping()) return;
         float fastest = 1.0f;
         fastest = Math.max(fastest, nominalTickRate);
         for(float rate : entities.values())

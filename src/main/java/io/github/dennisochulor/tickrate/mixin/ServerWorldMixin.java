@@ -7,6 +7,7 @@ import io.github.dennisochulor.tickrate.TickRateWorldTickScheduler;
 import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
 import net.minecraft.fluid.Fluid;
+import net.minecraft.server.ServerTickManager;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.profiler.Profiler;
@@ -27,7 +28,6 @@ public abstract class ServerWorldMixin {
     @Shadow public abstract TickManager getTickManager();
 
     @Shadow @Final private WorldTickScheduler<Block> blockTickScheduler;
-
     @Shadow @Final private WorldTickScheduler<Fluid> fluidTickScheduler;
 
     @ModifyVariable(method = "tick(Ljava/util/function/BooleanSupplier;)V", at = @At("STORE"), ordinal = 0)
@@ -38,7 +38,10 @@ public abstract class ServerWorldMixin {
 
     @Inject(method = "tick(Ljava/util/function/BooleanSupplier;)V",  at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiler/Profiler;push(Ljava/lang/String;)V", args = "ldc=tickPending"))
     private void tick$modifyBl(CallbackInfo ci, @Local LocalBooleanRef bl) {
-        bl.set(true);
+        ServerTickManager serverTickManager = (ServerTickManager) getTickManager();
+        if(serverTickManager.isSprinting()) bl.set(true);
+        else if(serverTickManager.isFrozen()) bl.set(serverTickManager.isStepping());
+        else bl.set(true);
         ((TickRateWorldTickScheduler)this.blockTickScheduler).tickRate$setWorld((ServerWorld) (Object)this); // this sucks man...
         ((TickRateWorldTickScheduler)this.fluidTickScheduler).tickRate$setWorld((ServerWorld) (Object)this); // this sucks man...
     }
@@ -51,7 +54,10 @@ public abstract class ServerWorldMixin {
 
     @Inject(method = "tick(Ljava/util/function/BooleanSupplier;)V",  at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiler/Profiler;swap(Ljava/lang/String;)V", args = "ldc=blockEvents"))
     private void tick$modifyBl3(CallbackInfo ci, @Local LocalBooleanRef bl) {
-        bl.set(true);
+        ServerTickManager serverTickManager = (ServerTickManager) getTickManager();
+        if(serverTickManager.isSprinting()) bl.set(true);
+        else if(serverTickManager.isFrozen()) bl.set(serverTickManager.isStepping());
+        else bl.set(true);
     }
 
     @Inject(method = "method_31420",  at = @At(value = "HEAD"), cancellable = true)
