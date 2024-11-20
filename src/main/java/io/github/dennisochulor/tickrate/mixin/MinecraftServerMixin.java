@@ -31,8 +31,10 @@ public abstract class MinecraftServerMixin {
 		return (int) this.getTickManager().getTickRate(); // mainloop rate
 	}
 
-
-
-
+	@Redirect(method = "runServer", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickManager;isSprinting()Z"))
+	private boolean runServer$isSprinting(ServerTickManager instance) {
+		TickRateTickManager tickManager = (TickRateTickManager) instance;
+		return instance.isSprinting() || tickManager.tickRate$isIndividualSprint();
+	}
 
 }

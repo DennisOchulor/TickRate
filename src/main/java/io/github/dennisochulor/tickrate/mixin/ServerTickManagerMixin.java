@@ -1,5 +1,6 @@
 package io.github.dennisochulor.tickrate.mixin;
 
+import io.github.dennisochulor.tickrate.ChunkTickState;
 import io.github.dennisochulor.tickrate.TickRateTickManager;
 import net.minecraft.entity.Entity;
 import net.minecraft.nbt.NbtCompound;
@@ -33,17 +34,20 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     @Unique private int ticks = 0;
     @Unique private final Map<String,Float> entities = new HashMap<>(); // uuid -> tickRate
     @Unique private final Map<String,Float> chunks = new HashMap<>(); // world-longChunkPos -> tickRate
+    @Unique private final Map<String,Boolean> chunksTicked = new HashMap<>(); // world-longChunkPos -> hasTickedThisMainloopTick, needed to ensure ChunkTickState is only updated ONCE per mainloop tick
     @Unique private final Map<String,Integer> steps = new HashMap<>(); // uuid/world-longChunkPos -> steps, if steps==0, then it's frozen
     @Unique private final Map<String,Integer> sprinting = new HashMap<>(); // uuid/world-longChunkPos -> sprintTicks
     @Unique private int sprintAvgTicksPerSecond = -1;
+    @Unique private int individualSprintTicks = 0;
     @Shadow @Final private MinecraftServer server;
     @Unique private File datafile;
 
     @Shadow public abstract void setTickRate(float tickRate);
-
     @Shadow public abstract boolean isSprinting();
-
     @Shadow public abstract boolean stopStepping();
+
+    @Shadow private long scheduledSprintTicks;
+    @Shadow private long sprintTicks;
 
     @Inject(method = "<init>(Lnet/minecraft/server/MinecraftServer;)V", at = @At("TAIL"))
     public void ServerTickManager(MinecraftServer server, CallbackInfo ci) {
@@ -52,6 +56,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
 
     @Inject(method = "step", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickManager;sendStepPacket()V"))
     public void serverTickManager$step(int ticks, CallbackInfoReturnable<Boolean> cir) {
+        this.stepTicks++; // for some reason, the first tick is always skipped. so artificially add one :P
         setTickRate(nominalTickRate);
     }
 
@@ -60,12 +65,20 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         updateFastestTicker();
     }
 
+    @Inject(method = "sprint", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickManager;finishSprinting()V", shift = At.Shift.BEFORE), cancellable = true)
+    public void sprint(CallbackInfoReturnable<Boolean> cir) {
+        if(scheduledSprintTicks == 0L) {
+            individualSprintTicks--;
+            cir.setReturnValue(true);
+        }
+    }
+
     @Override
     public void step() {
         this.shouldTick = !this.frozen || this.stepTicks > 0;
         if (this.stepTicks > 0) {
-            if(this.stepTicks == 1) stopStepping();
-            else this.stepTicks--;
+            this.stepTicks--;
+            if(this.stepTicks == 0) updateFastestTicker();
         }
     }
 
@@ -132,14 +145,19 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     }
 
     public boolean tickRate$shouldTickChunk(World world, long chunkPos) {
+        String key = world.getRegistryKey().getValue() + "-" + chunkPos;
+        if(chunksTicked.get(key) != null) return chunksTicked.get(key);
         if(isSprinting()) return true;
         if(isFrozen()) return isStepping();
 
-        String key = world.getRegistryKey().getValue() + "-" + chunkPos;
         if(sprinting.computeIfPresent(key, (k,v) -> {
             if(v == 0) return null;
             return --v;
-        }) != null) return true;
+        }) != null)
+        {
+            chunksTicked.put(key,true);
+            return true;
+        }
 
         if(steps.getOrDefault(key,-1) == 0) return false;
 
@@ -155,6 +173,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
             return v;
         });
 
+        chunksTicked.put(key,shouldTick);
         return shouldTick;
     }
 
@@ -182,10 +201,23 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
             }
         }
         else {
+            individualSprintTicks = 0;
             sprintAvgTicksPerSecond = -1;
             ticks++;
             if(ticks > tickRate) ticks = 1;
         }
+        chunksTicked.clear();
+    }
+
+    public boolean tickRate$isIndividualSprint() {
+        return individualSprintTicks > 0;
+    }
+
+    public void tickRate$removeEntity(Entity entity, boolean rate, boolean steps, boolean sprint) {
+        String uuid = entity.getUuidAsString();
+        if(rate) entities.remove(uuid);
+        if(steps) this.steps.remove(uuid);
+        if(sprint) sprinting.remove(uuid);
     }
 
     public void tickRate$setEntityRate(float rate, Collection<? extends Entity> entities) {
@@ -227,6 +259,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
             return false; // some are frozen, error
         }
         entities.forEach(e -> this.sprinting.put(e.getUuidAsString(), ticks));
+        individualSprint();
         return true;
     }
 
@@ -264,7 +297,16 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         String key = world.getRegistryKey().getValue() + "-" + chunkPos;
         if(this.steps.containsKey(key)) return false; // frozen, cannot sprint
         this.sprinting.put(key,ticks);
+        individualSprint();
         return true;
+    }
+
+    public ChunkTickState tickRate$getChunkTickState(World world, long chunkPos) {
+        String key = world.getRegistryKey().getValue() + "-" + chunkPos;
+        float rate = chunks.containsKey(key) ? chunks.get(key) : nominalTickRate;
+        boolean frozen = steps.containsKey(key);
+        boolean sprinting = this.sprinting.containsKey(key);
+        return new ChunkTickState(rate,frozen,sprinting);
     }
 
 
@@ -300,6 +342,15 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
             setTickRate(fastest);
             ticks = 1; // reset it
         }
+    }
+
+    @Unique
+    private void individualSprint() {
+        int mostTicksRemaining = 0;
+        for(int ticks : sprinting.values()) {
+            mostTicksRemaining = Math.max(mostTicksRemaining,ticks);
+        }
+        individualSprintTicks = mostTicksRemaining;
     }
 
 

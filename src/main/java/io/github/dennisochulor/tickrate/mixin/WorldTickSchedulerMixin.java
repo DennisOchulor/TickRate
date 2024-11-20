@@ -1,5 +1,6 @@
 package io.github.dennisochulor.tickrate.mixin;
 
+import io.github.dennisochulor.tickrate.ChunkTickState;
 import io.github.dennisochulor.tickrate.TickRateChunkTickScheduler;
 import io.github.dennisochulor.tickrate.TickRateTickManager;
 import io.github.dennisochulor.tickrate.TickRateWorldTickScheduler;
@@ -45,7 +46,8 @@ public class WorldTickSchedulerMixin<T> implements TickRateWorldTickScheduler {
             TickRateChunkTickScheduler<T> chunkTickScheduler = (TickRateChunkTickScheduler<T>) chunkTickSchedulers.get(l);
             TickRateTickManager tickManager = (TickRateTickManager) world.getTickManager();
             chunkTickScheduler.tickRate$setServerTime(time);
-            if(tickManager.tickRate$getServerRate() == tickManager.tickRate$getChunkRate(world,l)) {
+            ChunkTickState tickState = tickManager.tickRate$getChunkTickState(world,l);
+            if(tickManager.tickRate$getServerRate() == tickState.rate() && !tickState.frozen() && !tickState.sprinting()) {
                 chunkTickScheduler.tickRate$toggleMode(true);
             }
             else {

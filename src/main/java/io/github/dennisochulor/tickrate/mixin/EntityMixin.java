@@ -18,8 +18,11 @@ public abstract class EntityMixin {
 
     @Inject(method = "onRemove", at = @At("TAIL"))
     public void onRemove(Entity.RemovalReason reason, CallbackInfo ci) {
+        Entity entity = (Entity)(Object)this;
         TickRateTickManager tickManager = (TickRateTickManager) this.getServer().getTickManager();
-        if(reason.shouldDestroy()) tickManager.tickRate$setEntityRate(0.0f, List.of((Entity)(Object)this));
+        if(reason.shouldDestroy()) tickManager.tickRate$removeEntity(entity,true,true,true);
+        else if(reason == Entity.RemovalReason.UNLOADED_TO_CHUNK || reason == Entity.RemovalReason.UNLOADED_WITH_PLAYER)
+            tickManager.tickRate$removeEntity(entity,false,false,true);
     }
 
     public void tickiii(CallbackInfo ci) {

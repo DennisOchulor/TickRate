@@ -72,6 +72,7 @@ public abstract class ServerWorldMixin {
         TickRateTickManager tickManager = (TickRateTickManager) getTickManager();
         if(!tickManager.tickRate$shouldTickChunk(world, chunkPos)) cir.setReturnValue(false);
     }
+
     @Inject(method = "shouldTick(Lnet/minecraft/util/math/ChunkPos;)Z", at = @At("HEAD"), cancellable = true)
     public void shouldTick(ChunkPos pos, CallbackInfoReturnable<Boolean> cir) {
         ServerWorld world = (ServerWorld) (Object) this;
