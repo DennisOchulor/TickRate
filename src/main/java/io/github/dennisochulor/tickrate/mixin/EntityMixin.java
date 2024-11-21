@@ -19,6 +19,8 @@ public abstract class EntityMixin {
     @Inject(method = "onRemove", at = @At("TAIL"))
     public void onRemove(Entity.RemovalReason reason, CallbackInfo ci) {
         Entity entity = (Entity)(Object)this;
+        if(entity.getWorld().isClient) return;
+
         TickRateTickManager tickManager = (TickRateTickManager) this.getServer().getTickManager();
         if(reason.shouldDestroy()) tickManager.tickRate$removeEntity(entity,true,true,true);
         else if(reason == Entity.RemovalReason.UNLOADED_TO_CHUNK || reason == Entity.RemovalReason.UNLOADED_WITH_PLAYER)

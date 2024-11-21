@@ -1,13 +1,17 @@
 package io.github.dennisochulor.tickrate.mixin;
 
-import io.github.dennisochulor.tickrate.ChunkTickState;
+import io.github.dennisochulor.tickrate.TickRate;
+import io.github.dennisochulor.tickrate.TickRateS2CUpdatePayload;
 import io.github.dennisochulor.tickrate.TickRateTickManager;
+import io.github.dennisochulor.tickrate.TickState;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.Entity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.ServerTickManager;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.TimeHelper;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
@@ -23,9 +27,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @Mixin(ServerTickManager.class)
 public abstract class ServerTickManagerMixin extends TickManager implements TickRateTickManager {
@@ -37,6 +39,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     @Unique private final Map<String,Boolean> chunksTicked = new HashMap<>(); // world-longChunkPos -> hasTickedThisMainloopTick, needed to ensure ChunkTickState is only updated ONCE per mainloop tick
     @Unique private final Map<String,Integer> steps = new HashMap<>(); // uuid/world-longChunkPos -> steps, if steps==0, then it's frozen
     @Unique private final Map<String,Integer> sprinting = new HashMap<>(); // uuid/world-longChunkPos -> sprintTicks
+    @Unique private final Set<ServerPlayerEntity> playersWithMod = new HashSet<>(); // stores players that have this mod client-side
     @Unique private int sprintAvgTicksPerSecond = -1;
     @Unique private int individualSprintTicks = 0;
     @Shadow @Final private MinecraftServer server;
@@ -118,6 +121,24 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         }
     }
 
+    public void tickRate$addPlayerWithMod(ServerPlayerEntity player) {
+        playersWithMod.add(player);
+    }
+
+    public void tickRate$removePlayerWithMod(ServerPlayerEntity player) {
+        playersWithMod.remove(player);
+    }
+
+    public void tickRate$sendUpdatePacket() {
+        TickState server = tickRate$getServerTickState();
+        Map<String,TickState> entities1 = new HashMap<>();
+        Map<String,TickState> chunks1 = new HashMap<>();
+        this.entities.keySet().forEach(key -> entities1.put(key,getEntityTickState(key)));
+        this.chunks.keySet().forEach(key -> chunks1.put(key,getChunkTickState(key)));
+        TickRateS2CUpdatePayload payload = new TickRateS2CUpdatePayload(server,entities1,chunks1);
+        playersWithMod.forEach(player -> ServerPlayNetworking.send(player, payload));
+    }
+
     public boolean tickRate$shouldTickEntity(Entity entity) {
         if(isSprinting()) return true;
         if(isFrozen()) return isStepping();
@@ -192,6 +213,10 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         return nominalTickRate;
     }
 
+    public TickState tickRate$getServerTickState() {
+        return new TickState(tickRate$getServerRate(),isFrozen(),isStepping(),isSprinting());
+    }
+
     public void tickRate$ticked() {
         if(!sprinting.isEmpty()) {
             ticks++;
@@ -263,6 +288,11 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         return true;
     }
 
+    public TickState tickRate$getEntityTickState(Entity entity) {
+        String key = entity.getUuidAsString();
+        return getEntityTickState(key);
+    }
+
     public void tickRate$setChunkRate(float rate, World world, long chunkPos) {
         if(rate == 0) chunks.remove(world.getRegistryKey().getValue() + "-" + chunkPos);
         else chunks.put(world.getRegistryKey().getValue() + "-" + chunkPos, rate);
@@ -301,12 +331,9 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         return true;
     }
 
-    public ChunkTickState tickRate$getChunkTickState(World world, long chunkPos) {
+    public TickState tickRate$getChunkTickState(World world, long chunkPos) {
         String key = world.getRegistryKey().getValue() + "-" + chunkPos;
-        float rate = chunks.containsKey(key) ? chunks.get(key) : nominalTickRate;
-        boolean frozen = steps.containsKey(key);
-        boolean sprinting = this.sprinting.containsKey(key);
-        return new ChunkTickState(rate,frozen,sprinting);
+        return getChunkTickState(key);
     }
 
 
@@ -351,6 +378,24 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
             mostTicksRemaining = Math.max(mostTicksRemaining,ticks);
         }
         individualSprintTicks = mostTicksRemaining;
+    }
+
+    @Unique
+    private TickState getChunkTickState(String key) {
+        float rate = chunks.getOrDefault(key, -1.0f);
+        boolean frozen = steps.containsKey(key);
+        boolean stepping = frozen && steps.get(key) != 0;
+        boolean sprinting = this.sprinting.containsKey(key);
+        return new TickState(rate,frozen,stepping,sprinting);
+    }
+
+    @Unique
+    private TickState getEntityTickState(String key) {
+        float rate = entities.getOrDefault(key, -1.0f);
+        boolean frozen = steps.containsKey(key);
+        boolean stepping = frozen && steps.get(key) != 0;
+        boolean sprinting = this.sprinting.containsKey(key);
+        return new TickState(rate,frozen,stepping,sprinting);
     }
 
 

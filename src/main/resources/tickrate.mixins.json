@@ -11,7 +11,6 @@
     "ServerTickManagerMixin",
     "ServerWorldMixin",
     "TickCommandMixin",
-    "UpdateTickRateS2CPacketMixin",
     "WorldTickSchedulerMixin"
   ],
   "injectors": {

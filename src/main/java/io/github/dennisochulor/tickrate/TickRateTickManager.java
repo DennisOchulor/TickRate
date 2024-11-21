@@ -1,6 +1,8 @@
 package io.github.dennisochulor.tickrate;
 
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.Entity;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.world.World;
 
 import java.util.Collection;
@@ -9,6 +11,9 @@ public interface TickRateTickManager {
 
     void tickRate$serverStarted();
     void tickRate$serverStopped();
+    void tickRate$addPlayerWithMod(ServerPlayerEntity player);
+    void tickRate$removePlayerWithMod(ServerPlayerEntity player);
+    void tickRate$sendUpdatePacket();
     boolean tickRate$shouldTickEntity(Entity entity);
     boolean tickRate$shouldTickChunk(World world, long chunkPos);
     boolean tickRate$shouldTickServer();
@@ -27,6 +32,8 @@ public interface TickRateTickManager {
     void tickRate$setChunkFrozen(boolean frozen, World world, long chunkPos);
     boolean tickRate$stepChunk(int steps, World world, long chunkPos);
     boolean tickRate$sprintChunk(int ticks, World world, long chunkPos);
-    ChunkTickState tickRate$getChunkTickState(World world, long chunkPos);
+    TickState tickRate$getChunkTickState(World world, long chunkPos);
+    TickState tickRate$getEntityTickState(Entity entity);
+    TickState tickRate$getServerTickState();
 
 }

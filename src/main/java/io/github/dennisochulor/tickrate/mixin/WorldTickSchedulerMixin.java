@@ -1,9 +1,9 @@
 package io.github.dennisochulor.tickrate.mixin;
 
-import io.github.dennisochulor.tickrate.ChunkTickState;
 import io.github.dennisochulor.tickrate.TickRateChunkTickScheduler;
 import io.github.dennisochulor.tickrate.TickRateTickManager;
 import io.github.dennisochulor.tickrate.TickRateWorldTickScheduler;
+import io.github.dennisochulor.tickrate.TickState;
 import it.unimi.dsi.fastutil.longs.Long2LongMap;
 import it.unimi.dsi.fastutil.longs.Long2LongMaps;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
@@ -46,8 +46,8 @@ public class WorldTickSchedulerMixin<T> implements TickRateWorldTickScheduler {
             TickRateChunkTickScheduler<T> chunkTickScheduler = (TickRateChunkTickScheduler<T>) chunkTickSchedulers.get(l);
             TickRateTickManager tickManager = (TickRateTickManager) world.getTickManager();
             chunkTickScheduler.tickRate$setServerTime(time);
-            ChunkTickState tickState = tickManager.tickRate$getChunkTickState(world,l);
-            if(tickManager.tickRate$getServerRate() == tickState.rate() && !tickState.frozen() && !tickState.sprinting()) {
+            TickState tickState = tickManager.tickRate$getChunkTickState(world,l);
+            if(tickState.rate() == -1.0f && !tickState.frozen() && !tickState.sprinting()) {
                 chunkTickScheduler.tickRate$toggleMode(true);
             }
             else {
