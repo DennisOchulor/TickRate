@@ -1,6 +1,5 @@
 package io.github.dennisochulor.tickrate.mixin;
 
-import io.github.dennisochulor.tickrate.TickRate;
 import io.github.dennisochulor.tickrate.TickRateS2CUpdatePayload;
 import io.github.dennisochulor.tickrate.TickRateTickManager;
 import io.github.dennisochulor.tickrate.TickState;
@@ -42,15 +41,13 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     @Unique private final Set<ServerPlayerEntity> playersWithMod = new HashSet<>(); // stores players that have this mod client-side
     @Unique private int sprintAvgTicksPerSecond = -1;
     @Unique private int individualSprintTicks = 0;
-    @Shadow @Final private MinecraftServer server;
     @Unique private File datafile;
 
     @Shadow public abstract void setTickRate(float tickRate);
     @Shadow public abstract boolean isSprinting();
-    @Shadow public abstract boolean stopStepping();
 
+    @Shadow @Final private MinecraftServer server;
     @Shadow private long scheduledSprintTicks;
-    @Shadow private long sprintTicks;
 
     @Inject(method = "<init>(Lnet/minecraft/server/MinecraftServer;)V", at = @At("TAIL"))
     public void ServerTickManager(MinecraftServer server, CallbackInfo ci) {
@@ -129,6 +126,10 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         playersWithMod.remove(player);
     }
 
+    public boolean tickRate$hasClientMod(ServerPlayerEntity player) {
+        return playersWithMod.contains(player);
+    }
+
     public void tickRate$sendUpdatePacket() {
         TickState server = tickRate$getServerTickState();
         Map<String,TickState> entities1 = new HashMap<>();
@@ -142,6 +143,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     public boolean tickRate$shouldTickEntity(Entity entity) {
         if(isSprinting()) return true;
         if(isFrozen()) return isStepping();
+        //todo playersWithoutMod thingy
 
         if(sprinting.computeIfPresent(entity.getUuidAsString(), (k,v) -> {
             if(v == 0) return null;
@@ -223,13 +225,17 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
             if(ticks > sprintAvgTicksPerSecond) {
                 ticks = 1;
                 sprintAvgTicksPerSecond = (int) (TimeHelper.SECOND_IN_NANOS / server.getAverageNanosPerTick());
+                tickRate$sendUpdatePacket();
             }
         }
         else {
             individualSprintTicks = 0;
             sprintAvgTicksPerSecond = -1;
             ticks++;
-            if(ticks > tickRate) ticks = 1;
+            if(ticks > tickRate) {
+                ticks = 1;
+                tickRate$sendUpdatePacket();
+            }
         }
         chunksTicked.clear();
     }

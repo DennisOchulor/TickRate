@@ -1,11 +1,15 @@
 {
-	"required": true,
-	"package": "io.github.dennisochulor.tickrate.mixin.client",
-	"compatibilityLevel": "JAVA_21",
-	"client": [
-		"ExampleClientMixin"
-	],
-	"injectors": {
-		"defaultRequire": 1
+  "required": true,
+  "package": "io.github.dennisochulor.tickrate.mixin.client",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "BlockEntityRenderDispatcherMixin",
+    "EntityRenderDispatcherMixin",
+    "MinecraftClientMixin",
+    "RenderTickCounterMixin",
+    "WorldRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
 	}
 }

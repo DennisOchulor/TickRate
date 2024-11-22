@@ -13,6 +13,7 @@ public interface TickRateTickManager {
     void tickRate$serverStopped();
     void tickRate$addPlayerWithMod(ServerPlayerEntity player);
     void tickRate$removePlayerWithMod(ServerPlayerEntity player);
+    boolean tickRate$hasClientMod(ServerPlayerEntity player);
     void tickRate$sendUpdatePacket();
     boolean tickRate$shouldTickEntity(Entity entity);
     boolean tickRate$shouldTickChunk(World world, long chunkPos);

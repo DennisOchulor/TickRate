@@ -13,6 +13,7 @@ import net.minecraft.server.ServerTickManager;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.command.TickCommand;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.TimeHelper;
 import net.minecraft.util.math.BlockPos;
@@ -165,6 +166,7 @@ public class TickCommandMixin {
     private static void executeRate$setTickRate(ServerTickManager instance, float tickRate) {
         TickRateTickManager tickManager = (TickRateTickManager) instance;
         tickManager.tickRate$setServerRate(tickRate);
+        tickManager.tickRate$sendUpdatePacket();
     }
 
     /**
@@ -210,10 +212,12 @@ public class TickCommandMixin {
         String string = String.format(Locale.ROOT, "%.1f", rate);
         if(rate != 0) {
             source.sendFeedback(() -> Text.of("Successfully set target rate of the specified chunk to " + string), false);
+            tickManager.tickRate$sendUpdatePacket();
             return (int) rate;
         }
         else {
             source.sendFeedback(() -> Text.literal("Reset the target rate of the specified chunk according to the server's tick rate."), false);
+            tickManager.tickRate$sendUpdatePacket();
             return (int) tickManager.tickRate$getServerRate();
         }
     }
@@ -232,6 +236,7 @@ public class TickCommandMixin {
         tickManager.tickRate$setChunkFrozen(frozen, source.getWorld(), ChunkPos.toLong(blockPos));
         if(frozen) source.sendFeedback(() -> Text.literal("The specified chunk has been frozen"), false);
         else source.sendFeedback(() -> Text.literal("The specified chunk has been unfrozen"), false);
+        tickManager.tickRate$sendUpdatePacket();
         return 1;
     }
 
@@ -242,6 +247,7 @@ public class TickCommandMixin {
         if(success && steps != 0) source.sendFeedback(() -> Text.literal("The specified chunk will step " + steps + " ticks."), false);
         else if(success && steps == 0) source.sendFeedback(() -> Text.literal("The specified chunk has stopped stepping."), false);
         else source.sendFeedback(() -> Text.literal("The specified chunk must be frozen first!"), false);
+        tickManager.tickRate$sendUpdatePacket();
         return success ? 1 : 0;
     }
 
@@ -252,20 +258,25 @@ public class TickCommandMixin {
         if(success && ticks != 0) source.sendFeedback(() -> Text.literal("The specified chunk will sprint for " + ticks + " ticks."), false);
         else if(success && ticks == 0) source.sendFeedback(() -> Text.literal("The specified chunk has stopped sprinting."), false);
         else source.sendFeedback(() -> Text.literal("The specified chunk must not be frozen!"), false);
+        tickManager.tickRate$sendUpdatePacket();
         return success ? 1 : 0;
     }
 
     @Unique
     private static int executeEntityRate(ServerCommandSource source, Collection<? extends Entity> entities, float rate) {
+        if(entityCheck(entities,source)) return 0;
+
         TickRateTickManager tickManager = (TickRateTickManager) source.getServer().getTickManager();
         tickManager.tickRate$setEntityRate(rate, entities);
         String string = String.format(Locale.ROOT, "%.1f", rate);
         if(rate != 0) {
             source.sendFeedback(() -> Text.of("Successfully set target rate of the specified entities to " + string), false);
+            tickManager.tickRate$sendUpdatePacket();
             return (int) rate;
         }
         else {
             source.sendFeedback(() -> Text.literal("Reset the target rate of the specified entities according to the server's tick rate."), false);
+            tickManager.tickRate$sendUpdatePacket();
             return (int) tickManager.tickRate$getServerRate();
         }
     }
@@ -280,31 +291,52 @@ public class TickCommandMixin {
 
     @Unique
     private static int executeEntityFreeze(ServerCommandSource source, Collection<? extends Entity> entities, boolean frozen) {
+        if(entityCheck(entities,source)) return 0;
+
         TickRateTickManager tickManager = (TickRateTickManager) source.getServer().getTickManager();
         tickManager.tickRate$setEntityFrozen(frozen, entities);
         if(frozen) source.sendFeedback(() -> Text.literal("The specified entities have been frozen"), false);
         else source.sendFeedback(() -> Text.literal("The specified entities have been unfrozen"), false);
+        tickManager.tickRate$sendUpdatePacket();
         return 1;
     }
 
     @Unique
     private static int executeEntityStep(ServerCommandSource source, Collection<? extends Entity> entities, int steps) {
+        if(entityCheck(entities,source)) return 0;
+
         TickRateTickManager tickManager = (TickRateTickManager) source.getServer().getTickManager();
         boolean success = tickManager.tickRate$stepEntity(steps,entities);
         if(success && steps != 0) source.sendFeedback(() -> Text.literal("The specified entities will step " + steps + " ticks."), false);
         else if(success && steps == 0) source.sendFeedback(() -> Text.literal("The specified entities have stopped stepping."), false);
         else source.sendFeedback(() -> Text.literal("The specified entities must be frozen first!"), false);
+        tickManager.tickRate$sendUpdatePacket();
         return success ? 1 : 0;
     }
 
     @Unique
     private static int executeEntitySprint(ServerCommandSource source, Collection<? extends Entity> entities, int ticks) {
+        if(entityCheck(entities,source)) return 0;
+
         TickRateTickManager tickManager = (TickRateTickManager) source.getServer().getTickManager();
         boolean success = tickManager.tickRate$sprintEntity(ticks,entities);
         if(success && ticks != 0) source.sendFeedback(() -> Text.literal("The specified entities will sprint for " + ticks + " ticks."), false);
         else if(success && ticks == 0) source.sendFeedback(() -> Text.literal("The specified entities have stopped sprinting."), false);
         else source.sendFeedback(() -> Text.literal("The specified entities must not be frozen!"), false);
+        tickManager.tickRate$sendUpdatePacket();
         return success ? 1 : 0;
+    }
+
+    @Unique
+    // returns true if any of the entities cannot be the command's target
+    private static boolean entityCheck(Collection<? extends Entity> entities, ServerCommandSource source) {
+        TickRateTickManager tickManager = (TickRateTickManager) source.getServer().getTickManager();
+        boolean match = entities.stream().anyMatch(e -> {
+            if(e instanceof ServerPlayerEntity player) return !tickManager.tickRate$hasClientMod(player);
+            else return false;
+        });
+        if(match) source.sendFeedback(() -> Text.literal("Some of the specified entities are players that do not have TickRate mod installed on their client, so their tick rate cannot be manipulated."), false);
+        return match;
     }
 
 }
