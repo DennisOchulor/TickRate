@@ -21,7 +21,6 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.io.File;
@@ -48,11 +47,6 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
 
     @Shadow @Final private MinecraftServer server;
     @Shadow private long scheduledSprintTicks;
-
-    @Inject(method = "<init>(Lnet/minecraft/server/MinecraftServer;)V", at = @At("TAIL"))
-    public void ServerTickManager(MinecraftServer server, CallbackInfo ci) {
-        datafile = server.isDedicated() ? server.getRunDirectory().resolve("world/data/TickRateData.nbt").toFile() : server.getRunDirectory().resolve("saves/" + server.getSaveProperties().getLevelName() + "/data/TickRateData.nbt").toFile();
-    }
 
     @Inject(method = "step", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickManager;sendStepPacket()V"))
     public void serverTickManager$step(int ticks, CallbackInfoReturnable<Boolean> cir) {
@@ -83,6 +77,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     }
 
     public void tickRate$serverStarted() {
+        datafile = server.isDedicated() ? server.getRunDirectory().resolve("world/data/TickRateData.nbt").toFile() : server.getRunDirectory().resolve("saves/" + server.getSaveProperties().getLevelName() + "/data/TickRateData.nbt").toFile();
         if(datafile.exists()) {
             try {
                 NbtCompound nbt = NbtIo.read(datafile.toPath());
@@ -136,6 +131,14 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         Map<String,TickState> chunks1 = new HashMap<>();
         this.entities.keySet().forEach(key -> entities1.put(key,getEntityTickState(key)));
         this.chunks.keySet().forEach(key -> chunks1.put(key,getChunkTickState(key)));
+        this.steps.keySet().forEach(key -> { // for frozen stuff that has no specific rate
+            if(key.contains(":")) chunks1.putIfAbsent(key, getChunkTickState(key)); // only chunk keys have : in them
+            else entities1.putIfAbsent(key, getEntityTickState(key));
+        });
+        this.sprinting.keySet().forEach(key -> { // for sprinting stuff that has no specific rate
+            if(key.contains(":")) chunks1.putIfAbsent(key, getChunkTickState(key)); // only chunk keys have : in them
+            else entities1.putIfAbsent(key, getEntityTickState(key));
+        });
         TickRateS2CUpdatePayload payload = new TickRateS2CUpdatePayload(server,entities1,chunks1);
         playersWithMod.forEach(player -> ServerPlayNetworking.send(player, payload));
     }

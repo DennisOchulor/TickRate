@@ -5,8 +5,10 @@
   "client": [
     "BlockEntityRenderDispatcherMixin",
     "EntityRenderDispatcherMixin",
+    "GameRendererMixin",
     "MinecraftClientMixin",
     "RenderTickCounterMixin",
+    "WorldMixin",
     "WorldRendererMixin"
   ],
   "injectors": {

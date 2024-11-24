@@ -14,7 +14,7 @@ public class EntityRenderDispatcherMixin {
     @ModifyArgs(method = "render(Lnet/minecraft/entity/Entity;DDDFLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;I)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/entity/EntityRenderDispatcher;render(Lnet/minecraft/entity/Entity;DDDFLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;ILnet/minecraft/client/render/entity/EntityRenderer;)V"))
     public void render(Args args) {
         Entity entity = args.get(0);
-        args.set(4, TickRateClientManager.getEntityTickDelta(args.get(4),entity)); // tickDelta
+        args.set(4, TickRateClientManager.getEntityTickDelta(args.get(4),entity).tickDelta()); // tickDelta
     }
 
 }

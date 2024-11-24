@@ -2,6 +2,9 @@ package io.github.dennisochulor.tickrate;
 
 public interface TickRateRenderTickCounter {
 
-    float tickRate$getSpecificTickDelta(float millisPerTick);
+    TickDeltaInfo tickRate$getSpecificTickDelta(float millisPerTick, String key);
+    void tickRate$setMovingI(int newI);
+    int tickRate$getMovingI();
+    int tickRate$getI();
 
 }
