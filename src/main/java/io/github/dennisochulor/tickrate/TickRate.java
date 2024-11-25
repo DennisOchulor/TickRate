@@ -22,18 +22,18 @@ public class TickRate implements ModInitializer {
 		PayloadTypeRegistry.playS2C().register(TickRateS2CUpdatePayload.ID, TickRateS2CUpdatePayload.CODEC);
 
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-			LOGGER.info("send tickrate Hello");
+			LOGGER.debug("send tickrate Hello");
 			sender.sendPacket(new TickRateHelloPayload());
 		});
 
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
-			LOGGER.info("disconnect tickrate");
+			LOGGER.debug("disconnect tickrate");
 			TickRateTickManager mixin = (TickRateTickManager) server.getTickManager();
 			mixin.tickRate$removePlayerWithMod(handler.getPlayer());
 		});
 
 		ServerPlayNetworking.registerGlobalReceiver(TickRateHelloPayload.ID, ((payload, context) -> {
-			LOGGER.info("received TickRate Hello");
+			LOGGER.debug("received TickRate Hello");
 			TickRateTickManager mixin = (TickRateTickManager) context.server().getTickManager();
 			mixin.tickRate$addPlayerWithMod(context.player());
 			mixin.tickRate$sendUpdatePacket();

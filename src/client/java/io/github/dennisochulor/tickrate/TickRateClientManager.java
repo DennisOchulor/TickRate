@@ -68,4 +68,20 @@ public class TickRateClientManager {
         return renderTickCounter.tickRate$getSpecificTickDelta(1000.0f / state.rate(),key);
     }
 
+    public static TickState getEntityState(Entity entity) {
+        TickState state = entities.get(entity.getUuidAsString());
+        if(state == null) return getChunkState(entity.getWorld(), entity.getChunkPos().toLong());
+        if(state.rate() == -1.0f)
+            return new TickState(getChunkState(entity.getWorld(), entity.getChunkPos().toLong()).rate(), state.frozen(), state.stepping(), state.sprinting());
+        else return state;
+    }
+
+    public static TickState getChunkState(World world, long chunkPos) {
+        TickState state = chunks.get(world.getRegistryKey().getValue() + "-" + chunkPos);
+        if(state == null) return serverState;
+        if(state.rate() == -1.0f)
+            return new TickState(serverState.rate(), state.frozen(), state.stepping(), state.sprinting());
+        else return state;
+    }
+
 }

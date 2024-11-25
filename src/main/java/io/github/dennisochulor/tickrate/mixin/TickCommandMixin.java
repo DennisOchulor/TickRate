@@ -22,8 +22,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -35,7 +33,6 @@ public class TickCommandMixin {
     @Shadow private static final float MAX_TICK_RATE = 10000.0F;
     @Shadow private static final String DEFAULT_TICK_RATE_STRING = String.valueOf(20);
 
-    @Shadow private static int executeRate(ServerCommandSource source, float rate) { return 0; }
     @Shadow private static int executeSprint(ServerCommandSource source, int ticks) { return 0; }
     @Shadow private static int executeFreeze(ServerCommandSource source, boolean frozen) { return 0; }
     @Shadow private static int executeStep(ServerCommandSource source, int steps) { return 0; }
@@ -51,7 +48,7 @@ public class TickCommandMixin {
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
         dispatcher.register(
                 CommandManager.literal("tick")
-                        .requires(source -> source.hasPermissionLevel(3))
+                        .requires(source -> source.hasPermissionLevel(2))
                         .then(CommandManager.literal("query").executes(context -> executeQuery(context.getSource())))
                         .then(
                                 CommandManager.literal("rate")
@@ -162,11 +159,18 @@ public class TickCommandMixin {
         );
     }
 
-    @Redirect(method = "executeRate", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickManager;setTickRate(F)V"))
-    private static void executeRate$setTickRate(ServerTickManager instance, float tickRate) {
-        TickRateTickManager tickManager = (TickRateTickManager) instance;
-        tickManager.tickRate$setServerRate(tickRate);
+    /**
+     * @author Ninjaking312
+     * @reason Because I need to
+     */
+    @Overwrite
+    private static int executeRate(ServerCommandSource source, float rate) {
+        int roundRate = Math.round(rate); // can't actually accept decimals
+        TickRateTickManager tickManager = (TickRateTickManager) source.getServer().getTickManager();
+        tickManager.tickRate$setServerRate(roundRate);
         tickManager.tickRate$sendUpdatePacket();
+        source.sendFeedback(() -> Text.translatable("commands.tick.rate.success", roundRate), true);
+        return roundRate;
     }
 
     /**
@@ -198,22 +202,23 @@ public class TickCommandMixin {
 
         long[] ls = Arrays.copyOf(source.getServer().getTickTimes(), source.getServer().getTickTimes().length);
         Arrays.sort(ls);
-        String string4 = format(ls[ls.length / 2]);
-        String string5 = format(ls[(int)((double)ls.length * 0.95)]);
-        String string6 = format(ls[(int)((double)ls.length * 0.99)]);
-        source.sendFeedback(() -> Text.translatable("commands.tick.query.percentiles", string4, string5, string6, ls.length), false);
+        String p50 = format(ls[ls.length / 2]);
+        String p95 = format(ls[(int)((double)ls.length * 0.95)]);
+        String p99 = format(ls[(int)((double)ls.length * 0.99)]);
+        float avg = source.getServer().getAverageTickTime();
+        source.sendFeedback(() -> Text.literal("Avg: %.1fms P50: %sms P95: %sms P99: %sms, sample: %s".formatted(avg,p50,p95,p99,ls.length)), false);
         return (int)f;
     }
 
     @Unique
     private static int executeChunkRate(ServerCommandSource source, BlockPos blockPos, float rate) {
+        int roundRate = Math.round(rate); // can't actually accept decimals
         TickRateTickManager tickManager = (TickRateTickManager) source.getServer().getTickManager();
-        tickManager.tickRate$setChunkRate(rate, source.getWorld(), ChunkPos.toLong(blockPos));
-        String string = String.format(Locale.ROOT, "%.1f", rate);
-        if(rate != 0) {
-            source.sendFeedback(() -> Text.of("Successfully set target rate of the specified chunk to " + string), false);
+        tickManager.tickRate$setChunkRate(roundRate, source.getWorld(), ChunkPos.toLong(blockPos));
+        if(roundRate != 0) {
+            source.sendFeedback(() -> Text.of("Successfully set target rate of the specified chunk to " + roundRate), false);
             tickManager.tickRate$sendUpdatePacket();
-            return (int) rate;
+            return roundRate;
         }
         else {
             source.sendFeedback(() -> Text.literal("Reset the target rate of the specified chunk according to the server's tick rate."), false);
@@ -264,15 +269,15 @@ public class TickCommandMixin {
 
     @Unique
     private static int executeEntityRate(ServerCommandSource source, Collection<? extends Entity> entities, float rate) {
+        int roundRate = Math.round(rate); // can't actually accept decimals
         if(entityCheck(entities,source)) return 0;
 
         TickRateTickManager tickManager = (TickRateTickManager) source.getServer().getTickManager();
-        tickManager.tickRate$setEntityRate(rate, entities);
-        String string = String.format(Locale.ROOT, "%.1f", rate);
-        if(rate != 0) {
-            source.sendFeedback(() -> Text.of("Successfully set target rate of the specified entities to " + string), false);
+        tickManager.tickRate$setEntityRate(roundRate, entities);
+        if(roundRate != 0) {
+            source.sendFeedback(() -> Text.of("Successfully set target rate of the specified entities to " + roundRate), false);
             tickManager.tickRate$sendUpdatePacket();
-            return (int) rate;
+            return roundRate;
         }
         else {
             source.sendFeedback(() -> Text.literal("Reset the target rate of the specified entities according to the server's tick rate."), false);
@@ -295,8 +300,8 @@ public class TickCommandMixin {
 
         TickRateTickManager tickManager = (TickRateTickManager) source.getServer().getTickManager();
         tickManager.tickRate$setEntityFrozen(frozen, entities);
-        if(frozen) source.sendFeedback(() -> Text.literal("The specified entities have been frozen"), false);
-        else source.sendFeedback(() -> Text.literal("The specified entities have been unfrozen"), false);
+        if(frozen) source.sendFeedback(() -> Text.literal("The specified entities have been frozen."), false);
+        else source.sendFeedback(() -> Text.literal("The specified entities have been unfrozen."), false);
         tickManager.tickRate$sendUpdatePacket();
         return 1;
     }

@@ -7,11 +7,15 @@
     "EntityRenderDispatcherMixin",
     "GameRendererMixin",
     "MinecraftClientMixin",
+    "ParticleManagerMixin",
     "RenderTickCounterMixin",
     "WorldMixin",
     "WorldRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1
-	}
+  },
+  "mixins": [
+    "StatusEffectUtilMixin"
+  ]
 }

@@ -2,7 +2,6 @@ package io.github.dennisochulor.tickrate.mixin.client;
 
 import io.github.dennisochulor.tickrate.TickDeltaInfo;
 import io.github.dennisochulor.tickrate.TickRateRenderTickCounter;
-import it.unimi.dsi.fastutil.floats.FloatUnaryOperator;
 import net.minecraft.client.render.RenderTickCounter;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -25,13 +24,10 @@ public class RenderTickCounterMixin implements TickRateRenderTickCounter {
     @Shadow private float tickDelta;
     @Shadow @Final private float tickTime;
 
-    @Shadow @Final private FloatUnaryOperator targetMillisPerTick;
-    @Shadow private float lastFrameDuration;
     @Unique private long prevPrevTickMillis;
     @Unique private float prevTickDelta;
     @Unique private int movingI;
     @Unique private int i;
-
     @Unique private final Map<String, TickDeltaInfo> prevTickDeltas = new HashMap<>();
     @Unique private final Set<String> isUpdated = new HashSet<>();
 

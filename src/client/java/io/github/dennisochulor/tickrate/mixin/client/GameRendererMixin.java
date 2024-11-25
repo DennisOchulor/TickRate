@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 public class GameRendererMixin {
 
     @Redirect(method = "renderWorld", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/RenderTickCounter;getTickDelta(Z)F"))
-    public float renderWorld(RenderTickCounter instance, boolean b) {
+    public float renderWorld(RenderTickCounter instance, boolean b) { // control player camera animation speed
         if(!TickRateClientManager.serverHasMod()) return instance.getTickDelta(b);
         return TickRateClientManager.getEntityTickDelta(instance.getTickDelta(b), MinecraftClient.getInstance().player).tickDelta();
     }
