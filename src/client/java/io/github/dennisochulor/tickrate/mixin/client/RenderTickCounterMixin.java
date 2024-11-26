@@ -47,10 +47,10 @@ public class RenderTickCounterMixin implements TickRateRenderTickCounter {
     public TickDeltaInfo tickRate$getSpecificTickDelta(float millisPerTick, String key) {
         if(isUpdated.contains(key)) return prevTickDeltas.get(key);
         float lastFrameDuration = (float)(prevTimeMillis - prevPrevTickMillis) / Math.max(millisPerTick, tickTime);
-        float specificTickDelta = prevTickDeltas.getOrDefault(key,new TickDeltaInfo(prevTickDelta,0)).tickDelta() + lastFrameDuration;
+        float specificTickDelta = prevTickDeltas.getOrDefault(key,new TickDeltaInfo(prevTickDelta,0,0)).tickDelta() + lastFrameDuration;
         int i = (int) specificTickDelta;
         specificTickDelta -= (float) i;
-        TickDeltaInfo info = new TickDeltaInfo(specificTickDelta,i);
+        TickDeltaInfo info = new TickDeltaInfo(specificTickDelta,i,lastFrameDuration);
         isUpdated.add(key);
         prevTickDeltas.put(key,info);
         return info;

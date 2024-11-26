@@ -23,10 +23,4 @@ public class WorldRendererMixin {
         tickDeltaRef.set(TickRateClientManager.getEntityTickDelta(tickDelta,entity).tickDelta()); // tickDelta
     }
 
-    @Redirect(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/RenderTickCounter;getTickDelta(Z)F"))
-    public float render(RenderTickCounter instance, boolean b) {
-        if(!TickRateClientManager.serverHasMod()) return instance.getTickDelta(b);
-        return TickRateClientManager.getEntityTickDelta(instance.getTickDelta(b), MinecraftClient.getInstance().player).tickDelta();
-    }
-
 }

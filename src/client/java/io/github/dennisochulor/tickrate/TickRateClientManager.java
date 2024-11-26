@@ -43,12 +43,13 @@ public class TickRateClientManager {
 
     public static TickDeltaInfo getEntityTickDelta(float defaultTickDelta, Entity entity) {
         TickRateRenderTickCounter renderTickCounter = (TickRateRenderTickCounter) MinecraftClient.getInstance().getRenderTickCounter();
-        if(!serverHasMod) return new TickDeltaInfo(defaultTickDelta,renderTickCounter.tickRate$getI());
-        if(serverState.frozen() || serverState.sprinting() || serverState.stepping()) return new TickDeltaInfo(defaultTickDelta,renderTickCounter.tickRate$getI());
+        if(!serverHasMod) return TickDeltaInfo.ofServer(defaultTickDelta);
+        if(MinecraftClient.getInstance().isPaused()) return new TickDeltaInfo(1.0f,0,0);
+        if(serverState.frozen() || serverState.sprinting() || serverState.stepping()) return TickDeltaInfo.ofServer(defaultTickDelta);
 
         TickState state = entities.get(entity.getUuidAsString());
         if(state == null) return getChunkTickDelta(defaultTickDelta, entity.getWorld(), entity.getChunkPos().toLong());
-        if(state.frozen() && !state.stepping()) return new TickDeltaInfo(1.0f,0);
+        if(state.frozen() && !state.stepping()) return new TickDeltaInfo(1.0f,0,0);
         if(state.sprinting()) return renderTickCounter.tickRate$getSpecificTickDelta(1000.0f / 20.0f,entity.getUuidAsString()); // animate at max 20 TPS
         if(state.rate() == -1.0f) return getChunkTickDelta(defaultTickDelta, entity.getWorld(), entity.getChunkPos().toLong());
         return renderTickCounter.tickRate$getSpecificTickDelta(1000.0f / state.rate(), entity.getUuidAsString());
@@ -56,15 +57,16 @@ public class TickRateClientManager {
 
     public static TickDeltaInfo getChunkTickDelta(float defaultTickDelta, World world, long chunkPos) {
         TickRateRenderTickCounter renderTickCounter = (TickRateRenderTickCounter) MinecraftClient.getInstance().getRenderTickCounter();
-        if(!serverHasMod) return new TickDeltaInfo(defaultTickDelta,renderTickCounter.tickRate$getI());
-        if(serverState.frozen() || serverState.sprinting() || serverState.stepping()) return new TickDeltaInfo(defaultTickDelta,renderTickCounter.tickRate$getI());
+        if(!serverHasMod) return TickDeltaInfo.ofServer(defaultTickDelta);
+        if(MinecraftClient.getInstance().isPaused()) return new TickDeltaInfo(1.0f,0,0);
+        if(serverState.frozen() || serverState.sprinting() || serverState.stepping()) return TickDeltaInfo.ofServer(defaultTickDelta);
 
         String key = world.getRegistryKey().getValue() + "-" + chunkPos;
         TickState state = chunks.get(key);
-        if(state == null) return new TickDeltaInfo(defaultTickDelta,renderTickCounter.tickRate$getI());
-        if(state.frozen() && !state.stepping()) return new TickDeltaInfo(1.0f,0);
+        if(state == null) return TickDeltaInfo.ofServer(defaultTickDelta);
+        if(state.frozen() && !state.stepping()) return new TickDeltaInfo(1.0f,0,0);
         if(state.sprinting()) return renderTickCounter.tickRate$getSpecificTickDelta(1000.0f / 20.0f,key); // animate at max 20 TPS
-        if(state.rate() == -1.0f) return new TickDeltaInfo(defaultTickDelta,renderTickCounter.tickRate$getI());
+        if(state.rate() == -1.0f) return TickDeltaInfo.ofServer(defaultTickDelta);
         return renderTickCounter.tickRate$getSpecificTickDelta(1000.0f / state.rate(),key);
     }
 

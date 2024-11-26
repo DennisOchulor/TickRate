@@ -1,20 +1,20 @@
 package io.github.dennisochulor.tickrate.mixin.client;
 
+import io.github.dennisochulor.tickrate.PlayerRenderTickCounter;
 import io.github.dennisochulor.tickrate.TickRateClientManager;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.render.RenderTickCounter;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
 @Mixin(GameRenderer.class)
 public class GameRendererMixin {
 
-    @Redirect(method = "renderWorld", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/RenderTickCounter;getTickDelta(Z)F"))
-    public float renderWorld(RenderTickCounter instance, boolean b) { // control player camera animation speed
-        if(!TickRateClientManager.serverHasMod()) return instance.getTickDelta(b);
-        return TickRateClientManager.getEntityTickDelta(instance.getTickDelta(b), MinecraftClient.getInstance().player).tickDelta();
+    @ModifyVariable(method = "render", at = @At(value = "HEAD"), argsOnly = true, ordinal = 0)
+    public RenderTickCounter render(RenderTickCounter renderTickCounter) {
+        if(TickRateClientManager.serverHasMod()) return new PlayerRenderTickCounter();
+        else return renderTickCounter;
     }
 
 }
