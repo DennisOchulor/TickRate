@@ -15,13 +15,11 @@ import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.command.TickCommand;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
+import net.minecraft.util.Colors;
 import net.minecraft.util.TimeHelper;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Overwrite;
-import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.*;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -30,9 +28,7 @@ import java.util.Locale;
 @Mixin(TickCommand.class)
 public class TickCommandMixin {
 
-    @Shadow private static final float MAX_TICK_RATE = 10000.0F;
-    @Shadow private static final String DEFAULT_TICK_RATE_STRING = String.valueOf(20);
-
+    @Shadow @Final private static String DEFAULT_TICK_RATE_STRING;
     @Shadow private static int executeSprint(ServerCommandSource source, int ticks) { return 0; }
     @Shadow private static int executeFreeze(ServerCommandSource source, boolean frozen) { return 0; }
     @Shadow private static int executeStep(ServerCommandSource source, int steps) { return 0; }
@@ -161,7 +157,7 @@ public class TickCommandMixin {
 
     /**
      * @author Ninjaking312
-     * @reason Because I need to
+     * @reason To round the rate and set server (not mainloop) rate
      */
     @Overwrite
     private static int executeRate(ServerCommandSource source, float rate) {
@@ -251,7 +247,7 @@ public class TickCommandMixin {
         boolean success = tickManager.tickRate$stepChunk(steps, source.getWorld(), ChunkPos.toLong(blockPos));
         if(success && steps != 0) source.sendFeedback(() -> Text.literal("The specified chunk will step " + steps + " ticks."), false);
         else if(success && steps == 0) source.sendFeedback(() -> Text.literal("The specified chunk has stopped stepping."), false);
-        else source.sendFeedback(() -> Text.literal("The specified chunk must be frozen first!"), false);
+        else source.sendFeedback(() -> Text.literal("The specified chunk must be frozen first!").withColor(Colors.LIGHT_RED), false);
         tickManager.tickRate$sendUpdatePacket();
         return success ? 1 : 0;
     }
@@ -262,7 +258,7 @@ public class TickCommandMixin {
         boolean success = tickManager.tickRate$sprintChunk(ticks, source.getWorld(), ChunkPos.toLong(blockPos));
         if(success && ticks != 0) source.sendFeedback(() -> Text.literal("The specified chunk will sprint for " + ticks + " ticks."), false);
         else if(success && ticks == 0) source.sendFeedback(() -> Text.literal("The specified chunk has stopped sprinting."), false);
-        else source.sendFeedback(() -> Text.literal("The specified chunk must not be frozen!"), false);
+        else source.sendFeedback(() -> Text.literal("The specified chunk must not be frozen!").withColor(Colors.LIGHT_RED), false);
         tickManager.tickRate$sendUpdatePacket();
         return success ? 1 : 0;
     }
@@ -314,7 +310,7 @@ public class TickCommandMixin {
         boolean success = tickManager.tickRate$stepEntity(steps,entities);
         if(success && steps != 0) source.sendFeedback(() -> Text.literal("The specified entities will step " + steps + " ticks."), false);
         else if(success && steps == 0) source.sendFeedback(() -> Text.literal("The specified entities have stopped stepping."), false);
-        else source.sendFeedback(() -> Text.literal("The specified entities must be frozen first!"), false);
+        else source.sendFeedback(() -> Text.literal("The specified entities must be frozen first!").withColor(Colors.LIGHT_RED), false);
         tickManager.tickRate$sendUpdatePacket();
         return success ? 1 : 0;
     }
@@ -327,7 +323,7 @@ public class TickCommandMixin {
         boolean success = tickManager.tickRate$sprintEntity(ticks,entities);
         if(success && ticks != 0) source.sendFeedback(() -> Text.literal("The specified entities will sprint for " + ticks + " ticks."), false);
         else if(success && ticks == 0) source.sendFeedback(() -> Text.literal("The specified entities have stopped sprinting."), false);
-        else source.sendFeedback(() -> Text.literal("The specified entities must not be frozen!"), false);
+        else source.sendFeedback(() -> Text.literal("The specified entities must not be frozen!").withColor(Colors.LIGHT_RED), false);
         tickManager.tickRate$sendUpdatePacket();
         return success ? 1 : 0;
     }
@@ -340,7 +336,7 @@ public class TickCommandMixin {
             if(e instanceof ServerPlayerEntity player) return !tickManager.tickRate$hasClientMod(player);
             else return false;
         });
-        if(match) source.sendFeedback(() -> Text.literal("Some of the specified entities are players that do not have TickRate mod installed on their client, so their tick rate cannot be manipulated."), false);
+        if(match) source.sendFeedback(() -> Text.literal("Some of the specified entities are players that do not have TickRate mod installed on their client, so their tick rate cannot be manipulated.").withColor(Colors.LIGHT_RED), false);
         return match;
     }
 

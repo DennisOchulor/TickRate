@@ -1,6 +1,5 @@
 package io.github.dennisochulor.tickrate;
 
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.Entity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.world.World;

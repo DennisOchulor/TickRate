@@ -9,8 +9,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.List;
-
 @Mixin(Entity.class)
 public abstract class EntityMixin {
 
@@ -26,17 +24,5 @@ public abstract class EntityMixin {
         else if(reason == Entity.RemovalReason.UNLOADED_TO_CHUNK || reason == Entity.RemovalReason.UNLOADED_WITH_PLAYER)
             tickManager.tickRate$removeEntity(entity,false,false,true);
     }
-
-    public void tickiii(CallbackInfo ci) {
-        Entity e = (Entity) (Object) this;
-        if(e.isPlayer()) {
-            var a = Thread.currentThread().getStackTrace();
-            for(int i=0;i<10;i++){
-                System.out.println(a[i]);
-            }
-        }
-    }
-
-
 
 }

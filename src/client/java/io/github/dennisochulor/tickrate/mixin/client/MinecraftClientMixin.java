@@ -4,6 +4,7 @@ import io.github.dennisochulor.tickrate.TickRateClientManager;
 import io.github.dennisochulor.tickrate.TickRateRenderTickCounter;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.client.option.GameOptions;
 import net.minecraft.client.particle.ParticleManager;
 import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.client.world.ClientWorld;
@@ -23,8 +24,9 @@ public abstract class MinecraftClientMixin {
 	@Shadow public abstract RenderTickCounter getRenderTickCounter();
 	@Shadow public ClientWorld world;
 	@Shadow public ClientPlayerEntity player;
-
 	@Shadow @Final public ParticleManager particleManager;
+	@Shadow @Final public GameOptions options;
+	@Shadow protected abstract void openChatScreen(String text);
 
 	@Redirect(method = "getTargetMillisPerTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/tick/TickManager;getMillisPerTick()F"))
 	private float getMillisPerTick(TickManager instance) {
@@ -41,6 +43,10 @@ public abstract class MinecraftClientMixin {
 			this.world.tickEntities();
 			this.particleManager.tick();
 		}
+
+		while (this.options.chatKey.wasPressed()) { // to allow player to chat even when FROZEN
+			this.openChatScreen("");
+		}
 	}
 
 	@Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/world/ClientWorld;tickEntities()V"))
@@ -56,7 +62,7 @@ public abstract class MinecraftClientMixin {
 	}
 
 	@ModifyVariable(method = "render", at = @At(value = "STORE"), ordinal = 0)
-	private int render(int i) {
+	private int render(int i) { // make the clientTick follow the player's tick rate (which may differ from the server)
 		if(!TickRateClientManager.serverHasMod()) return i;
 		return TickRateClientManager.getEntityTickDelta(getRenderTickCounter().getTickDelta(false), this.player).i();
 	}

@@ -1,6 +1,5 @@
 package io.github.dennisochulor.tickrate.mixin;
 
-import io.github.dennisochulor.tickrate.TickRateTickManager;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.ServerTickManager;
 import net.minecraft.server.network.ServerLoginNetworkHandler;

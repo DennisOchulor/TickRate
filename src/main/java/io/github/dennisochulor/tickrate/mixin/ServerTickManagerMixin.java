@@ -145,7 +145,10 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
 
     public boolean tickRate$shouldTickEntity(Entity entity) {
         if(isSprinting()) return true;
-        if(isFrozen()) return isStepping();
+        if(isFrozen()) {
+            if(entity instanceof ServerPlayerEntity) return true;
+            return isStepping();
+        }
         //todo playersWithoutMod thingy
 
         if(sprinting.computeIfPresent(entity.getUuidAsString(), (k,v) -> {

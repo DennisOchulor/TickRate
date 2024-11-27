@@ -1,6 +1,5 @@
 package io.github.dennisochulor.tickrate.mixin.client;
 
-import io.github.dennisochulor.tickrate.TickRate;
 import io.github.dennisochulor.tickrate.TickRateClientManager;
 import net.minecraft.client.gui.screen.ingame.InventoryScreen;
 import net.minecraft.client.render.entity.EntityRenderDispatcher;
