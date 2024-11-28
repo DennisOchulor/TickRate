@@ -208,6 +208,11 @@ public class TickCommandMixin {
 
     @Unique
     private static int executeChunkRate(ServerCommandSource source, BlockPos blockPos, float rate) {
+        if(!source.getWorld().isChunkLoaded(ChunkPos.toLong(blockPos))) {
+            source.sendFeedback(() -> Text.literal("The specified chunk is unloaded!").withColor(Colors.LIGHT_RED), false);
+            return 0;
+        }
+
         int roundRate = Math.round(rate); // can't actually accept decimals
         TickRateTickManager tickManager = (TickRateTickManager) source.getServer().getTickManager();
         tickManager.tickRate$setChunkRate(roundRate, source.getWorld(), ChunkPos.toLong(blockPos));
@@ -225,6 +230,11 @@ public class TickCommandMixin {
 
     @Unique
     private static int executeChunkQuery(ServerCommandSource source, BlockPos blockPos) {
+        if(!source.getWorld().isChunkLoaded(ChunkPos.toLong(blockPos))) {
+            source.sendFeedback(() -> Text.literal("The specified chunk is unloaded!").withColor(Colors.LIGHT_RED), false);
+            return 0;
+        }
+
         TickRateTickManager tickManager = (TickRateTickManager) source.getServer().getTickManager();
         float rate = tickManager.tickRate$getChunkRate(source.getWorld(), ChunkPos.toLong(blockPos));
         source.sendFeedback(() -> Text.literal("The tick rate of the specified chunk is " + rate + " TPS."), false);

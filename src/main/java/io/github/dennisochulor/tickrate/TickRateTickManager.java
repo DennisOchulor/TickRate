@@ -17,6 +17,8 @@ public interface TickRateTickManager {
     boolean tickRate$shouldTickEntity(Entity entity);
     boolean tickRate$shouldTickChunk(World world, long chunkPos);
     boolean tickRate$shouldTickServer();
+    void tickRate$updateChunkLoad(World world, long chunkPos, boolean loaded);
+    void tickRate$updateEntityLoad(Entity entity, boolean loaded);
     void tickRate$setServerRate(float rate);
     float tickRate$getServerRate();
     void tickRate$ticked();

@@ -2,6 +2,8 @@ package io.github.dennisochulor.tickrate;
 
 import net.fabricmc.api.ModInitializer;
 
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -39,7 +41,7 @@ public class TickRate implements ModInitializer {
 			mixin.tickRate$sendUpdatePacket();
 		}));
 
-		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+		ServerLifecycleEvents.SERVER_STARTING.register(server -> {
 			TickRateTickManager mixin = (TickRateTickManager) server.getTickManager();
 			mixin.tickRate$serverStarted();
 		});
@@ -48,6 +50,27 @@ public class TickRate implements ModInitializer {
 			TickRateTickManager mixin = (TickRateTickManager) server.getTickManager();
 			mixin.tickRate$serverStopped();
 		});
+
+		ServerChunkEvents.CHUNK_LOAD.register((serverWorld,chunk) -> {
+			TickRateTickManager mixin = (TickRateTickManager) serverWorld.getTickManager();
+			mixin.tickRate$updateChunkLoad(serverWorld,chunk.getPos().toLong(),true);
+		});
+
+		ServerChunkEvents.CHUNK_UNLOAD.register((serverWorld,chunk) -> {
+			TickRateTickManager mixin = (TickRateTickManager) serverWorld.getTickManager();
+			mixin.tickRate$updateChunkLoad(serverWorld,chunk.getPos().toLong(),false);
+		});
+
+		ServerEntityEvents.ENTITY_LOAD.register((entity,serverWorld) -> {
+			TickRateTickManager mixin = (TickRateTickManager) serverWorld.getTickManager();
+			mixin.tickRate$updateEntityLoad(entity,true);
+		});
+
+		ServerEntityEvents.ENTITY_UNLOAD.register((entity,serverWorld) -> {
+			TickRateTickManager mixin = (TickRateTickManager) serverWorld.getTickManager();
+			mixin.tickRate$updateEntityLoad(entity,false);
+		});
+
 	}
 
 

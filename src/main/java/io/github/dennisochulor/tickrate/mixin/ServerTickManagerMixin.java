@@ -34,6 +34,8 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     @Unique private int ticks = 0;
     @Unique private final Map<String,Float> entities = new HashMap<>(); // uuid -> tickRate
     @Unique private final Map<String,Float> chunks = new HashMap<>(); // world-longChunkPos -> tickRate
+    @Unique private final Map<String,Float> unloadedEntities = new HashMap<>(); // uuid -> tickRate
+    @Unique private final Map<String,Float> unloadedChunks = new HashMap<>(); // world-longChunkPos -> tickRate
     @Unique private final Map<String,Boolean> chunksTicked = new HashMap<>(); // world-longChunkPos -> hasTickedThisMainloopTick, needed to ensure ChunkTickState is only updated ONCE per mainloop tick
     @Unique private final Map<String,Integer> steps = new HashMap<>(); // uuid/world-longChunkPos -> steps, if steps==0, then it's frozen
     @Unique private final Map<String,Integer> sprinting = new HashMap<>(); // uuid/world-longChunkPos -> sprintTicks
@@ -44,7 +46,6 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
 
     @Shadow public abstract void setTickRate(float tickRate);
     @Shadow public abstract boolean isSprinting();
-
     @Shadow @Final private MinecraftServer server;
     @Shadow private long scheduledSprintTicks;
 
@@ -83,10 +84,14 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
                 NbtCompound nbt = NbtIo.read(datafile.toPath());
                 nominalTickRate = nbt.getFloat("nominalTickRate");
                 NbtOps.INSTANCE.getMap(nbt.get("entities")).getOrThrow().entries().forEach(pair -> {
-                    entities.put(NbtOps.INSTANCE.getStringValue(pair.getFirst()).getOrThrow(),NbtOps.INSTANCE.getNumberValue(pair.getSecond()).getOrThrow().floatValue());
+                    String key = NbtOps.INSTANCE.getStringValue(pair.getFirst()).getOrThrow();
+                    float value = NbtOps.INSTANCE.getNumberValue(pair.getSecond()).getOrThrow().floatValue();
+                    unloadedEntities.put(key,value);
                 });
                 NbtOps.INSTANCE.getMap(nbt.get("chunks")).getOrThrow().entries().forEach(pair -> {
-                    chunks.put(NbtOps.INSTANCE.getStringValue(pair.getFirst()).getOrThrow(), NbtOps.INSTANCE.getNumberValue(pair.getSecond()).getOrThrow().floatValue());
+                    String key = NbtOps.INSTANCE.getStringValue(pair.getFirst()).getOrThrow();
+                    float value = NbtOps.INSTANCE.getNumberValue(pair.getSecond()).getOrThrow().floatValue();
+                    unloadedChunks.put(key,value);
                 });
                 updateFastestTicker();
             }
@@ -101,8 +106,10 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         nbt.putFloat("nominalTickRate",nominalTickRate);
         var entitiesNbt = NbtOps.INSTANCE.mapBuilder();
         entities.forEach((k,v) -> entitiesNbt.add(k,NbtOps.INSTANCE.createFloat(v)));
+        unloadedEntities.forEach((k,v) -> entitiesNbt.add(k,NbtOps.INSTANCE.createFloat(v)));
         var chunksNbt = NbtOps.INSTANCE.mapBuilder();
         chunks.forEach((k,v) -> chunksNbt.add(k,NbtOps.INSTANCE.createFloat(v)));
+        unloadedChunks.forEach((k,v) -> chunksNbt.add(k,NbtOps.INSTANCE.createFloat(v)));
         nbt.put("entities", entitiesNbt.build(NbtOps.INSTANCE.empty()).getOrThrow());
         nbt.put("chunks", chunksNbt.build(NbtOps.INSTANCE.empty()).getOrThrow());
         try {
@@ -212,6 +219,56 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         return internalShouldTick(nominalTickRate);
     }
 
+    public void tickRate$updateChunkLoad(World world, long chunkPos, boolean loaded) {
+        String key = world.getRegistryKey().getValue() + "-" + chunkPos;
+        if(loaded) {
+            Float rate = unloadedChunks.get(key);
+            if(rate == null) return;
+            unloadedChunks.remove(key);
+            chunks.put(key,rate);
+            if(rate > tickRate) updateFastestTicker();
+        }
+        else {
+            Float rate = chunks.get(key);
+            if(rate == null) return;
+            chunks.remove(key);
+            unloadedChunks.put(key,rate);
+            if(rate == tickRate) updateFastestTicker();
+        }
+    }
+
+    public void tickRate$updateEntityLoad(Entity entity, boolean loaded) {
+        String key = entity.getUuidAsString();
+        if(loaded) {
+            Float rate = unloadedEntities.get(key);
+            if(rate == null) return;
+            unloadedEntities.remove(key);
+            entities.put(key,rate);
+            if(rate > tickRate) updateFastestTicker();
+        }
+        else {
+            Float rate = entities.get(key);
+            if(rate == null) return;
+
+            Entity.RemovalReason reason = entity.getRemovalReason();
+            if(reason != null) {
+                switch (reason) {
+                    case KILLED,DISCARDED -> tickRate$removeEntity(entity,!entity.isPlayer(),true,true);
+                    case UNLOADED_TO_CHUNK,UNLOADED_WITH_PLAYER -> {
+                        tickRate$removeEntity(entity,true,false,true);
+                        unloadedEntities.put(key,rate);
+                    }
+                    case CHANGED_DIMENSION -> {} // NO-OP
+                }
+            }
+            else {
+                tickRate$removeEntity(entity,true,false,true); // removed for no reason?? wtf
+                unloadedEntities.put(key,rate); // just have to save even if that's not the correct thing to do
+            }
+            if(rate == tickRate) updateFastestTicker();
+        }
+    }
+
     public void tickRate$setServerRate(float rate) {
         nominalTickRate = rate;
         updateFastestTicker();
@@ -312,7 +369,8 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     }
 
     public float tickRate$getChunkRate(World world, long chunkPos) {
-        Float rate = chunks.get(world.getRegistryKey().getValue() + "-" + chunkPos);
+        String key = world.getRegistryKey().getValue() + "-" + chunkPos;
+        Float rate = chunks.get(key);
         if(rate != null) return rate;
         return nominalTickRate;
     }
