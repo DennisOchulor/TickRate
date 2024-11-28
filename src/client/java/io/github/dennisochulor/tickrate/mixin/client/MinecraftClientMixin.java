@@ -64,7 +64,7 @@ public abstract class MinecraftClientMixin {
 	@ModifyVariable(method = "render", at = @At(value = "STORE"), ordinal = 0)
 	private int render(int i) { // make the clientTick follow the player's tick rate (which may differ from the server)
 		if(!TickRateClientManager.serverHasMod()) return i;
-		return TickRateClientManager.getEntityTickDelta(getRenderTickCounter().getTickDelta(false), this.player).i();
+		return TickRateClientManager.getEntityTickDelta(this.player).i();
 	}
 
 }

@@ -25,7 +25,7 @@ public abstract class WorldMixin {
     public <T extends Entity> void tickEntity(Consumer<T> tickConsumer, T entity, CallbackInfo ci) {
         if(isClient() && TickRateClientManager.serverHasMod()) {
             TickRateRenderTickCounter renderTickCounter = (TickRateRenderTickCounter) MinecraftClient.getInstance().getRenderTickCounter();
-            if(renderTickCounter.tickRate$getMovingI() >= TickRateClientManager.getEntityTickDelta(MinecraftClient.getInstance().getRenderTickCounter().getTickDelta(false), entity).i()) {
+            if(renderTickCounter.tickRate$getMovingI() >= TickRateClientManager.getEntityTickDelta(entity).i()) {
                 ci.cancel();
             }
         }
@@ -35,7 +35,7 @@ public abstract class WorldMixin {
     protected void tickBlockEntities(BlockEntityTickInvoker instance) {
         if(isClient() && TickRateClientManager.serverHasMod()) {
             TickRateRenderTickCounter renderTickCounter = (TickRateRenderTickCounter) MinecraftClient.getInstance().getRenderTickCounter();
-            if(renderTickCounter.tickRate$getMovingI() < TickRateClientManager.getChunkTickDelta(MinecraftClient.getInstance().getRenderTickCounter().getTickDelta(false), (World)(Object)this, ChunkPos.toLong(instance.getPos())).i()) {
+            if(renderTickCounter.tickRate$getMovingI() < TickRateClientManager.getChunkTickDelta((World)(Object)this, ChunkPos.toLong(instance.getPos())).i()) {
                 instance.tick();
             }
         }

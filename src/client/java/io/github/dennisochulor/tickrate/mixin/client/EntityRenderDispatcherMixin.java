@@ -18,7 +18,7 @@ public class EntityRenderDispatcherMixin {
             return; // this is a TERRIBLE way of coding, but I don't know how else to fix the entity rendering for the InventoryScreen
         }
         Entity entity = args.get(0);
-        args.set(4, TickRateClientManager.getEntityTickDelta(args.get(4),entity).tickDelta()); // tickDelta
+        args.set(4, TickRateClientManager.getEntityTickDelta(entity).tickDelta()); // tickDelta
     }
 
 }

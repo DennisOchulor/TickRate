@@ -27,7 +27,7 @@ public class ParticleManagerMixin {
         if(TickRateClientManager.serverHasMod()) {
             Vec3d vec = particle.getBoundingBox().getMinPos();
             TickRateRenderTickCounter renderTickCounter = (TickRateRenderTickCounter) MinecraftClient.getInstance().getRenderTickCounter();
-            if(renderTickCounter.tickRate$getMovingI() < TickRateClientManager.getChunkTickDelta(MinecraftClient.getInstance().getRenderTickCounter().getTickDelta(false), world, ChunkPos.toLong(new BlockPos((int)vec.x,(int)vec.y,(int)vec.z))).i()) {
+            if(renderTickCounter.tickRate$getMovingI() < TickRateClientManager.getChunkTickDelta(world, ChunkPos.toLong(new BlockPos((int)vec.x,(int)vec.y,(int)vec.z))).i()) {
                 particle.tick();
             }
         }
@@ -39,7 +39,7 @@ public class ParticleManagerMixin {
         if(TickRateClientManager.serverHasMod()) {
             Vec3d vec = particle.getBoundingBox().getMinPos();
             TickRateRenderTickCounter renderTickCounter = (TickRateRenderTickCounter) MinecraftClient.getInstance().getRenderTickCounter();
-            if(renderTickCounter.tickRate$getMovingI() < TickRateClientManager.getChunkTickDelta(MinecraftClient.getInstance().getRenderTickCounter().getTickDelta(false), world, ChunkPos.toLong(new BlockPos((int)vec.x,(int)vec.y,(int)vec.z))).i()) {
+            if(renderTickCounter.tickRate$getMovingI() < TickRateClientManager.getChunkTickDelta(world, ChunkPos.toLong(new BlockPos((int)vec.x,(int)vec.y,(int)vec.z))).i()) {
                 particle.tick();
             }
         }
@@ -49,7 +49,7 @@ public class ParticleManagerMixin {
     @Redirect(method = "renderParticles", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/particle/Particle;buildGeometry(Lnet/minecraft/client/render/VertexConsumer;Lnet/minecraft/client/render/Camera;F)V"))
     public void renderParticles(Particle particle, VertexConsumer vertexConsumer, Camera camera, float tickDelta) {
         Vec3d vec = particle.getBoundingBox().getMinPos();
-        particle.buildGeometry(vertexConsumer, camera, TickRateClientManager.getChunkTickDelta(tickDelta, world, ChunkPos.toLong(new BlockPos((int)vec.x,(int)vec.y,(int)vec.z))).tickDelta());
+        particle.buildGeometry(vertexConsumer, camera, TickRateClientManager.getChunkTickDelta(world, ChunkPos.toLong(new BlockPos((int)vec.x,(int)vec.y,(int)vec.z))).tickDelta());
     }
 
 }
