@@ -11,7 +11,7 @@
 		"sources": "https://github.com/DennisOchulor/TickRate"
 	},
 	"license": "MIT",
-	"icon": "assets/tickrate/icon.png",
+	"icon": "assets/tickrate/icon.jpg",
 	"environment": "*",
 	"entrypoints": {
 		"main": [
