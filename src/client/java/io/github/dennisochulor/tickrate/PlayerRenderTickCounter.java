@@ -18,7 +18,7 @@ public class PlayerRenderTickCounter implements RenderTickCounter {
         if(TickRateClientManager.serverHasMod()) {
             if(MinecraftClient.getInstance().world.getTickManager().isFrozen()) {
                 TickDeltaInfo info = TickRateClientManager.getEntityTickDelta(MinecraftClient.getInstance().player);
-                return new TickDeltaInfo(MinecraftClient.getInstance().getRenderTickCounter().getTickDelta(true), info.i(), info.lastFrameDuration()).tickDelta();
+                return new TickDeltaInfo(MinecraftClient.getInstance().getRenderTickCounter().getTickDelta(ignoreFreeze), info.i(), info.lastFrameDuration()).tickDelta();
             }
             else return TickRateClientManager.getEntityTickDelta(MinecraftClient.getInstance().player).tickDelta();
         }
