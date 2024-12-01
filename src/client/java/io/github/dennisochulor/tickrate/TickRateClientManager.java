@@ -2,6 +2,7 @@ package io.github.dennisochulor.tickrate;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.world.World;
 
 import java.util.HashMap;
@@ -45,6 +46,7 @@ public class TickRateClientManager {
         TickRateRenderTickCounter renderTickCounter = (TickRateRenderTickCounter) MinecraftClient.getInstance().getRenderTickCounter();
         if(!serverHasMod) return TickDeltaInfo.ofServer(false);
         if(MinecraftClient.getInstance().isPaused()) return new TickDeltaInfo(1.0f,0,0);
+        if(entity instanceof PlayerEntity && serverState.frozen()) return TickDeltaInfo.ofServer(true);
         if(serverState.frozen() || serverState.sprinting() || serverState.stepping()) return TickDeltaInfo.ofServer(false);
 
         TickState state = entities.get(entity.getUuidAsString());
