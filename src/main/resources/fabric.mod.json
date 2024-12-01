@@ -3,7 +3,7 @@
 	"id": "tickrate",
 	"version": "${version}",
 	"name": "TickRate",
-	"description": "Tick chunks/entities at different rates.",
+	"description": "Tick different chunks/entities at different rates.",
 	"authors": [
 		"Ninjaking312"
 	],

@@ -43,9 +43,9 @@ public class TickRateClientManager {
 
     public static TickDeltaInfo getEntityTickDelta(Entity entity) {
         TickRateRenderTickCounter renderTickCounter = (TickRateRenderTickCounter) MinecraftClient.getInstance().getRenderTickCounter();
-        if(!serverHasMod) return TickDeltaInfo.ofServer();
+        if(!serverHasMod) return TickDeltaInfo.ofServer(false);
         if(MinecraftClient.getInstance().isPaused()) return new TickDeltaInfo(1.0f,0,0);
-        if(serverState.frozen() || serverState.sprinting() || serverState.stepping()) return TickDeltaInfo.ofServer();
+        if(serverState.frozen() || serverState.sprinting() || serverState.stepping()) return TickDeltaInfo.ofServer(false);
 
         TickState state = entities.get(entity.getUuidAsString());
         if(state == null) return getChunkTickDelta(entity.getWorld(), entity.getChunkPos().toLong());
@@ -57,16 +57,16 @@ public class TickRateClientManager {
 
     public static TickDeltaInfo getChunkTickDelta(World world, long chunkPos) {
         TickRateRenderTickCounter renderTickCounter = (TickRateRenderTickCounter) MinecraftClient.getInstance().getRenderTickCounter();
-        if(!serverHasMod) return TickDeltaInfo.ofServer();
+        if(!serverHasMod) return TickDeltaInfo.ofServer(false);
         if(MinecraftClient.getInstance().isPaused()) return new TickDeltaInfo(1.0f,0,0);
-        if(serverState.frozen() || serverState.sprinting() || serverState.stepping()) return TickDeltaInfo.ofServer();
+        if(serverState.frozen() || serverState.sprinting() || serverState.stepping()) return TickDeltaInfo.ofServer(false);
 
         String key = world.getRegistryKey().getValue() + "-" + chunkPos;
         TickState state = chunks.get(key);
-        if(state == null) return TickDeltaInfo.ofServer();
+        if(state == null) return TickDeltaInfo.ofServer(false);
         if(state.frozen() && !state.stepping()) return new TickDeltaInfo(1.0f,0,0);
         if(state.sprinting()) return renderTickCounter.tickRate$getSpecificTickDelta(1000.0f / 20.0f,key); // animate at max 20 TPS
-        if(state.rate() == -1.0f) return TickDeltaInfo.ofServer();
+        if(state.rate() == -1.0f) return TickDeltaInfo.ofServer(false);
         return renderTickCounter.tickRate$getSpecificTickDelta(1000.0f / state.rate(),key);
     }
 
