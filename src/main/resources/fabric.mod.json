@@ -33,5 +33,10 @@
 		"minecraft": "${minecraft_version}",
 		"java": ">=21",
 		"fabric-api": ">=${fabric_version}"
+	},
+	"custom": {
+		"lithium:options": {
+			"mixin.world.tick_scheduler": false
+		}
 	}
 }
