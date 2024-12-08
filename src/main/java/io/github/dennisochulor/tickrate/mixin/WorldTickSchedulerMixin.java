@@ -1,13 +1,12 @@
 package io.github.dennisochulor.tickrate.mixin;
 
-import io.github.dennisochulor.tickrate.TickRateChunkTickScheduler;
-import io.github.dennisochulor.tickrate.TickRateTickManager;
-import io.github.dennisochulor.tickrate.TickRateWorldTickScheduler;
+import io.github.dennisochulor.tickrate.injected_interface.TickRateWorldTickScheduler;
 import io.github.dennisochulor.tickrate.TickState;
 import it.unimi.dsi.fastutil.longs.Long2LongMap;
 import it.unimi.dsi.fastutil.longs.Long2LongMaps;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
+import net.minecraft.server.ServerTickManager;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.World;
 import net.minecraft.world.tick.ChunkTickScheduler;
@@ -34,7 +33,7 @@ public class WorldTickSchedulerMixin<T> implements TickRateWorldTickScheduler {
      * @reason Because there is no other good way to do this damn it (continuing the while loop)
      */
     @Overwrite
-    @SuppressWarnings("unchecked") // sigh
+    @SuppressWarnings("unchecked")
     private void collectTickableChunkTickSchedulers(long time) {
         ObjectIterator<Long2LongMap.Entry> objectIterator = Long2LongMaps.fastIterator(nextTriggerTickByChunkPos);
 
@@ -43,8 +42,8 @@ public class WorldTickSchedulerMixin<T> implements TickRateWorldTickScheduler {
             long l = entry.getLongKey();
             long m = entry.getLongValue();
 
-            TickRateChunkTickScheduler<T> chunkTickScheduler = (TickRateChunkTickScheduler<T>) chunkTickSchedulers.get(l);
-            TickRateTickManager tickManager = (TickRateTickManager) world.getTickManager();
+            ChunkTickScheduler<T> chunkTickScheduler = chunkTickSchedulers.get(l);
+            ServerTickManager tickManager = (ServerTickManager) world.getTickManager();
             chunkTickScheduler.tickRate$setServerTime(time);
             TickState tickState = tickManager.tickRate$getChunkTickState(world,l);
             if(tickState.rate() == -1.0f && !tickState.frozen() && !tickState.sprinting()) {

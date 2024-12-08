@@ -1,8 +1,8 @@
 package io.github.dennisochulor.tickrate.mixin.client;
 
 import io.github.dennisochulor.tickrate.TickRateClientManager;
-import io.github.dennisochulor.tickrate.TickRateRenderTickCounter;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
@@ -24,7 +24,7 @@ public abstract class WorldMixin {
     @Inject(method = "tickEntity", at = @At("HEAD"), cancellable = true)
     public <T extends Entity> void tickEntity(Consumer<T> tickConsumer, T entity, CallbackInfo ci) {
         if(isClient() && TickRateClientManager.serverHasMod()) {
-            TickRateRenderTickCounter renderTickCounter = (TickRateRenderTickCounter) MinecraftClient.getInstance().getRenderTickCounter();
+            RenderTickCounter renderTickCounter = MinecraftClient.getInstance().getRenderTickCounter();
             if(renderTickCounter.tickRate$getMovingI() >= TickRateClientManager.getEntityTickDelta(entity).i()) {
                 ci.cancel();
             }
@@ -34,7 +34,7 @@ public abstract class WorldMixin {
     @Redirect(method = "tickBlockEntities", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/chunk/BlockEntityTickInvoker;tick()V"))
     protected void tickBlockEntities(BlockEntityTickInvoker instance) {
         if(isClient() && TickRateClientManager.serverHasMod()) {
-            TickRateRenderTickCounter renderTickCounter = (TickRateRenderTickCounter) MinecraftClient.getInstance().getRenderTickCounter();
+            RenderTickCounter renderTickCounter = MinecraftClient.getInstance().getRenderTickCounter();
             if(renderTickCounter.tickRate$getMovingI() < TickRateClientManager.getChunkTickDelta((World)(Object)this, ChunkPos.toLong(instance.getPos())).i()) {
                 instance.tick();
             }

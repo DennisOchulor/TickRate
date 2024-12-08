@@ -1,7 +1,7 @@
 package io.github.dennisochulor.tickrate.mixin;
 
 import io.github.dennisochulor.tickrate.TickRateS2CUpdatePayload;
-import io.github.dennisochulor.tickrate.TickRateTickManager;
+import io.github.dennisochulor.tickrate.injected_interface.TickRateTickManager;
 import io.github.dennisochulor.tickrate.TickState;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.entity.Entity;

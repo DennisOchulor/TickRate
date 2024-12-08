@@ -35,6 +35,13 @@
 		"fabric-api": ">=${fabric_version}"
 	},
 	"custom": {
+		"loom:injected_interfaces": {
+			"net/minecraft/client/particle/Particle": ["io/github/dennisochulor/tickrate/injected_interface/TickRateParticle"],
+			"net/minecraft/client/render/RenderTickCounter": ["io/github/dennisochulor/tickrate/injected_interface/TickRateRenderTickCounter"],
+			"net/minecraft/world/tick/ChunkTickScheduler": ["io/github/dennisochulor/tickrate/injected_interface/TickRateChunkTickScheduler"],
+			"net/minecraft/server/ServerTickManager": ["io/github/dennisochulor/tickrate/injected_interface/TickRateTickManager"],
+			"net/minecraft/world/tick/WorldTickScheduler": ["io/github/dennisochulor/tickrate/injected_interface/TickRateWorldTickScheduler"]
+		},
 		"lithium:options": {
 			"mixin.world.tick_scheduler": false
 		}

@@ -2,8 +2,6 @@ package io.github.dennisochulor.tickrate.mixin;
 
 import com.llamalad7.mixinextras.sugar.Local;
 import com.llamalad7.mixinextras.sugar.ref.LocalBooleanRef;
-import io.github.dennisochulor.tickrate.TickRateTickManager;
-import io.github.dennisochulor.tickrate.TickRateWorldTickScheduler;
 import net.minecraft.block.Block;
 import net.minecraft.entity.Entity;
 import net.minecraft.fluid.Fluid;
@@ -32,7 +30,7 @@ public abstract class ServerWorldMixin {
 
     @ModifyVariable(method = "tick(Ljava/util/function/BooleanSupplier;)V", at = @At("STORE"), ordinal = 0)
     private boolean tick$shouldTick(boolean value) {
-        TickRateTickManager tickManager = (TickRateTickManager) getTickManager();
+        ServerTickManager tickManager = (ServerTickManager) getTickManager();
         return tickManager.tickRate$shouldTickServer();
     }
 
@@ -42,13 +40,13 @@ public abstract class ServerWorldMixin {
         if(serverTickManager.isSprinting()) bl.set(true);
         else if(serverTickManager.isFrozen()) bl.set(serverTickManager.isStepping());
         else bl.set(true);
-        ((TickRateWorldTickScheduler)this.blockTickScheduler).tickRate$setWorld((ServerWorld) (Object)this); // this sucks man...
-        ((TickRateWorldTickScheduler)this.fluidTickScheduler).tickRate$setWorld((ServerWorld) (Object)this); // this sucks man...
+        this.blockTickScheduler.tickRate$setWorld((ServerWorld) (Object)this); // this sucks man...
+        this.fluidTickScheduler.tickRate$setWorld((ServerWorld) (Object)this); // this sucks man...
     }
 
     @Inject(method = "tick(Ljava/util/function/BooleanSupplier;)V",  at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiler/Profiler;swap(Ljava/lang/String;)V", args = "ldc=raid"))
     private void tick$modifyBl2(CallbackInfo ci, @Local LocalBooleanRef bl) {
-        TickRateTickManager tickManager = (TickRateTickManager) getTickManager();
+        ServerTickManager tickManager = (ServerTickManager) getTickManager();
         bl.set(tickManager.tickRate$shouldTickServer());
     }
 
@@ -62,21 +60,21 @@ public abstract class ServerWorldMixin {
 
     @Inject(method = "method_31420",  at = @At(value = "HEAD"), cancellable = true)
     private void tick$entity(TickManager tickManager, Profiler profiler, Entity entity, CallbackInfo ci) {
-        TickRateTickManager tickManager1 = (TickRateTickManager) tickManager;
+        ServerTickManager tickManager1 = (ServerTickManager) tickManager;
         if(!tickManager1.tickRate$shouldTickEntity(entity)) ci.cancel();
     }
 
     @Inject(method = "shouldTickBlocksInChunk", at = @At("HEAD"), cancellable = true)
     public void shouldTickBlocksInChunk(long chunkPos, CallbackInfoReturnable<Boolean> cir) {
         ServerWorld world = (ServerWorld) (Object) this;
-        TickRateTickManager tickManager = (TickRateTickManager) getTickManager();
+        ServerTickManager tickManager = (ServerTickManager) getTickManager();
         if(!tickManager.tickRate$shouldTickChunk(world, chunkPos)) cir.setReturnValue(false);
     }
 
     @Inject(method = "shouldTick(Lnet/minecraft/util/math/ChunkPos;)Z", at = @At("HEAD"), cancellable = true)
     public void shouldTick(ChunkPos pos, CallbackInfoReturnable<Boolean> cir) {
         ServerWorld world = (ServerWorld) (Object) this;
-        TickRateTickManager tickManager = (TickRateTickManager) getTickManager();
+        ServerTickManager tickManager = (ServerTickManager) getTickManager();
         if(!tickManager.tickRate$shouldTickChunk(world, pos.toLong())) cir.setReturnValue(false);
     }
 

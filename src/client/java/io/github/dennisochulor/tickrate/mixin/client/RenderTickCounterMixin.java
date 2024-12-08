@@ -1,7 +1,7 @@
 package io.github.dennisochulor.tickrate.mixin.client;
 
 import io.github.dennisochulor.tickrate.TickDeltaInfo;
-import io.github.dennisochulor.tickrate.TickRateRenderTickCounter;
+import io.github.dennisochulor.tickrate.injected_interface.TickRateRenderTickCounter;
 import net.minecraft.client.render.RenderTickCounter;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;

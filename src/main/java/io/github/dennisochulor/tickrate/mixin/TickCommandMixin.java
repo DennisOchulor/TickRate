@@ -3,7 +3,6 @@ package io.github.dennisochulor.tickrate.mixin;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
-import io.github.dennisochulor.tickrate.TickRateTickManager;
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.argument.BlockPosArgumentType;
 import net.minecraft.command.argument.EntityArgumentType;
@@ -162,7 +161,7 @@ public class TickCommandMixin {
     @Overwrite
     private static int executeRate(ServerCommandSource source, float rate) {
         int roundRate = Math.round(rate); // can't actually accept decimals
-        TickRateTickManager tickManager = (TickRateTickManager) source.getServer().getTickManager();
+        ServerTickManager tickManager = source.getServer().getTickManager();
         tickManager.tickRate$setServerRate(roundRate);
         tickManager.tickRate$sendUpdatePacket();
         source.sendFeedback(() -> Text.translatable("commands.tick.rate.success", roundRate), true);
@@ -176,7 +175,6 @@ public class TickCommandMixin {
     @Overwrite
     private static int executeQuery(ServerCommandSource source) {
         ServerTickManager serverTickManager = source.getServer().getTickManager();
-        TickRateTickManager tickRateTickManager = (TickRateTickManager) serverTickManager;
         String string = format(source.getServer().getAverageNanosPerTick());
         float f = serverTickManager.getTickRate();
         String string2 = String.format(Locale.ROOT, "%.1f", f);
@@ -192,7 +190,7 @@ public class TickCommandMixin {
                 source.sendFeedback(() -> Text.translatable("commands.tick.status.running"), false);
             }
 
-            source.sendFeedback(() -> Text.literal("Server's target tick rate: " + tickRateTickManager.tickRate$getServerRate() + " per second (" + format((long)((double) TimeHelper.SECOND_IN_NANOS / (double)tickRateTickManager.tickRate$getServerRate())) + " mspt)"), false);
+            source.sendFeedback(() -> Text.literal("Server's target tick rate: " + serverTickManager.tickRate$getServerRate() + " per second (" + format((long)((double) TimeHelper.SECOND_IN_NANOS / (double)serverTickManager.tickRate$getServerRate())) + " mspt)"), false);
             source.sendFeedback(() -> Text.literal("Mainloop's target tick rate: " + serverTickManager.getTickRate() + " per second (" + format((long)((double) TimeHelper.SECOND_IN_NANOS / (double)serverTickManager.getTickRate())) + " mspt)"), false);
         }
 
@@ -214,7 +212,7 @@ public class TickCommandMixin {
         }
 
         int roundRate = Math.round(rate); // can't actually accept decimals
-        TickRateTickManager tickManager = (TickRateTickManager) source.getServer().getTickManager();
+        ServerTickManager tickManager = source.getServer().getTickManager();
         tickManager.tickRate$setChunkRate(roundRate, source.getWorld(), ChunkPos.toLong(blockPos));
         if(roundRate != 0) {
             source.sendFeedback(() -> Text.of("Successfully set target rate of the specified chunk to " + roundRate), false);
@@ -235,7 +233,7 @@ public class TickCommandMixin {
             return 0;
         }
 
-        TickRateTickManager tickManager = (TickRateTickManager) source.getServer().getTickManager();
+        ServerTickManager tickManager = source.getServer().getTickManager();
         float rate = tickManager.tickRate$getChunkRate(source.getWorld(), ChunkPos.toLong(blockPos));
         source.sendFeedback(() -> Text.literal("The tick rate of the specified chunk is " + rate + " TPS."), false);
         return (int) rate;
@@ -243,7 +241,7 @@ public class TickCommandMixin {
 
     @Unique
     private static int executeChunkFreeze(ServerCommandSource source, BlockPos blockPos, boolean frozen) {
-        TickRateTickManager tickManager = (TickRateTickManager) source.getServer().getTickManager();
+        ServerTickManager tickManager = source.getServer().getTickManager();
         tickManager.tickRate$setChunkFrozen(frozen, source.getWorld(), ChunkPos.toLong(blockPos));
         if(frozen) source.sendFeedback(() -> Text.literal("The specified chunk has been frozen"), false);
         else source.sendFeedback(() -> Text.literal("The specified chunk has been unfrozen"), false);
@@ -253,7 +251,7 @@ public class TickCommandMixin {
 
     @Unique
     private static int executeChunkStep(ServerCommandSource source, BlockPos blockPos, int steps) {
-        TickRateTickManager tickManager = (TickRateTickManager) source.getServer().getTickManager();
+        ServerTickManager tickManager = source.getServer().getTickManager();
         boolean success = tickManager.tickRate$stepChunk(steps, source.getWorld(), ChunkPos.toLong(blockPos));
         if(success && steps != 0) source.sendFeedback(() -> Text.literal("The specified chunk will step " + steps + " ticks."), false);
         else if(success && steps == 0) source.sendFeedback(() -> Text.literal("The specified chunk has stopped stepping."), false);
@@ -264,7 +262,7 @@ public class TickCommandMixin {
 
     @Unique
     private static int executeChunkSprint(ServerCommandSource source, BlockPos blockPos, int ticks) {
-        TickRateTickManager tickManager = (TickRateTickManager) source.getServer().getTickManager();
+        ServerTickManager tickManager = source.getServer().getTickManager();
         boolean success = tickManager.tickRate$sprintChunk(ticks, source.getWorld(), ChunkPos.toLong(blockPos));
         if(success && ticks != 0) source.sendFeedback(() -> Text.literal("The specified chunk will sprint for " + ticks + " ticks."), false);
         else if(success && ticks == 0) source.sendFeedback(() -> Text.literal("The specified chunk has stopped sprinting."), false);
@@ -278,7 +276,7 @@ public class TickCommandMixin {
         int roundRate = Math.round(rate); // can't actually accept decimals
         if(entityCheck(entities,source)) return 0;
 
-        TickRateTickManager tickManager = (TickRateTickManager) source.getServer().getTickManager();
+        ServerTickManager tickManager = source.getServer().getTickManager();
         tickManager.tickRate$setEntityRate(roundRate, entities);
         if(roundRate != 0) {
             source.sendFeedback(() -> Text.of("Successfully set target rate of the specified entities to " + roundRate), false);
@@ -294,7 +292,7 @@ public class TickCommandMixin {
 
     @Unique
     private static int executeEntityQuery(ServerCommandSource source, Entity entity) {
-        TickRateTickManager tickManager = (TickRateTickManager) source.getServer().getTickManager();
+        ServerTickManager tickManager = source.getServer().getTickManager();
         float rate = tickManager.tickRate$getEntityRate(entity);
         source.sendFeedback(() -> Text.literal("The tick rate of the specified entity is " + rate + " TPS."), false);
         return (int) rate;
@@ -304,7 +302,7 @@ public class TickCommandMixin {
     private static int executeEntityFreeze(ServerCommandSource source, Collection<? extends Entity> entities, boolean frozen) {
         if(entityCheck(entities,source)) return 0;
 
-        TickRateTickManager tickManager = (TickRateTickManager) source.getServer().getTickManager();
+        ServerTickManager tickManager = source.getServer().getTickManager();
         tickManager.tickRate$setEntityFrozen(frozen, entities);
         if(frozen) source.sendFeedback(() -> Text.literal("The specified entities have been frozen."), false);
         else source.sendFeedback(() -> Text.literal("The specified entities have been unfrozen."), false);
@@ -316,7 +314,7 @@ public class TickCommandMixin {
     private static int executeEntityStep(ServerCommandSource source, Collection<? extends Entity> entities, int steps) {
         if(entityCheck(entities,source)) return 0;
 
-        TickRateTickManager tickManager = (TickRateTickManager) source.getServer().getTickManager();
+        ServerTickManager tickManager = source.getServer().getTickManager();
         boolean success = tickManager.tickRate$stepEntity(steps,entities);
         if(success && steps != 0) source.sendFeedback(() -> Text.literal("The specified entities will step " + steps + " ticks."), false);
         else if(success && steps == 0) source.sendFeedback(() -> Text.literal("The specified entities have stopped stepping."), false);
@@ -329,7 +327,7 @@ public class TickCommandMixin {
     private static int executeEntitySprint(ServerCommandSource source, Collection<? extends Entity> entities, int ticks) {
         if(entityCheck(entities,source)) return 0;
 
-        TickRateTickManager tickManager = (TickRateTickManager) source.getServer().getTickManager();
+        ServerTickManager tickManager = source.getServer().getTickManager();
         boolean success = tickManager.tickRate$sprintEntity(ticks,entities);
         if(success && ticks != 0) source.sendFeedback(() -> Text.literal("The specified entities will sprint for " + ticks + " ticks."), false);
         else if(success && ticks == 0) source.sendFeedback(() -> Text.literal("The specified entities have stopped sprinting."), false);
@@ -341,7 +339,7 @@ public class TickCommandMixin {
     @Unique
     // returns true if any of the entities cannot be the command's target
     private static boolean entityCheck(Collection<? extends Entity> entities, ServerCommandSource source) {
-        TickRateTickManager tickManager = (TickRateTickManager) source.getServer().getTickManager();
+        ServerTickManager tickManager = source.getServer().getTickManager();
         boolean match = entities.stream().anyMatch(e -> {
             if(e instanceof ServerPlayerEntity player) return !tickManager.tickRate$hasClientMod(player);
             else return false;

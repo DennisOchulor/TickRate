@@ -1,6 +1,7 @@
 package io.github.dennisochulor.tickrate;
 
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.world.World;
@@ -43,7 +44,7 @@ public class TickRateClientManager {
     }
 
     public static TickDeltaInfo getEntityTickDelta(Entity entity) {
-        TickRateRenderTickCounter renderTickCounter = (TickRateRenderTickCounter) MinecraftClient.getInstance().getRenderTickCounter();
+        RenderTickCounter renderTickCounter = MinecraftClient.getInstance().getRenderTickCounter();
         if(!serverHasMod) return TickDeltaInfo.ofServer(false);
         if(MinecraftClient.getInstance().isPaused()) return new TickDeltaInfo(1.0f,0,0);
         if(entity instanceof PlayerEntity && serverState.frozen()) return TickDeltaInfo.ofServer(true);
@@ -58,7 +59,7 @@ public class TickRateClientManager {
     }
 
     public static TickDeltaInfo getChunkTickDelta(World world, long chunkPos) {
-        TickRateRenderTickCounter renderTickCounter = (TickRateRenderTickCounter) MinecraftClient.getInstance().getRenderTickCounter();
+        RenderTickCounter renderTickCounter = MinecraftClient.getInstance().getRenderTickCounter();
         if(!serverHasMod) return TickDeltaInfo.ofServer(false);
         if(MinecraftClient.getInstance().isPaused()) return new TickDeltaInfo(1.0f,0,0);
         if(serverState.frozen() || serverState.sprinting() || serverState.stepping()) return TickDeltaInfo.ofServer(false);

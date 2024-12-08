@@ -1,7 +1,6 @@
 package io.github.dennisochulor.tickrate.mixin.client;
 
 import io.github.dennisochulor.tickrate.TickRateClientManager;
-import io.github.dennisochulor.tickrate.TickRateRenderTickCounter;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.option.GameOptions;
@@ -40,7 +39,7 @@ public abstract class MinecraftClientMixin {
 	@Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/profiler/Profiler;pop()V", ordinal = 1, shift = At.Shift.BEFORE))
 	private void render(boolean tick, CallbackInfo ci) {
 		if(!TickRateClientManager.serverHasMod()) return;
-		TickRateRenderTickCounter renderTickCounter = (TickRateRenderTickCounter) getRenderTickCounter();
+		RenderTickCounter renderTickCounter = getRenderTickCounter();
 		int playerChunkI = TickRateClientManager.getChunkTickDelta(this.world, this.player.getChunkPos().toLong()).i();
 		for(int i=0; i<10; i++) { // these things need to tick all 10 times
 			renderTickCounter.tickRate$setMovingI(i);

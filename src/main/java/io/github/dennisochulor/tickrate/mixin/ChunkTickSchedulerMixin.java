@@ -1,6 +1,6 @@
 package io.github.dennisochulor.tickrate.mixin;
 
-import io.github.dennisochulor.tickrate.TickRateChunkTickScheduler;
+import io.github.dennisochulor.tickrate.injected_interface.TickRateChunkTickScheduler;
 import net.minecraft.world.tick.ChunkTickScheduler;
 import net.minecraft.world.tick.OrderedTick;
 import net.minecraft.world.tick.Tick;
