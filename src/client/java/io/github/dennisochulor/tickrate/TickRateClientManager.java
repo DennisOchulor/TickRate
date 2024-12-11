@@ -49,6 +49,7 @@ public class TickRateClientManager {
         if(MinecraftClient.getInstance().isPaused()) return new TickDeltaInfo(1.0f,0,0);
         if(entity instanceof PlayerEntity && serverState.frozen()) return TickDeltaInfo.ofServer(true);
         if(serverState.frozen() || serverState.sprinting() || serverState.stepping()) return TickDeltaInfo.ofServer(false);
+        if(entity.hasVehicle()) return getEntityTickDelta(entity.getRootVehicle()); // all passengers will follow TPS of the root entity
 
         TickState state = entities.get(entity.getUuidAsString());
         if(state == null) return getChunkTickDelta(entity.getWorld(), entity.getChunkPos().toLong());
@@ -74,6 +75,7 @@ public class TickRateClientManager {
     }
 
     public static TickState getEntityState(Entity entity) {
+        if(entity.hasVehicle()) return getEntityState(entity.getRootVehicle());
         TickState state = entities.get(entity.getUuidAsString());
         if(state == null) return getChunkState(entity.getWorld(), entity.getChunkPos().toLong());
         if(state.rate() == -1.0f)
