@@ -6,6 +6,7 @@ import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.option.GameOptions;
 import net.minecraft.client.particle.ParticleManager;
 import net.minecraft.client.render.RenderTickCounter;
+import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.client.texture.TextureManager;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.world.tick.TickManager;
@@ -29,6 +30,8 @@ public abstract class MinecraftClientMixin {
 	@Shadow protected abstract void openChatScreen(String text);
 	@Shadow protected abstract boolean shouldTick();
 	@Shadow @Final private TextureManager textureManager;
+	@Shadow private volatile boolean paused;
+	@Shadow @Final public WorldRenderer worldRenderer;
 
 	@Redirect(method = "getTargetMillisPerTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/tick/TickManager;getMillisPerTick()F"))
 	private float getMillisPerTick(TickManager instance) {
@@ -46,7 +49,11 @@ public abstract class MinecraftClientMixin {
 			this.world.tickEntities();
 			this.particleManager.tick();
 
-			if(this.shouldTick() && i < playerChunkI) this.textureManager.tick(); // animate according to the player's chunk (not the player themself)
+			if(this.shouldTick() && i < playerChunkI)  // animate according to the player's chunk (not the player themself)
+				this.textureManager.tick();
+
+			if(!this.paused && i < renderTickCounter.tickRate$getI()) // tick according to server, not the player
+				this.worldRenderer.tick();
 		}
 
 		while (this.options.chatKey.wasPressed()) { // to allow player to chat even when FROZEN
@@ -68,6 +75,12 @@ public abstract class MinecraftClientMixin {
 
 	@Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/texture/TextureManager;tick()V"))
 	public void tick$tickTextures(TextureManager instance) {
+		if(!TickRateClientManager.serverHasMod()) instance.tick();
+		// otherwise NO-OP
+	}
+
+	@Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/WorldRenderer;tick()V"))
+	public void tick$tickWorldRenderer(WorldRenderer instance) {
 		if(!TickRateClientManager.serverHasMod()) instance.tick();
 		// otherwise NO-OP
 	}
