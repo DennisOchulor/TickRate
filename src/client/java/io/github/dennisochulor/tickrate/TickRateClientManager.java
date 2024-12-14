@@ -5,6 +5,7 @@ import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.world.World;
+import net.minecraft.world.tick.TickManager;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -84,6 +85,10 @@ public class TickRateClientManager {
     }
 
     public static TickState getChunkState(World world, long chunkPos) {
+        if(!serverHasMod) {
+            TickManager tickManager = MinecraftClient.getInstance().world.getTickManager();
+            return new TickState(tickManager.getTickRate(),tickManager.isFrozen(),tickManager.isStepping(),false); // Client does not have any sprint info
+        }
         TickState state = chunks.get(world.getRegistryKey().getValue() + "-" + chunkPos);
         if(state == null) return serverState;
         if(state.rate() == -1.0f)
