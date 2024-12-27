@@ -341,16 +341,16 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     }
 
     public boolean tickRate$stepEntity(int steps, Collection<? extends Entity> entities) {
-        if(entities.stream().anyMatch(e -> !this.steps.containsKey(e.getUuidAsString()))) {
-            return false; // some are not frozen, error
+        if(entities.stream().anyMatch(e -> !this.steps.containsKey(e.getUuidAsString()) || this.sprinting.containsKey(e.getUuidAsString()))) {
+            return false; // some are not frozen or are sprinting, error
         }
         entities.forEach(e -> this.steps.put(e.getUuidAsString(), steps));
         return true;
     }
 
     public boolean tickRate$sprintEntity(int ticks, Collection<? extends Entity> entities) {
-        if(entities.stream().anyMatch(e -> this.steps.containsKey(e.getUuidAsString()))) {
-            return false; // some are frozen, error
+        if(entities.stream().anyMatch(e -> this.steps.getOrDefault(e.getUuidAsString(),-1) > 0)) {
+            return false; // some are stepping, error
         }
         entities.forEach(e -> this.sprinting.put(e.getUuidAsString(), ticks));
         individualSprint();
@@ -388,14 +388,14 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
 
     public boolean tickRate$stepChunk(int steps, World world, long chunkPos) {
         String key = world.getRegistryKey().getValue() + "-" + chunkPos;
-        if(!this.steps.containsKey(key)) return false; // not frozen, cannot step
+        if(!this.steps.containsKey(key)  || this.sprinting.containsKey(key)) return false; // not frozen or is sprinting, cannot step
         this.steps.put(key,steps);
         return true;
     }
 
     public boolean tickRate$sprintChunk(int ticks, World world, long chunkPos) {
         String key = world.getRegistryKey().getValue() + "-" + chunkPos;
-        if(this.steps.containsKey(key)) return false; // frozen, cannot sprint
+        if(this.steps.getOrDefault(key,-1) > 0) return false; // stepping, cannot sprint
         this.sprinting.put(key,ticks);
         individualSprint();
         return true;

@@ -284,7 +284,7 @@ public class TickCommandMixin {
         boolean success = tickManager.tickRate$stepChunk(steps, source.getWorld(), ChunkPos.toLong(blockPos));
         if(success && steps != 0) source.sendFeedback(() -> Text.literal("The specified chunk will step " + steps + " ticks."), false);
         else if(success && steps == 0) source.sendFeedback(() -> Text.literal("The specified chunk has stopped stepping."), false);
-        else source.sendFeedback(() -> Text.literal("The specified chunk must be frozen first!").withColor(Colors.LIGHT_RED), false);
+        else source.sendFeedback(() -> Text.literal("The specified chunk must be frozen first and cannot be sprinting!").withColor(Colors.LIGHT_RED), false);
         tickManager.tickRate$sendUpdatePacket();
         return success ? 1 : 0;
     }
@@ -295,7 +295,7 @@ public class TickCommandMixin {
         boolean success = tickManager.tickRate$sprintChunk(ticks, source.getWorld(), ChunkPos.toLong(blockPos));
         if(success && ticks != 0) source.sendFeedback(() -> Text.literal("The specified chunk will sprint for " + ticks + " ticks."), false);
         else if(success && ticks == 0) source.sendFeedback(() -> Text.literal("The specified chunk has stopped sprinting."), false);
-        else source.sendFeedback(() -> Text.literal("The specified chunk must not be frozen!").withColor(Colors.LIGHT_RED), false);
+        else source.sendFeedback(() -> Text.literal("The specified chunk must not be stepping!").withColor(Colors.LIGHT_RED), false);
         tickManager.tickRate$sendUpdatePacket();
         return success ? 1 : 0;
     }
@@ -347,7 +347,7 @@ public class TickCommandMixin {
         boolean success = tickManager.tickRate$stepEntity(steps,entities);
         if(success && steps != 0) source.sendFeedback(() -> Text.literal("The specified entities will step " + steps + " ticks."), false);
         else if(success && steps == 0) source.sendFeedback(() -> Text.literal("The specified entities have stopped stepping."), false);
-        else source.sendFeedback(() -> Text.literal("The specified entities must be frozen first!").withColor(Colors.LIGHT_RED), false);
+        else source.sendFeedback(() -> Text.literal("The specified entities must be frozen first and cannot be sprinting!").withColor(Colors.LIGHT_RED), false);
         tickManager.tickRate$sendUpdatePacket();
         return success ? 1 : 0;
     }
@@ -360,7 +360,7 @@ public class TickCommandMixin {
         boolean success = tickManager.tickRate$sprintEntity(ticks,entities);
         if(success && ticks != 0) source.sendFeedback(() -> Text.literal("The specified entities will sprint for " + ticks + " ticks."), false);
         else if(success && ticks == 0) source.sendFeedback(() -> Text.literal("The specified entities have stopped sprinting."), false);
-        else source.sendFeedback(() -> Text.literal("The specified entities must not be frozen!").withColor(Colors.LIGHT_RED), false);
+        else source.sendFeedback(() -> Text.literal("The specified entities must not be stepping!").withColor(Colors.LIGHT_RED), false);
         tickManager.tickRate$sendUpdatePacket();
         return success ? 1 : 0;
     }
