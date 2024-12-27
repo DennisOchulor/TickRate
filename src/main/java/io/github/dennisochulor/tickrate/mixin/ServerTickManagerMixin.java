@@ -321,6 +321,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     }
 
     public float tickRate$getEntityRate(Entity entity) {
+        if(entity.hasVehicle()) return tickRate$getEntityRate(entity.getRootVehicle()); //passengers follow tick rate of root vehicle
         Float rate = entities.get(entity.getUuidAsString());
         if(rate != null) return rate;
         rate = chunks.get(entity.getWorld().getRegistryKey().getValue() + "-" + ChunkPos.toLong(entity.getBlockPos()));
