@@ -85,15 +85,20 @@ public class TickRateClientManager {
     }
 
     public static TickState getChunkState(World world, long chunkPos) {
-        if(!serverHasMod) {
-            TickManager tickManager = MinecraftClient.getInstance().world.getTickManager();
-            return new TickState(tickManager.getTickRate(),tickManager.isFrozen(),tickManager.isStepping(),false); // Client does not have any sprint info
-        }
+        if(!serverHasMod) return getServerState();
         TickState state = chunks.get(world.getRegistryKey().getValue() + "-" + chunkPos);
         if(state == null) return serverState;
         if(state.rate() == -1.0f)
             return new TickState(serverState.rate(), state.frozen(), state.stepping(), state.sprinting());
         else return state;
+    }
+
+    public static TickState getServerState() {
+        if(!serverHasMod) {
+            TickManager tickManager = MinecraftClient.getInstance().world.getTickManager();
+            return new TickState(tickManager.getTickRate(),tickManager.isFrozen(),tickManager.isStepping(),false); // Client does not have any sprint info
+        }
+        return serverState;
     }
 
 }

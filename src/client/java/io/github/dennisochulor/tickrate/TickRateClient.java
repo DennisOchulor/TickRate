@@ -33,13 +33,5 @@ public class TickRateClient implements ClientModInitializer {
 					return 0;
 				})
 		));
-
-		ClientTickEvents.END_CLIENT_TICK.register(client -> {
-			if(!TickIndicator.isEnabled() || !TickRateClientManager.serverHasMod()) return;
-			int chunkRate = (int) TickRateClientManager.getChunkState(client.player.clientWorld, client.player.getChunkPos().toLong()).rate();
-			int entityRate = (int) (client.targetedEntity!=null ? TickRateClientManager.getEntityState(client.targetedEntity).rate() : 0);
-			client.player.sendMessage(Text.literal("Entity: " + entityRate + " TPS       Chunk: " + chunkRate + " TPS"), true);
-		});
-
 	}
 }

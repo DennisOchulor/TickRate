@@ -1,5 +1,6 @@
 package io.github.dennisochulor.tickrate.mixin.client;
 
+import io.github.dennisochulor.tickrate.TickIndicator;
 import io.github.dennisochulor.tickrate.TickRateClientManager;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
@@ -59,6 +60,7 @@ public abstract class MinecraftClientMixin {
 		while (this.options.chatKey.wasPressed()) { // to allow player to chat even when FROZEN
 			this.openChatScreen("");
 		}
+		TickIndicator.tick();
 	}
 
 	@Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/world/ClientWorld;tickEntities()V"))
