@@ -19,6 +19,9 @@ import net.minecraft.util.TimeHelper;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import org.spongepowered.asm.mixin.*;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -203,6 +206,32 @@ public class TickCommandMixin {
         source.sendFeedback(() -> Text.literal("Avg: %.1fms P50: %sms P95: %sms P99: %sms, sample: %s".formatted(avg,p50,p95,p99,ls.length)), false);
         return (int)f;
     }
+
+    @Inject(method = "executeSprint", at = @At("TAIL"))
+    private static void executeSprint(ServerCommandSource source, int ticks, CallbackInfoReturnable<Integer> cir) {
+        source.getServer().getTickManager().tickRate$sendUpdatePacket();
+    }
+
+    @Inject(method = "executeFreeze", at = @At("TAIL"))
+    private static void executeFreeze(ServerCommandSource source, boolean frozen, CallbackInfoReturnable<Integer> cir) {
+        source.getServer().getTickManager().tickRate$sendUpdatePacket();
+    }
+
+    @Inject(method = "executeStep", at = @At("TAIL"))
+    private static void executeStep(ServerCommandSource source, int ticks, CallbackInfoReturnable<Integer> cir) {
+        source.getServer().getTickManager().tickRate$sendUpdatePacket();
+    }
+
+    @Inject(method = "executeStopStep", at = @At("RETURN"))
+    private static void executeStopStep(ServerCommandSource source, CallbackInfoReturnable<Integer> cir) {
+        source.getServer().getTickManager().tickRate$sendUpdatePacket();
+    }
+
+    @Inject(method = "executeStopSprint", at = @At("RETURN"))
+    private static void executeStopSprint(ServerCommandSource source, CallbackInfoReturnable<Integer> cir) {
+        source.getServer().getTickManager().tickRate$sendUpdatePacket();
+    }
+
 
     @Unique
     private static int executeChunkRate(ServerCommandSource source, BlockPos blockPos, float rate) {
