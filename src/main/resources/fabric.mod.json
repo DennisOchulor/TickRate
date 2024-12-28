@@ -8,10 +8,12 @@
 		"Ninjaking312"
 	],
 	"contact": {
-		"sources": "https://github.com/DennisOchulor/TickRate"
+		"sources": "https://github.com/DennisOchulor/TickRate",
+		"issues": "https://forms.gle/GLCta8sHF8V3Poi88",
+		"homepage": "https://modrinth.com/mod/tick"
 	},
 	"license": "MIT",
-	"icon": "assets/tickrate/icon.jpg",
+	"icon": "assets/tickrate/icon.png",
 	"environment": "*",
 	"entrypoints": {
 		"main": [
