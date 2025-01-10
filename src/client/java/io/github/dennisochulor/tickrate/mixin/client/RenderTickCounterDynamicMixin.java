@@ -28,8 +28,9 @@ public class RenderTickCounterDynamicMixin implements TickRateRenderTickCounter 
     @Unique private float prevTickDelta;
     @Unique private int movingI;
     @Unique private int i;
-    @Unique private final Map<String, TickDeltaInfo> prevTickDeltas = new HashMap<>();
-    @Unique private final Set<String> isUpdated = new HashSet<>();
+    // all things ticking at a certain TPS will tick/animate the exact same client-side, so just map TPS->TickDeltaInfo
+    @Unique private final Map<Integer, TickDeltaInfo> prevTickDeltas = new HashMap<>();
+    @Unique private final Set<Integer> isUpdated = new HashSet<>();
 
     @Inject(method = "beginRenderTick(J)I", at = @At("HEAD"))
     private void beginRenderTick(long timeMillis, CallbackInfoReturnable<Integer> cir) {
@@ -44,15 +45,16 @@ public class RenderTickCounterDynamicMixin implements TickRateRenderTickCounter 
     }
 
     @Unique
-    public TickDeltaInfo tickRate$getSpecificTickDelta(float millisPerTick, String key) {
-        if(isUpdated.contains(key)) return prevTickDeltas.get(key);
+    public TickDeltaInfo tickRate$getSpecificTickDeltaInfo(int tps) {
+        float millisPerTick = 1000.0f / tps;
+        if(isUpdated.contains(tps)) return prevTickDeltas.get(tps);
         float lastFrameDuration = (float)(prevTimeMillis - prevPrevTickMillis) / Math.max(millisPerTick, tickTime);
-        float specificTickDelta = prevTickDeltas.getOrDefault(key,new TickDeltaInfo(prevTickDelta,0,0)).tickDelta() + lastFrameDuration;
+        float specificTickDelta = prevTickDeltas.getOrDefault(tps,new TickDeltaInfo(prevTickDelta,0,0)).tickDelta() + lastFrameDuration;
         int i = (int) specificTickDelta;
         specificTickDelta -= (float) i;
         TickDeltaInfo info = new TickDeltaInfo(specificTickDelta,i,lastFrameDuration);
-        isUpdated.add(key);
-        prevTickDeltas.put(key,info);
+        isUpdated.add(tps);
+        prevTickDeltas.put(tps,info);
         return info;
     }
 
