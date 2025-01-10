@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.Unique;
 public interface RenderTickCounterMixin extends TickRateRenderTickCounter {
 
     @Unique
-    default TickDeltaInfo tickRate$getSpecificTickDeltaInfo(float millisPerTick, String key) {return null;}
+    default TickDeltaInfo tickRate$getSpecificTickDeltaInfo(int tps) {return null;}
     @Unique
     default void tickRate$setMovingI(int newI) {}
     @Unique
