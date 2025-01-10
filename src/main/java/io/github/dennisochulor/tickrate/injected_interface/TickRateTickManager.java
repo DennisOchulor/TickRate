@@ -10,7 +10,7 @@ import java.util.Collection;
 public interface TickRateTickManager {
 
     default void tickRate$serverStarted() {}
-    default void tickRate$serverStopped() {}
+    default void tickRate$saveData() {}
     default void tickRate$addPlayerWithMod(ServerPlayerEntity player) {}
     default void tickRate$removePlayerWithMod(ServerPlayerEntity player) {}
     default boolean tickRate$hasClientMod(ServerPlayerEntity player) {return false;}

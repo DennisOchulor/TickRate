@@ -45,8 +45,8 @@ public class TickRate implements ModInitializer {
 			server.getTickManager().tickRate$serverStarted();
 		});
 
-		ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
-			server.getTickManager().tickRate$serverStopped();
+		ServerLifecycleEvents.AFTER_SAVE.register((server, flush, force) -> { // for autosaves and when server stops
+			server.getTickManager().tickRate$saveData();
 		});
 
 		ServerChunkEvents.CHUNK_LOAD.register((serverWorld,chunk) -> {

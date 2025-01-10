@@ -101,7 +101,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         }
     }
 
-    public void tickRate$serverStopped() {
+    public void tickRate$saveData() {
         NbtCompound nbt = new NbtCompound();
         nbt.putFloat("nominalTickRate",nominalTickRate);
         var entitiesNbt = NbtOps.INSTANCE.mapBuilder();
