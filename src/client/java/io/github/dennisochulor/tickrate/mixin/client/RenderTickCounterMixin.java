@@ -12,6 +12,8 @@ public interface RenderTickCounterMixin extends TickRateRenderTickCounter {
     @Unique
     default TickDeltaInfo tickRate$getSpecificTickDeltaInfo(int tps) {return null;}
     @Unique
+    default TickDeltaInfo tickRate$getClientPlayerTickDeltaInfo(int tps) {return null;}
+    @Unique
     default void tickRate$setMovingI(int newI) {}
     @Unique
     default int tickRate$getMovingI() {return 0;}

@@ -20,6 +20,8 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.function.BooleanSupplier;
+
 @Mixin(MinecraftClient.class)
 public abstract class MinecraftClientMixin {
 
@@ -50,17 +52,28 @@ public abstract class MinecraftClientMixin {
 			this.world.tickEntities();
 			this.particleManager.tick();
 
-			if(this.shouldTick() && i < playerChunkI)  // animate according to the player's chunk (not the player themself)
+			if(this.shouldTick() && i < playerChunkI) { // animate according to the player's chunk (not the player themself)
 				this.textureManager.tick();
+				this.world.doRandomBlockDisplayTicks(this.player.getBlockX(), this.player.getBlockY(), this.player.getBlockZ());
+			}
 
-			if(!this.paused && i < renderTickCounter.tickRate$getI()) // tick according to server, not the player
+			if(!this.paused && i < renderTickCounter.tickRate$getI()) { // tick according to server, not the player
+				this.world.getTickManager().step();
+				this.world.tick(() -> true);
 				this.worldRenderer.tick();
+			}
 		}
 
 		while (this.options.chatKey.wasPressed()) { // to allow player to chat even when FROZEN
 			this.openChatScreen("");
 		}
 		TickIndicator.tick();
+	}
+
+	@ModifyVariable(method = "render", at = @At(value = "STORE"), ordinal = 0)
+	private int render(int i) { // make the clientTick follow the player's tick rate (which may differ from the server)
+		if(!TickRateClientManager.serverHasMod()) return i;
+		return TickRateClientManager.getEntityTickDelta(this.player).i();
 	}
 
 	@Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/world/ClientWorld;tickEntities()V"))
@@ -87,10 +100,22 @@ public abstract class MinecraftClientMixin {
 		// otherwise NO-OP
 	}
 
-	@ModifyVariable(method = "render", at = @At(value = "STORE"), ordinal = 0)
-	private int render(int i) { // make the clientTick follow the player's tick rate (which may differ from the server)
-		if(!TickRateClientManager.serverHasMod()) return i;
-		return TickRateClientManager.getEntityTickDelta(this.player).i();
+	@Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/world/ClientWorld;tick(Ljava/util/function/BooleanSupplier;)V"))
+	public void tick$tickWorld(ClientWorld instance, BooleanSupplier shouldKeepTicking) {
+		if(!TickRateClientManager.serverHasMod()) instance.tick(shouldKeepTicking);
+		// otherwise NO-OP
+	}
+
+	@Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/tick/TickManager;step()V"))
+	public void tick$stepTickManager(TickManager instance) {
+		if(!TickRateClientManager.serverHasMod()) instance.step();
+		// otherwise NO-OP
+	}
+
+	@Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/world/ClientWorld;doRandomBlockDisplayTicks(III)V"))
+	public void tick$randomBlockDisplayTicks(ClientWorld instance, int centerX, int centerY, int centerZ) {
+		if(!TickRateClientManager.serverHasMod()) instance.doRandomBlockDisplayTicks(centerX,centerY,centerZ);
+		// otherwise NO-OP
 	}
 
 }

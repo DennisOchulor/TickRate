@@ -28,15 +28,19 @@ public class RenderTickCounterDynamicMixin implements TickRateRenderTickCounter 
     @Unique private float prevTickDelta;
     @Unique private int movingI;
     @Unique private int i;
-    // all things ticking at a certain TPS will tick/animate the exact same client-side, so just map TPS->TickDeltaInfo
+    // all things (except client's player) ticking at a certain TPS will tick/animate the exact same client-side, so just map TPS->TickDeltaInfo
     @Unique private final Map<Integer, TickDeltaInfo> prevTickDeltas = new HashMap<>();
     @Unique private final Set<Integer> isUpdated = new HashSet<>();
+    // the client's player can go above 20TPS, so it needs special treatment
+    @Unique private TickDeltaInfo clientPlayerTickDeltaInfo = TickDeltaInfo.NO_ANIMATE;
+    @Unique private boolean clientPlayerUpdated = false;
 
     @Inject(method = "beginRenderTick(J)I", at = @At("HEAD"))
     private void beginRenderTick(long timeMillis, CallbackInfoReturnable<Integer> cir) {
         prevPrevTickMillis = prevTimeMillis;
         prevTickDelta = tickDelta;
         isUpdated.clear();
+        clientPlayerUpdated = false;
     }
 
     @Inject(method = "beginRenderTick(J)I", at = @At("TAIL"), locals = LocalCapture.CAPTURE_FAILHARD)
@@ -56,6 +60,20 @@ public class RenderTickCounterDynamicMixin implements TickRateRenderTickCounter 
         isUpdated.add(tps);
         prevTickDeltas.put(tps,info);
         return info;
+    }
+
+    @Unique
+    public TickDeltaInfo tickRate$getClientPlayerTickDeltaInfo(int tps) {
+        // the client's player can go above 20TPS, so it needs special treatment
+        float millisPerTick = 1000.0f / tps;
+        if(clientPlayerUpdated) return clientPlayerTickDeltaInfo;
+        float lastFrameDuration = (float)(prevTimeMillis - prevPrevTickMillis) / millisPerTick;
+        float specificTickDelta = clientPlayerTickDeltaInfo.tickDelta() + lastFrameDuration;
+        int i = (int) specificTickDelta;
+        specificTickDelta -= (float) i;
+        clientPlayerTickDeltaInfo = new TickDeltaInfo(specificTickDelta,i,lastFrameDuration);
+        clientPlayerUpdated = true;
+        return clientPlayerTickDeltaInfo;
     }
 
     @Override

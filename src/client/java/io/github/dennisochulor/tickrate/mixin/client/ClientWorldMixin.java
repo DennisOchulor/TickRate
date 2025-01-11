@@ -22,11 +22,10 @@ public class ClientWorldMixin {
 
     @Inject(method = "randomBlockDisplayTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/math/BlockPos$Mutable;set(III)Lnet/minecraft/util/math/BlockPos$Mutable;", shift = At.Shift.AFTER), cancellable = true)
     public void randomBlockDisplayTicks(int centerX, int centerY, int centerZ, int radius, Random random, Block block, BlockPos.Mutable pos, CallbackInfo ci) {
-        float playerRate = TickRateClientManager.getEntityState(client.player).rate();
-        if(playerRate > 20) playerRate = 20; // player can only animate at 20 TPS max
-        float chunkRate = TickRateClientManager.getChunkState((World)(Object)this, ChunkPos.toLong(pos)).rate();
-        if(playerRate > chunkRate) { // slow it down by chance if player ticking faster than chunk, otherwise ignore
-            int chance = (int) (chunkRate / playerRate * 100);
+        float playerChunkRate = Math.min(20, TickRateClientManager.getChunkState(client.world, client.player.getChunkPos().toLong()).rate());
+        float chunkRate = TickRateClientManager.getChunkState(client.world, ChunkPos.toLong(pos)).rate();
+        if(playerChunkRate > chunkRate) { // slow it down by chance if player's chunk ticking faster than the random chunk, otherwise ignore
+            int chance = (int) (chunkRate / playerChunkRate * 100);
             if(chance < random.nextBetween(1,100)) ci.cancel();
         }
     }

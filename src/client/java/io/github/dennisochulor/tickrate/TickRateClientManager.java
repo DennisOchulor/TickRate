@@ -4,7 +4,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.projectile.ArrowEntity;
 import net.minecraft.world.World;
 import net.minecraft.world.tick.TickManager;
 
@@ -49,13 +48,14 @@ public class TickRateClientManager {
         RenderTickCounter renderTickCounter = MinecraftClient.getInstance().getRenderTickCounter();
         if(!serverHasMod) return TickDeltaInfo.ofServer(false);
         if(MinecraftClient.getInstance().isPaused()) return TickDeltaInfo.NO_ANIMATE;
-        if(entity instanceof PlayerEntity && serverState.frozen()) return TickDeltaInfo.ofServer(true);
-        if(serverState.frozen() || serverState.sprinting() || serverState.stepping()) return TickDeltaInfo.ofServer(false);
+        if(entity instanceof PlayerEntity && serverState.frozen()) return TickDeltaInfo.ofServer(true); // tick freeze doesn't affect players
 
+        boolean cappedAt20TPS = !(entity==MinecraftClient.getInstance().player); // client's own player can go above 20TPS limit
         TickState state = getEntityState(entity); // this also handles passenger entities
-        if(state.sprinting()) return renderTickCounter.tickRate$getSpecificTickDeltaInfo(20); // animate at max 20 TPS
+        if(state.sprinting()) // animate at max 20 TPS but for client player we don't know the TPS, so just say 100 :P
+            return cappedAt20TPS ? renderTickCounter.tickRate$getSpecificTickDeltaInfo(20) : renderTickCounter.tickRate$getClientPlayerTickDeltaInfo(100);
         if(state.frozen() && !state.stepping()) return TickDeltaInfo.NO_ANIMATE;
-        //if(entity instanceof ArrowEntity) TickRate.LOGGER.info(state.rate() + "");
+        if(!cappedAt20TPS) return renderTickCounter.tickRate$getClientPlayerTickDeltaInfo((int) state.rate());
         return renderTickCounter.tickRate$getSpecificTickDeltaInfo((int) state.rate());
     }
 
@@ -63,7 +63,6 @@ public class TickRateClientManager {
         RenderTickCounter renderTickCounter = MinecraftClient.getInstance().getRenderTickCounter();
         if(!serverHasMod) return TickDeltaInfo.ofServer(false);
         if(MinecraftClient.getInstance().isPaused()) return TickDeltaInfo.NO_ANIMATE;
-        if(serverState.frozen() || serverState.sprinting() || serverState.stepping()) return TickDeltaInfo.ofServer(false);
 
         TickState state = getChunkState(world, chunkPos);
         if(state.sprinting()) return renderTickCounter.tickRate$getSpecificTickDeltaInfo(20); // animate at max 20 TPS
@@ -75,18 +74,24 @@ public class TickRateClientManager {
         if(entity.hasVehicle()) return getEntityState(entity.getRootVehicle()); // all passengers will follow TPS of the root entity
         TickState state = entities.get(entity.getUuidAsString());
         if(state == null) return getChunkState(entity.getWorld(), entity.getChunkPos().toLong());
-        if(state.rate() == -1.0f)
-            return new TickState(getChunkState(entity.getWorld(), entity.getChunkPos().toLong()).rate(), state.frozen(), state.stepping(), state.sprinting());
-        else return state;
+
+        float rate = state.rate();
+        if(rate == -1.0f) rate = getChunkState(entity.getWorld(), entity.getChunkPos().toLong()).rate();
+        if(serverState.frozen() || serverState.sprinting() || serverState.stepping())
+            return new TickState(rate,serverState.frozen(),serverState.stepping(),serverState.sprinting());
+        return new TickState(rate,state.frozen(),state.stepping(),state.sprinting());
     }
 
     public static TickState getChunkState(World world, long chunkPos) {
         if(!serverHasMod) return getServerState();
         TickState state = chunks.get(world.getRegistryKey().getValue() + "-" + chunkPos);
         if(state == null) return serverState;
-        if(state.rate() == -1.0f)
-            return new TickState(serverState.rate(), state.frozen(), state.stepping(), state.sprinting());
-        else return state;
+
+        float rate = state.rate();
+        if(state.rate() == -1.0f) rate = serverState.rate();
+        if(serverState.frozen() || serverState.sprinting() || serverState.stepping())
+            return new TickState(rate,serverState.frozen(),serverState.stepping(),serverState.sprinting());
+        return new TickState(rate,state.frozen(),state.stepping(),state.sprinting());
     }
 
     public static TickState getServerState() {

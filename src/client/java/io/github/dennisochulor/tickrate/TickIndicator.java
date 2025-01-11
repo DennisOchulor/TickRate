@@ -26,22 +26,21 @@ public class TickIndicator {
         TickState entityState = client.targetedEntity!=null ? TickRateClientManager.getEntityState(client.targetedEntity) : null;
         int entityRate = (int) (entityState!=null ? entityState.rate() : 0);
 
-        TickState serverState = TickRateClientManager.getServerState();
         String chunkStateStr = "";
         String entityStateStr = "";
-        if(serverState.sprinting() || chunkState.sprinting())
+        if(chunkState.sprinting())
             chunkStateStr = " (Sprinting)";
-        else if(serverState.stepping() || chunkState.stepping())
+        else if(chunkState.stepping())
             chunkStateStr = " (Stepping)";
-        else if(serverState.frozen() || chunkState.frozen())
+        else if(chunkState.frozen())
             chunkStateStr = " (Frozen)";
 
         if(entityState != null) {
-            if(serverState.sprinting() || entityState.sprinting())
+            if(entityState.sprinting())
                 entityStateStr = " (Sprinting)";
-            else if(serverState.stepping() || entityState.stepping())
+            else if(entityState.stepping())
                 entityStateStr = " (Stepping)";
-            else if(serverState.frozen() || entityState.frozen())
+            else if(entityState.frozen())
                 entityStateStr = " (Frozen)";
         }
 

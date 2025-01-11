@@ -21,6 +21,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.io.File;
@@ -62,10 +63,15 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
 
     @Inject(method = "sprint", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickManager;finishSprinting()V", shift = At.Shift.BEFORE), cancellable = true)
     public void sprint(CallbackInfoReturnable<Boolean> cir) {
-        if(scheduledSprintTicks == 0L) {
+        if(scheduledSprintTicks == 0L) { // trick the server to continue sprinting for individual sprint
             individualSprintTicks--;
             cir.setReturnValue(true);
         }
+    }
+
+    @Inject(method = "finishSprinting", at = @At("TAIL"))
+    public void finishSprinting(CallbackInfo ci) {
+        tickRate$sendUpdatePacket(); // tell client to stop sprinting
     }
 
     @Override
@@ -73,7 +79,10 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         this.shouldTick = !this.frozen || this.stepTicks > 0;
         if (this.stepTicks > 0) {
             this.stepTicks--;
-            if(this.stepTicks == 0) updateFastestTicker();
+            if(this.stepTicks == 0) {
+                updateFastestTicker();
+                tickRate$sendUpdatePacket(); // tell client to stop stepping
+            }
         }
     }
 
