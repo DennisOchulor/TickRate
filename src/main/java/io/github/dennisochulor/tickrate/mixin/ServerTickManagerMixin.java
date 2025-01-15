@@ -11,9 +11,12 @@ import net.minecraft.nbt.NbtOps;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.ServerTickManager;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ChunkLevelType;
 import net.minecraft.util.TimeHelper;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
+import net.minecraft.world.chunk.ChunkStatus;
+import net.minecraft.world.chunk.WorldChunk;
 import net.minecraft.world.tick.TickManager;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -64,7 +67,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     @Inject(method = "sprint", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickManager;finishSprinting()V", shift = At.Shift.BEFORE), cancellable = true)
     public void sprint(CallbackInfoReturnable<Boolean> cir) {
         if(scheduledSprintTicks == 0L) { // trick the server to continue sprinting for individual sprint
-            individualSprintTicks--;
+            individualSprintTicks--;     // works together with MinecraftServerMixin#isSprinting()
             cir.setReturnValue(true);
         }
     }
@@ -257,7 +260,10 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         }
         else {
             Float rate = entities.get(key);
-            if(rate == null) return;
+            if(rate == null) {
+                tickRate$removeEntity(entity, false, false, true); // if unloaded with no specific rate, just remove sprint!
+                return;
+            }
 
             Entity.RemovalReason reason = entity.getRemovalReason();
             if(reason != null) {
@@ -292,7 +298,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     }
 
     public void tickRate$ticked() {
-        if(!sprinting.isEmpty()) {
+        if(tickRate$isIndividualSprint()) {
             ticks++;
             if(ticks > sprintAvgTicksPerSecond) {
                 ticks = 1;
@@ -372,9 +378,23 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         return getEntityTickState(key);
     }
 
-    public void tickRate$setChunkRate(float rate, World world, long chunkPos) {
-        if(rate == 0) chunks.remove(world.getRegistryKey().getValue() + "-" + chunkPos);
-        else chunks.put(world.getRegistryKey().getValue() + "-" + chunkPos, rate);
+    public void tickRate$setChunkRate(float rate, World world, List<ChunkPos> chunks) {
+        if(rate == 0) {
+            chunks.forEach(chunkPos -> {
+                String key = world.getRegistryKey().getValue() + "-" + chunkPos.toLong();
+                this.chunks.remove(key);
+                unloadedChunks.remove(key);
+            });
+        }
+        else {
+            chunks.forEach(chunkPos -> {
+                String key = world.getRegistryKey().getValue() + "-" + chunkPos.toLong();
+                // not using World#isChunkLoaded cause it can return FALSE before CHUNK_UNLOAD event is fired
+                WorldChunk worldChunk = (WorldChunk) world.getChunk(chunkPos.x,chunkPos.z,ChunkStatus.FULL,false);
+                if(worldChunk!=null && worldChunk.getLevelType().isAfter(ChunkLevelType.FULL)) this.chunks.put(key, rate);
+                else unloadedChunks.put(key, rate);
+            });
+        }
         updateFastestTicker();
     }
 
@@ -382,31 +402,41 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         String key = world.getRegistryKey().getValue() + "-" + chunkPos;
         Float rate = chunks.get(key);
         if(rate != null) return rate;
+        rate = unloadedChunks.get(key);
+        if(rate != null) return rate;
         return nominalTickRate;
     }
 
-    public void tickRate$setChunkFrozen(boolean frozen, World world, long chunkPos) {
-        String key = world.getRegistryKey().getValue() + "-" + chunkPos;
+    public void tickRate$setChunkFrozen(boolean frozen, World world, List<ChunkPos> chunks) {
         if(frozen) {
-            steps.put(key,0);
-            if(sprinting.containsKey(key)) sprinting.put(key,0); // if sprinting, stop the sprint
+            chunks.forEach(chunkPos -> {
+                String key = world.getRegistryKey().getValue() + "-" + chunkPos.toLong();
+                steps.put(key,0);
+                if(sprinting.containsKey(key)) sprinting.put(key,0); // if sprinting, stop the sprint
+            });
         }
         else {
-            steps.remove(key);
+            chunks.forEach(chunkPos -> {
+                String key = world.getRegistryKey().getValue() + "-" + chunkPos.toLong();
+                steps.remove(key);
+            });
         }
     }
 
-    public boolean tickRate$stepChunk(int steps, World world, long chunkPos) {
-        String key = world.getRegistryKey().getValue() + "-" + chunkPos;
-        if(!this.steps.containsKey(key)  || this.sprinting.containsKey(key)) return false; // not frozen or is sprinting, cannot step
-        this.steps.put(key,steps);
+    public boolean tickRate$stepChunk(int steps, World world, List<ChunkPos> chunks) {
+        boolean error = chunks.stream().anyMatch(chunkPos -> {
+            String key = world.getRegistryKey().getValue() + "-" + chunkPos.toLong();
+            return !this.steps.containsKey(key) || this.sprinting.containsKey(key);
+        });
+        if(error) return false; // some are not frozen or are sprinting, error
+        chunks.forEach(chunkPos -> this.steps.put(world.getRegistryKey().getValue() + "-" + chunkPos.toLong(), steps));
         return true;
     }
 
-    public boolean tickRate$sprintChunk(int ticks, World world, long chunkPos) {
-        String key = world.getRegistryKey().getValue() + "-" + chunkPos;
-        if(this.steps.getOrDefault(key,-1) > 0) return false; // stepping, cannot sprint
-        this.sprinting.put(key,ticks);
+    public boolean tickRate$sprintChunk(int ticks, World world, List<ChunkPos> chunks) {
+        if(chunks.stream().anyMatch(chunkPos -> this.steps.getOrDefault(world.getRegistryKey().getValue() + "-" + chunkPos.toLong(),-1) > 0))
+            return false; // some are stepping, error
+        chunks.forEach(chunkPos -> this.sprinting.put(world.getRegistryKey().getValue() + "-" + chunkPos.toLong(), ticks));
         individualSprint();
         return true;
     }
@@ -422,7 +452,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     @Unique
     private boolean internalShouldTick(float tickRate) {
         // attempt to evenly space out the exact number of ticks
-        float fastestTickRate = sprintAvgTicksPerSecond==-1 ? this.tickRate : sprintAvgTicksPerSecond;
+        float fastestTickRate = tickRate$isIndividualSprint() ? sprintAvgTicksPerSecond : this.tickRate;
 
         double d = (fastestTickRate-1)/(tickRate+1);
         if(tickRate == fastestTickRate) return true;

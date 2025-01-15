@@ -3,8 +3,11 @@ package io.github.dennisochulor.tickrate.mixin;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.tree.LiteralCommandNode;
+import io.github.dennisochulor.tickrate.TickRate;
 import net.minecraft.command.CommandSource;
-import net.minecraft.command.argument.BlockPosArgumentType;
+import net.minecraft.command.argument.ColumnPosArgumentType;
 import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.command.argument.TimeArgumentType;
 import net.minecraft.entity.Entity;
@@ -13,10 +16,10 @@ import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.command.TickCommand;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
 import net.minecraft.util.TimeHelper;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;
@@ -25,6 +28,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Locale;
 
 @Mixin(TickCommand.class)
@@ -44,6 +48,35 @@ public class TickCommandMixin {
      */
     @Overwrite
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
+        LiteralCommandNode<ServerCommandSource> chunkQuery = CommandManager.literal("query")
+                    .executes(context -> executeChunkQuery(context.getSource(), getChunks(context,1))).build();
+
+        LiteralCommandNode<ServerCommandSource> chunkRate = CommandManager.literal("rate")
+                    .then(CommandManager.literal("reset").executes(context -> executeChunkRate(context.getSource(), getChunks(context,2), 0.0f)))
+                    .then(CommandManager.argument("rate", FloatArgumentType.floatArg(1.0F, 10000.0F))
+                            .suggests((context, suggestionsBuilder) -> CommandSource.suggestMatching(new String[]{DEFAULT_TICK_RATE_STRING,"reset"}, suggestionsBuilder))
+                            .executes(context -> executeChunkRate(context.getSource(), getChunks(context,2), FloatArgumentType.getFloat(context, "rate")))).build();
+
+        LiteralCommandNode<ServerCommandSource> chunkUnfreeze = CommandManager.literal("unfreeze")
+                    .executes(context -> executeChunkFreeze(context.getSource(), getChunks(context,1), false)).build();
+
+        LiteralCommandNode<ServerCommandSource> chunkFreeze = CommandManager.literal("freeze")
+                    .executes(context -> executeChunkFreeze(context.getSource(), getChunks(context,1), true)).build();
+
+        LiteralCommandNode<ServerCommandSource> chunkStep = CommandManager.literal("step")
+                    .executes(context -> executeChunkStep(context.getSource(), getChunks(context,1), 1))
+                    .then(CommandManager.literal("stop").executes(context -> executeChunkStep(context.getSource(), getChunks(context,2), 0)))
+                    .then(CommandManager.argument("time", TimeArgumentType.time(1))
+                            .suggests((context, suggestionsBuilder) -> CommandSource.suggestMatching(new String[]{"1t", "1s"}, suggestionsBuilder))
+                            .executes(context -> executeChunkStep(context.getSource(), getChunks(context,2), IntegerArgumentType.getInteger(context, "time")))).build();
+
+        LiteralCommandNode<ServerCommandSource> chunkSprint = CommandManager.literal("sprint")
+                    .then(CommandManager.literal("stop").executes(context -> executeChunkSprint(context.getSource(), getChunks(context,1), 0)))
+                    .then(CommandManager.argument("time", TimeArgumentType.time(1))
+                            .suggests((context, suggestionsBuilder) -> CommandSource.suggestMatching(new String[]{"60s", "1d", "3d"}, suggestionsBuilder))
+                            .executes(context -> executeChunkSprint(context.getSource(), getChunks(context,2), IntegerArgumentType.getInteger(context, "time")))).build();
+
+
         dispatcher.register(
                 CommandManager.literal("tick")
                         .requires(source -> source.hasPermissionLevel(2))
@@ -79,79 +112,64 @@ public class TickCommandMixin {
                         .then(CommandManager.literal("freeze").executes(context -> executeFreeze(context.getSource(), true)))
                         .then(
                                 CommandManager.literal("entity")
-                                        .then(CommandManager.literal("query")
-                                                .then(CommandManager.argument("entity", EntityArgumentType.entity())
-                                                        .executes(context -> executeEntityQuery(context.getSource(), EntityArgumentType.getEntity(context, "entity"))))
-                                        )
-                                        .then(CommandManager.literal("rate")
-                                                .then(CommandManager.argument("entities", EntityArgumentType.entities())
+                                        .then(CommandManager.argument("entities", EntityArgumentType.entities())
+                                                .then(CommandManager.literal("query")
+                                                        .executes(context -> executeEntityQuery(context.getSource(), EntityArgumentType.getEntities(context, "entities")))
+                                                )
+                                                .then(CommandManager.literal("rate")
                                                         .then(CommandManager.literal("reset").executes(context -> executeEntityRate(context.getSource(), EntityArgumentType.getEntities(context, "entities"), 0.0f)))
                                                         .then(CommandManager.argument("rate", FloatArgumentType.floatArg(1.0F, 10000.0F))
                                                                 .suggests((context, suggestionsBuilder) -> CommandSource.suggestMatching(new String[]{DEFAULT_TICK_RATE_STRING,"reset"}, suggestionsBuilder))
-                                                                .executes(context -> executeEntityRate(context.getSource(), EntityArgumentType.getEntities(context, "entities"), FloatArgumentType.getFloat(context, "rate")))))
-                                        )
-                                        .then(CommandManager.literal("unfreeze")
-                                            .then(CommandManager.argument("entities",EntityArgumentType.entities())
-                                            .executes(context -> executeEntityFreeze(context.getSource(), EntityArgumentType.getEntities(context, "entities"), false)))
-                                        )
-                                        .then(CommandManager.literal("freeze")
-                                            .then(CommandManager.argument("entities",EntityArgumentType.entities())
-                                            .executes(context -> executeEntityFreeze(context.getSource(), EntityArgumentType.getEntities(context, "entities"), true)))
-                                        )
-                                        .then(CommandManager.literal("step")
-                                                .then(CommandManager.argument("entities", EntityArgumentType.entities())
-                                                    .executes(context -> executeEntityStep(context.getSource(), EntityArgumentType.getEntities(context,"entities"), 1))
-                                                    .then(CommandManager.literal("stop").executes(context -> executeEntityStep(context.getSource(), EntityArgumentType.getEntities(context, "entities"), 0)))
-                                                    .then(
-                                                         CommandManager.argument("time", TimeArgumentType.time(1))
-                                                                  .suggests((context, suggestionsBuilder) -> CommandSource.suggestMatching(new String[]{"1t", "1s"}, suggestionsBuilder))
-                                                                  .executes(context -> executeEntityStep(context.getSource(), EntityArgumentType.getEntities(context, "entities"), IntegerArgumentType.getInteger(context, "time")))))
-                                        )
-                                        .then(CommandManager.literal("sprint")
-                                                .then(CommandManager.argument("entities", EntityArgumentType.entities())
-                                                .then(CommandManager.literal("stop").executes(context -> executeEntitySprint(context.getSource(), EntityArgumentType.getEntities(context, "entities"),0)))
-                                                .then(
-                                                        CommandManager.argument("time", TimeArgumentType.time(1))
+                                                                .executes(context -> executeEntityRate(context.getSource(), EntityArgumentType.getEntities(context, "entities"), FloatArgumentType.getFloat(context, "rate"))))
+                                                )
+                                                .then(CommandManager.literal("unfreeze")
+                                                        .executes(context -> executeEntityFreeze(context.getSource(), EntityArgumentType.getEntities(context, "entities"), false))
+                                                )
+                                                .then(CommandManager.literal("freeze")
+                                                        .executes(context -> executeEntityFreeze(context.getSource(), EntityArgumentType.getEntities(context, "entities"), true))
+                                                )
+                                                .then(CommandManager.literal("step")
+                                                        .executes(context -> executeEntityStep(context.getSource(), EntityArgumentType.getEntities(context,"entities"), 1))
+                                                        .then(CommandManager.literal("stop").executes(context -> executeEntityStep(context.getSource(), EntityArgumentType.getEntities(context, "entities"), 0)))
+                                                        .then(CommandManager.argument("time", TimeArgumentType.time(1))
+                                                                .suggests((context, suggestionsBuilder) -> CommandSource.suggestMatching(new String[]{"1t", "1s"}, suggestionsBuilder))
+                                                                .executes(context -> executeEntityStep(context.getSource(), EntityArgumentType.getEntities(context, "entities"), IntegerArgumentType.getInteger(context, "time"))))
+                                                )
+                                                .then(CommandManager.literal("sprint")
+                                                        .then(CommandManager.literal("stop").executes(context -> executeEntitySprint(context.getSource(), EntityArgumentType.getEntities(context, "entities"),0)))
+                                                        .then(CommandManager.argument("time", TimeArgumentType.time(1))
                                                                 .suggests((context, suggestionsBuilder) -> CommandSource.suggestMatching(new String[]{"60s", "1d", "3d"}, suggestionsBuilder))
-                                                                .executes(context -> executeEntitySprint(context.getSource(), EntityArgumentType.getEntities(context, "entities"), IntegerArgumentType.getInteger(context, "time")))))
+                                                                .executes(context -> executeEntitySprint(context.getSource(), EntityArgumentType.getEntities(context, "entities"), IntegerArgumentType.getInteger(context, "time"))))
+                                                )
                                         )
                         )
                         .then(
                                 CommandManager.literal("chunk")
-                                        .then(CommandManager.literal("query")
-                                                .then(CommandManager.argument("blockPos", BlockPosArgumentType.blockPos())
-                                                .executes(context -> executeChunkQuery(context.getSource(), BlockPosArgumentType.getBlockPos(context, "blockPos")))))
-                                        .then(CommandManager.literal("rate")
-                                                .then(CommandManager.argument("blockPos", BlockPosArgumentType.blockPos())
-                                                        .then(CommandManager.literal("reset").executes(context -> executeChunkRate(context.getSource(), BlockPosArgumentType.getBlockPos(context, "blockPos"), 0.0f)))
-                                                        .then(CommandManager.argument("rate", FloatArgumentType.floatArg(1.0F, 10000.0F))
-                                                                .suggests((context, suggestionsBuilder) -> CommandSource.suggestMatching(new String[]{DEFAULT_TICK_RATE_STRING,"reset"}, suggestionsBuilder))
-                                                                .executes(context -> executeChunkRate(context.getSource(), BlockPosArgumentType.getBlockPos(context, "blockPos"), FloatArgumentType.getFloat(context, "rate")))))
-                                        )
-                                        .then(CommandManager.literal("unfreeze")
-                                                .then(CommandManager.argument("chunk", BlockPosArgumentType.blockPos())
-                                                .executes(context -> executeChunkFreeze(context.getSource(), BlockPosArgumentType.getBlockPos(context,"chunk"), false)))
-                                        )
-                                        .then(CommandManager.literal("freeze")
-                                                .then(CommandManager.argument("chunk", BlockPosArgumentType.blockPos())
-                                                .executes(context -> executeChunkFreeze(context.getSource(), BlockPosArgumentType.getBlockPos(context,"chunk"), true)))
-                                        )
-                                        .then(CommandManager.literal("step")
-                                                .then(CommandManager.argument("chunk", BlockPosArgumentType.blockPos())
-                                                .executes(context -> executeChunkStep(context.getSource(), BlockPosArgumentType.getBlockPos(context,"chunk"), 1))
-                                                .then(CommandManager.literal("stop").executes(context -> executeChunkStep(context.getSource(), BlockPosArgumentType.getBlockPos(context,"chunk"), 0)))
-                                                .then(
-                                                        CommandManager.argument("time", TimeArgumentType.time(1))
-                                                                .suggests((context, suggestionsBuilder) -> CommandSource.suggestMatching(new String[]{"1t", "1s"}, suggestionsBuilder))
-                                                                .executes(context -> executeChunkStep(context.getSource(), BlockPosArgumentType.getBlockPos(context,"chunk"), IntegerArgumentType.getInteger(context, "time")))))
-                                        )
-                                        .then(CommandManager.literal("sprint")
-                                                .then(CommandManager.argument("chunk", BlockPosArgumentType.blockPos())
-                                                .then(CommandManager.literal("stop").executes(context -> executeChunkSprint(context.getSource(), BlockPosArgumentType.getBlockPos(context,"chunk"), 0)))
-                                                .then(
-                                                        CommandManager.argument("time", TimeArgumentType.time(1))
-                                                                .suggests((context, suggestionsBuilder) -> CommandSource.suggestMatching(new String[]{"60s", "1d", "3d"}, suggestionsBuilder))
-                                                                .executes(context -> executeChunkSprint(context.getSource(), BlockPosArgumentType.getBlockPos(context,"chunk"), IntegerArgumentType.getInteger(context, "time")))))
+                                        .then(CommandManager.argument("from", ColumnPosArgumentType.columnPos())
+                                                .then(chunkQuery)
+                                                .then(chunkRate)
+                                                .then(chunkUnfreeze)
+                                                .then(chunkFreeze)
+                                                .then(chunkStep)
+                                                .then(chunkSprint)
+                                                .then(CommandManager.argument("to", ColumnPosArgumentType.columnPos())
+                                                        .then(chunkQuery)
+                                                        .then(chunkRate)
+                                                        .then(chunkUnfreeze)
+                                                        .then(chunkFreeze)
+                                                        .then(chunkStep)
+                                                        .then(chunkSprint)
+                                                )
+                                                .then(CommandManager.literal("radius")
+                                                        .then(CommandManager.argument("radius", FloatArgumentType.floatArg(1))
+                                                                .then(chunkQuery)
+                                                                .then(chunkRate)
+                                                                .then(chunkUnfreeze)
+                                                                .then(chunkFreeze)
+                                                                .then(chunkStep)
+                                                                .then(chunkSprint)
+                                                        )
+                                                )
                                         )
                         )
         );
@@ -234,68 +252,60 @@ public class TickCommandMixin {
 
 
     @Unique
-    private static int executeChunkRate(ServerCommandSource source, BlockPos blockPos, float rate) {
-        if(!source.getWorld().isChunkLoaded(ChunkPos.toLong(blockPos))) {
-            source.sendFeedback(() -> Text.literal("The specified chunk is unloaded!").withColor(Colors.LIGHT_RED), false);
-            return 0;
-        }
-
+    private static int executeChunkRate(ServerCommandSource source, List<ChunkPos> chunks, float rate) {
         int roundRate = Math.round(rate); // can't actually accept decimals
         ServerTickManager tickManager = source.getServer().getTickManager();
-        tickManager.tickRate$setChunkRate(roundRate, source.getWorld(), ChunkPos.toLong(blockPos));
+        tickManager.tickRate$setChunkRate(roundRate, source.getWorld(), chunks);
+        tickManager.tickRate$sendUpdatePacket();
         if(roundRate != 0) {
-            source.sendFeedback(() -> Text.of("Successfully set target rate of the specified chunk to " + roundRate), false);
-            tickManager.tickRate$sendUpdatePacket();
+            source.sendFeedback(() -> Text.of("Set tick rate of " + chunks.size() + " chunks to " + roundRate + " TPS."), false);
             return roundRate;
         }
         else {
-            source.sendFeedback(() -> Text.literal("Reset the target rate of the specified chunk according to the server's tick rate."), false);
-            tickManager.tickRate$sendUpdatePacket();
+            source.sendFeedback(() -> Text.literal("Reset the target rate of " + chunks.size() + " chunks according to the server's tick rate."), false);
             return (int) tickManager.tickRate$getServerRate();
         }
     }
 
     @Unique
-    private static int executeChunkQuery(ServerCommandSource source, BlockPos blockPos) {
-        if(!source.getWorld().isChunkLoaded(ChunkPos.toLong(blockPos))) {
-            source.sendFeedback(() -> Text.literal("The specified chunk is unloaded!").withColor(Colors.LIGHT_RED), false);
-            return 0;
-        }
-
+    private static int executeChunkQuery(ServerCommandSource source, List<ChunkPos> chunks) {
         ServerTickManager tickManager = source.getServer().getTickManager();
-        float rate = tickManager.tickRate$getChunkRate(source.getWorld(), ChunkPos.toLong(blockPos));
-        source.sendFeedback(() -> Text.literal("The tick rate of the specified chunk is " + rate + " TPS."), false);
-        return (int) rate;
+        MutableText text = Text.literal("The tick rates of the specified chunks are as follows:\n");
+        float firstRate = tickManager.tickRate$getChunkRate(source.getWorld(), chunks.stream().findFirst().orElseThrow().toLong());
+        chunks.forEach(chunk -> text.append("Chunk ").append(chunk.toString()).append(" - ").append(String.valueOf(tickManager.tickRate$getChunkRate(source.getWorld(), chunk.toLong()))).append(" TPS").append("\n"));
+        text.getSiblings().removeLast(); // to remove last \n
+        source.sendFeedback(() -> text, false);
+        return (int) firstRate;
     }
 
     @Unique
-    private static int executeChunkFreeze(ServerCommandSource source, BlockPos blockPos, boolean frozen) {
+    private static int executeChunkFreeze(ServerCommandSource source, List<ChunkPos> chunks, boolean frozen) {
         ServerTickManager tickManager = source.getServer().getTickManager();
-        tickManager.tickRate$setChunkFrozen(frozen, source.getWorld(), ChunkPos.toLong(blockPos));
-        if(frozen) source.sendFeedback(() -> Text.literal("The specified chunk has been frozen"), false);
-        else source.sendFeedback(() -> Text.literal("The specified chunk has been unfrozen"), false);
+        tickManager.tickRate$setChunkFrozen(frozen, source.getWorld(), chunks);
+        if(frozen) source.sendFeedback(() -> Text.literal(chunks.size() + " chunks have been frozen"), false);
+        else source.sendFeedback(() -> Text.literal(chunks.size() + " chunks have been unfrozen"), false);
         tickManager.tickRate$sendUpdatePacket();
         return 1;
     }
 
     @Unique
-    private static int executeChunkStep(ServerCommandSource source, BlockPos blockPos, int steps) {
+    private static int executeChunkStep(ServerCommandSource source, List<ChunkPos> chunks, int steps) {
         ServerTickManager tickManager = source.getServer().getTickManager();
-        boolean success = tickManager.tickRate$stepChunk(steps, source.getWorld(), ChunkPos.toLong(blockPos));
-        if(success && steps != 0) source.sendFeedback(() -> Text.literal("The specified chunk will step " + steps + " ticks."), false);
-        else if(success && steps == 0) source.sendFeedback(() -> Text.literal("The specified chunk has stopped stepping."), false);
-        else source.sendFeedback(() -> Text.literal("The specified chunk must be frozen first and cannot be sprinting!").withColor(Colors.LIGHT_RED), false);
+        boolean success = tickManager.tickRate$stepChunk(steps, source.getWorld(), chunks);
+        if(success && steps != 0) source.sendFeedback(() -> Text.literal(chunks.size() + " chunks will step " + steps + " ticks."), false);
+        else if(success && steps == 0) source.sendFeedback(() -> Text.literal(chunks.size() + " chunks have stopped stepping."), false);
+        else source.sendFeedback(() -> Text.literal("All of the specified chunks must be frozen first and cannot be sprinting!").withColor(Colors.LIGHT_RED), false);
         tickManager.tickRate$sendUpdatePacket();
         return success ? 1 : 0;
     }
 
     @Unique
-    private static int executeChunkSprint(ServerCommandSource source, BlockPos blockPos, int ticks) {
+    private static int executeChunkSprint(ServerCommandSource source, List<ChunkPos> chunks, int ticks) {
         ServerTickManager tickManager = source.getServer().getTickManager();
-        boolean success = tickManager.tickRate$sprintChunk(ticks, source.getWorld(), ChunkPos.toLong(blockPos));
-        if(success && ticks != 0) source.sendFeedback(() -> Text.literal("The specified chunk will sprint for " + ticks + " ticks."), false);
-        else if(success && ticks == 0) source.sendFeedback(() -> Text.literal("The specified chunk has stopped sprinting."), false);
-        else source.sendFeedback(() -> Text.literal("The specified chunk must not be stepping!").withColor(Colors.LIGHT_RED), false);
+        boolean success = tickManager.tickRate$sprintChunk(ticks, source.getWorld(), chunks);
+        if(success && ticks != 0) source.sendFeedback(() -> Text.literal(chunks.size() + " chunks will sprint for " + ticks + " ticks."), false);
+        else if(success && ticks == 0) source.sendFeedback(() -> Text.literal(chunks.size() + " chunks have stopped sprinting."), false);
+        else source.sendFeedback(() -> Text.literal("All of the specified chunks must not be stepping!").withColor(Colors.LIGHT_RED), false);
         tickManager.tickRate$sendUpdatePacket();
         return success ? 1 : 0;
     }
@@ -308,23 +318,26 @@ public class TickCommandMixin {
         ServerTickManager tickManager = source.getServer().getTickManager();
         tickManager.tickRate$setEntityRate(roundRate, entities);
         if(roundRate != 0) {
-            source.sendFeedback(() -> Text.of("Successfully set target rate of the specified entities to " + roundRate), false);
+            source.sendFeedback(() -> Text.of("Set tick rate of " + entities.size() + " entities to " + roundRate + " TPS."), false);
             tickManager.tickRate$sendUpdatePacket();
             return roundRate;
         }
         else {
-            source.sendFeedback(() -> Text.literal("Reset the target rate of the specified entities according to the server's tick rate."), false);
+            source.sendFeedback(() -> Text.literal("Reset the tick rate of " + entities.size() + " entities according to the server's tick rate."), false);
             tickManager.tickRate$sendUpdatePacket();
             return (int) tickManager.tickRate$getServerRate();
         }
     }
 
     @Unique
-    private static int executeEntityQuery(ServerCommandSource source, Entity entity) {
+    private static int executeEntityQuery(ServerCommandSource source, Collection<? extends Entity> entities) {
         ServerTickManager tickManager = source.getServer().getTickManager();
-        float rate = tickManager.tickRate$getEntityRate(entity);
-        source.sendFeedback(() -> Text.literal("The tick rate of the specified entity is " + rate + " TPS."), false);
-        return (int) rate;
+        MutableText text = Text.literal("The tick rates of the specified entities are as follows:\n");
+        float firstRate = tickManager.tickRate$getEntityRate(entities.stream().findFirst().orElseThrow());
+        entities.forEach(entity -> text.append(entity.getType().getName()).append(" ").append(entity.getNameForScoreboard()).append(" - ").append(String.valueOf(tickManager.tickRate$getEntityRate(entity))).append(" TPS").append("\n"));
+        text.getSiblings().removeLast(); // to remove last \n
+        source.sendFeedback(() -> text, false);
+        return (int) firstRate;
     }
 
     @Unique
@@ -333,8 +346,8 @@ public class TickCommandMixin {
 
         ServerTickManager tickManager = source.getServer().getTickManager();
         tickManager.tickRate$setEntityFrozen(frozen, entities);
-        if(frozen) source.sendFeedback(() -> Text.literal("The specified entities have been frozen."), false);
-        else source.sendFeedback(() -> Text.literal("The specified entities have been unfrozen."), false);
+        if(frozen) source.sendFeedback(() -> Text.literal(entities.size() + " entities have been frozen."), false);
+        else source.sendFeedback(() -> Text.literal(entities.size() + " entities have been unfrozen."), false);
         tickManager.tickRate$sendUpdatePacket();
         return 1;
     }
@@ -345,9 +358,9 @@ public class TickCommandMixin {
 
         ServerTickManager tickManager = source.getServer().getTickManager();
         boolean success = tickManager.tickRate$stepEntity(steps,entities);
-        if(success && steps != 0) source.sendFeedback(() -> Text.literal("The specified entities will step " + steps + " ticks."), false);
-        else if(success && steps == 0) source.sendFeedback(() -> Text.literal("The specified entities have stopped stepping."), false);
-        else source.sendFeedback(() -> Text.literal("The specified entities must be frozen first and cannot be sprinting!").withColor(Colors.LIGHT_RED), false);
+        if(success && steps != 0) source.sendFeedback(() -> Text.literal(entities.size() + " entities will step " + steps + " ticks."), false);
+        else if(success && steps == 0) source.sendFeedback(() -> Text.literal(entities.size() + " entities have stopped stepping."), false);
+        else source.sendFeedback(() -> Text.literal("All of the specified entities must be frozen first and cannot be sprinting!").withColor(Colors.LIGHT_RED), false);
         tickManager.tickRate$sendUpdatePacket();
         return success ? 1 : 0;
     }
@@ -358,9 +371,9 @@ public class TickCommandMixin {
 
         ServerTickManager tickManager = source.getServer().getTickManager();
         boolean success = tickManager.tickRate$sprintEntity(ticks,entities);
-        if(success && ticks != 0) source.sendFeedback(() -> Text.literal("The specified entities will sprint for " + ticks + " ticks."), false);
-        else if(success && ticks == 0) source.sendFeedback(() -> Text.literal("The specified entities have stopped sprinting."), false);
-        else source.sendFeedback(() -> Text.literal("The specified entities must not be stepping!").withColor(Colors.LIGHT_RED), false);
+        if(success && ticks != 0) source.sendFeedback(() -> Text.literal(entities.size() + " entities will sprint for " + ticks + " ticks."), false);
+        else if(success && ticks == 0) source.sendFeedback(() -> Text.literal(entities.size() + " entities have stopped sprinting."), false);
+        else source.sendFeedback(() -> Text.literal("All of the specified entities must not be stepping!").withColor(Colors.LIGHT_RED), false);
         tickManager.tickRate$sendUpdatePacket();
         return success ? 1 : 0;
     }
@@ -375,6 +388,26 @@ public class TickCommandMixin {
         });
         if(match) source.sendFeedback(() -> Text.literal("Some of the specified entities are players that do not have TickRate mod installed on their client, so their tick rate cannot be manipulated.").withColor(Colors.LIGHT_RED), false);
         return match;
+    }
+
+    /**
+     * @param depth number of steps back up the command tree to get to the node right before the chunkOperations
+     */
+    @Unique
+    private static List<ChunkPos> getChunks(CommandContext<ServerCommandSource> context, int depth) {
+        // CommandContext#getArgument is not used because it throws an Exception when not found, which is not great for performance
+        String lastNode = context.getNodes().get(context.getNodes().size() - depth - 1).getNode().getName();
+        TickRate.LOGGER.info(lastNode);
+        return switch(lastNode) {
+            case "from" -> List.of(ColumnPosArgumentType.getColumnPos(context, "from").toChunkPos());
+            case "to" -> {
+                throw new UnsupportedOperationException();
+            }
+            case "radius" -> {
+                throw new IllegalStateException();
+            }
+            default -> throw new IllegalStateException("Unexpected value: " + lastNode);
+        };
     }
 
 }
