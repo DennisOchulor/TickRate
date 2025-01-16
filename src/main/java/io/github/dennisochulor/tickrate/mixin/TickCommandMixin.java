@@ -4,9 +4,10 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.tree.LiteralCommandNode;
-import io.github.dennisochulor.tickrate.TickRate;
 import net.minecraft.command.CommandSource;
+import net.minecraft.command.argument.BlockPosArgumentType;
 import net.minecraft.command.argument.ColumnPosArgumentType;
 import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.command.argument.TimeArgumentType;
@@ -21,15 +22,14 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
 import net.minecraft.util.TimeHelper;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.math.ChunkSectionPos;
+import net.minecraft.util.math.ColumnPos;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
 @Mixin(TickCommand.class)
 public class TickCommandMixin {
@@ -71,7 +71,7 @@ public class TickCommandMixin {
                             .executes(context -> executeChunkStep(context.getSource(), getChunks(context,2), IntegerArgumentType.getInteger(context, "time")))).build();
 
         LiteralCommandNode<ServerCommandSource> chunkSprint = CommandManager.literal("sprint")
-                    .then(CommandManager.literal("stop").executes(context -> executeChunkSprint(context.getSource(), getChunks(context,1), 0)))
+                    .then(CommandManager.literal("stop").executes(context -> executeChunkSprint(context.getSource(), getChunks(context,2), 0)))
                     .then(CommandManager.argument("time", TimeArgumentType.time(1))
                             .suggests((context, suggestionsBuilder) -> CommandSource.suggestMatching(new String[]{"60s", "1d", "3d"}, suggestionsBuilder))
                             .executes(context -> executeChunkSprint(context.getSource(), getChunks(context,2), IntegerArgumentType.getInteger(context, "time")))).build();
@@ -282,8 +282,8 @@ public class TickCommandMixin {
     private static int executeChunkFreeze(ServerCommandSource source, List<ChunkPos> chunks, boolean frozen) {
         ServerTickManager tickManager = source.getServer().getTickManager();
         tickManager.tickRate$setChunkFrozen(frozen, source.getWorld(), chunks);
-        if(frozen) source.sendFeedback(() -> Text.literal(chunks.size() + " chunks have been frozen"), false);
-        else source.sendFeedback(() -> Text.literal(chunks.size() + " chunks have been unfrozen"), false);
+        if(frozen) source.sendFeedback(() -> Text.literal(chunks.size() + " chunks have been frozen."), false);
+        else source.sendFeedback(() -> Text.literal(chunks.size() + " chunks have been unfrozen."), false);
         tickManager.tickRate$sendUpdatePacket();
         return 1;
     }
@@ -394,17 +394,78 @@ public class TickCommandMixin {
      * @param depth number of steps back up the command tree to get to the node right before the chunkOperations
      */
     @Unique
-    private static List<ChunkPos> getChunks(CommandContext<ServerCommandSource> context, int depth) {
+    private static List<ChunkPos> getChunks(CommandContext<ServerCommandSource> context, int depth) throws CommandSyntaxException {
         // CommandContext#getArgument is not used because it throws an Exception when not found, which is not great for performance
         String lastNode = context.getNodes().get(context.getNodes().size() - depth - 1).getNode().getName();
-        TickRate.LOGGER.info(lastNode);
         return switch(lastNode) {
-            case "from" -> List.of(ColumnPosArgumentType.getColumnPos(context, "from").toChunkPos());
+            case "from" -> {
+                ColumnPos from = ColumnPosArgumentType.getColumnPos(context, "from");
+                if (from.x() < -30000000 || from.z() < -30000000 || from.x() >= 30000000 || from.z() >= 30000000)
+                    throw BlockPosArgumentType.OUT_OF_WORLD_EXCEPTION.create();
+                yield List.of(from.toChunkPos());
+            }
             case "to" -> {
-                throw new UnsupportedOperationException();
+                // logic taken from ForceLoadCommand :)
+                ColumnPos from = ColumnPosArgumentType.getColumnPos(context, "from");
+                ColumnPos to = ColumnPosArgumentType.getColumnPos(context, "to");
+                int minX = Math.min(from.x(), to.x());
+                int minZ = Math.min(from.z(), to.z());
+                int maxX = Math.max(from.x(), to.x());
+                int maxZ = Math.max(from.z(), to.z());
+                if (minX < -30000000 || minZ < -30000000 || maxX >= 30000000 || maxZ >= 30000000)
+                    throw BlockPosArgumentType.OUT_OF_WORLD_EXCEPTION.create();
+
+                int chunkMinX = ChunkSectionPos.getSectionCoord(minX);
+                int chunkMinZ = ChunkSectionPos.getSectionCoord(minZ);
+                int chunkMaxX = ChunkSectionPos.getSectionCoord(maxX);
+                int chunkMaxZ = ChunkSectionPos.getSectionCoord(maxZ);
+                List<ChunkPos> chunks = new ArrayList<>();
+                for(int chunkX = chunkMinX; chunkX <= chunkMaxX; chunkX++) {
+                    for(int chunkZ = chunkMinZ; chunkZ <= chunkMaxZ; chunkZ++) {
+                        chunks.add(new ChunkPos(chunkX, chunkZ));
+                    }
+                }
+                yield chunks;
             }
             case "radius" -> {
-                throw new IllegalStateException();
+                // logic taken from ForceLoadCommand :)
+                ColumnPos circleCentre = ColumnPosArgumentType.getColumnPos(context, "from");
+                float radius = FloatArgumentType.getFloat(context, "radius");
+                float minX = circleCentre.x() - radius;
+                float minZ = circleCentre.z() - radius;
+                float maxX = circleCentre.x() + radius;
+                float maxZ = circleCentre.z() + radius;
+                if (minX < -30000000 || minZ < -30000000 || maxX >= 30000000 || maxZ >= 30000000)
+                    throw BlockPosArgumentType.OUT_OF_WORLD_EXCEPTION.create();
+
+                int chunkMinX = ChunkSectionPos.getSectionCoord(minX);
+                int chunkMinZ = ChunkSectionPos.getSectionCoord(minZ);
+                int chunkMaxX = ChunkSectionPos.getSectionCoord(maxX);
+                int chunkMaxZ = ChunkSectionPos.getSectionCoord(maxZ);
+                List<ChunkPos> chunks = new ArrayList<>();
+                for(int chunkX = chunkMinX; chunkX <= chunkMaxX; chunkX++) {
+                    for(int chunkZ = chunkMinZ; chunkZ <= chunkMaxZ; chunkZ++) {
+                        // https://www.geeksforgeeks.org/check-if-any-point-overlaps-the-given-circle-and-rectangle/
+                        ChunkPos chunkPos = new ChunkPos(chunkX, chunkZ);
+                        ChunkSectionPos chunkSectionPos = ChunkSectionPos.from(chunkPos,0);
+                        int X1 = chunkSectionPos.getMinX();
+                        int X2 = chunkSectionPos.getMaxX();
+                        int Z1 = chunkSectionPos.getMinZ();
+                        int Z2 = chunkSectionPos.getMaxZ();
+                        int Xc = circleCentre.x();
+                        int Zc = circleCentre.z();
+
+                        // find closest point of chunk to centre of circle
+                        int Xn = Math.max(X1, Math.min(Xc, X2));
+                        int Yn = Math.max(Z1, Math.min(Zc, Z2));
+
+                        // find distance between nearest point and circle centre
+                        int Dx = Xn - Xc;
+                        int Dz = Yn - Zc;
+                        if((Dx * Dx + Dz * Dz) <= radius * radius) chunks.add(chunkPos); // if overlap, add it
+                    }
+                }
+                yield chunks;
             }
             default -> throw new IllegalStateException("Unexpected value: " + lastNode);
         };

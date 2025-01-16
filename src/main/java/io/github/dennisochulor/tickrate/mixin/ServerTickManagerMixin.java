@@ -360,7 +360,8 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         if(entities.stream().anyMatch(e -> !this.steps.containsKey(e.getUuidAsString()) || this.sprinting.containsKey(e.getUuidAsString()))) {
             return false; // some are not frozen or are sprinting, error
         }
-        entities.forEach(e -> this.steps.put(e.getUuidAsString(), steps));
+        if(steps == 0) entities.forEach(e -> this.steps.remove(e.getUuidAsString()));
+        else entities.forEach(e -> this.steps.put(e.getUuidAsString(), steps));
         return true;
     }
 
@@ -368,7 +369,8 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         if(entities.stream().anyMatch(e -> this.steps.getOrDefault(e.getUuidAsString(),-1) > 0)) {
             return false; // some are stepping, error
         }
-        entities.forEach(e -> this.sprinting.put(e.getUuidAsString(), ticks));
+        if(ticks == 0) entities.forEach(e -> this.sprinting.remove(e.getUuidAsString()));
+        else entities.forEach(e -> this.sprinting.put(e.getUuidAsString(), ticks));
         individualSprint();
         return true;
     }
@@ -429,14 +431,18 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
             return !this.steps.containsKey(key) || this.sprinting.containsKey(key);
         });
         if(error) return false; // some are not frozen or are sprinting, error
-        chunks.forEach(chunkPos -> this.steps.put(world.getRegistryKey().getValue() + "-" + chunkPos.toLong(), steps));
+
+        if(steps == 0) chunks.forEach(chunkPos -> this.steps.remove(world.getRegistryKey().getValue() + "-" + chunkPos.toLong()));
+        else chunks.forEach(chunkPos -> this.steps.put(world.getRegistryKey().getValue() + "-" + chunkPos.toLong(), steps));
         return true;
     }
 
     public boolean tickRate$sprintChunk(int ticks, World world, List<ChunkPos> chunks) {
         if(chunks.stream().anyMatch(chunkPos -> this.steps.getOrDefault(world.getRegistryKey().getValue() + "-" + chunkPos.toLong(),-1) > 0))
             return false; // some are stepping, error
-        chunks.forEach(chunkPos -> this.sprinting.put(world.getRegistryKey().getValue() + "-" + chunkPos.toLong(), ticks));
+
+        if(ticks == 0) chunks.forEach(chunkPos -> this.sprinting.remove(world.getRegistryKey().getValue() + "-" + chunkPos.toLong()));
+        else chunks.forEach(chunkPos -> this.sprinting.put(world.getRegistryKey().getValue() + "-" + chunkPos.toLong(), ticks));
         individualSprint();
         return true;
     }
