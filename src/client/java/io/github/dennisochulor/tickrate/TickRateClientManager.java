@@ -49,8 +49,10 @@ public class TickRateClientManager {
         if(!serverHasMod) return TickDeltaInfo.ofServer(false);
         if(MinecraftClient.getInstance().isPaused()) return TickDeltaInfo.NO_ANIMATE;
         if(entity instanceof PlayerEntity && serverState.frozen()) return TickDeltaInfo.ofServer(true); // tick freeze doesn't affect players
+        if(entity.hasVehicle()) return getEntityTickDelta(entity.getRootVehicle());
 
-        boolean cappedAt20TPS = !(entity==MinecraftClient.getInstance().player); // client's own player can go above 20TPS limit
+        // client's own player OR entities where client player is a passenger can go above 20TPS limit
+        boolean cappedAt20TPS = !(entity==MinecraftClient.getInstance().player) && !entity.hasPassenger(MinecraftClient.getInstance().player);
         TickState state = getEntityState(entity); // this also handles passenger entities
         if(state.sprinting()) // animate at max 20 TPS but for client player we don't know the TPS, so just say 100 :P
             return cappedAt20TPS ? renderTickCounter.tickRate$getSpecificTickDeltaInfo(20) : renderTickCounter.tickRate$getClientPlayerTickDeltaInfo(100);
