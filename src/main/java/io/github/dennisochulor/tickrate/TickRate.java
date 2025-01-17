@@ -2,7 +2,6 @@ package io.github.dennisochulor.tickrate;
 
 import net.fabricmc.api.ModInitializer;
 
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
@@ -49,21 +48,13 @@ public class TickRate implements ModInitializer {
 			server.getTickManager().tickRate$saveData();
 		});
 
-		ServerChunkEvents.CHUNK_LOAD.register((serverWorld,chunk) -> {
-			ServerTickManager tickManager = (ServerTickManager) serverWorld.getTickManager();
-			tickManager.tickRate$updateChunkLoad(serverWorld,chunk.getPos().toLong(),true);
-		});
-
-		ServerChunkEvents.CHUNK_UNLOAD.register((serverWorld,chunk) -> {
-			ServerTickManager tickManager = (ServerTickManager) serverWorld.getTickManager();
-			tickManager.tickRate$updateChunkLoad(serverWorld,chunk.getPos().toLong(),false);
-		});
-
+		// called when entity's chunk level becomes ACCESSIBLE (at least FULL) if it was previously INACCESSIBLE
 		ServerEntityEvents.ENTITY_LOAD.register((entity,serverWorld) -> {
 			ServerTickManager tickManager = (ServerTickManager) serverWorld.getTickManager();
 			tickManager.tickRate$updateEntityLoad(entity,true);
 		});
 
+		// called when entity's chunk level becomes INACCESSIBLE
 		ServerEntityEvents.ENTITY_UNLOAD.register((entity,serverWorld) -> {
 			ServerTickManager tickManager = (ServerTickManager) serverWorld.getTickManager();
 			tickManager.tickRate$updateEntityLoad(entity,false);

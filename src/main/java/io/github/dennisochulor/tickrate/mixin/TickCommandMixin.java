@@ -17,6 +17,7 @@ import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.command.TickCommand;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ChunkLevelType;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
@@ -24,6 +25,8 @@ import net.minecraft.util.TimeHelper;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.util.math.ColumnPos;
+import net.minecraft.world.chunk.ChunkStatus;
+import net.minecraft.world.chunk.WorldChunk;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -199,7 +202,7 @@ public class TickCommandMixin {
         String string = format(source.getServer().getAverageNanosPerTick());
         float f = serverTickManager.getTickRate();
         String string2 = String.format(Locale.ROOT, "%.1f", f);
-        if (serverTickManager.isSprinting()) {
+        if (serverTickManager.tickRate$isServerSprint()) {
             source.sendFeedback(() -> Text.translatable("commands.tick.status.sprinting"), false);
             source.sendFeedback(() -> Text.translatable("commands.tick.query.rate.sprinting", string2, string), false);
         } else {
@@ -253,6 +256,8 @@ public class TickCommandMixin {
 
     @Unique
     private static int executeChunkRate(ServerCommandSource source, List<ChunkPos> chunks, float rate) {
+        if(chunkCheck(chunks, source)) return 0;
+
         int roundRate = Math.round(rate); // can't actually accept decimals
         ServerTickManager tickManager = source.getServer().getTickManager();
         tickManager.tickRate$setChunkRate(roundRate, source.getWorld(), chunks);
@@ -269,6 +274,8 @@ public class TickCommandMixin {
 
     @Unique
     private static int executeChunkQuery(ServerCommandSource source, List<ChunkPos> chunks) {
+        if(chunkCheck(chunks, source)) return 0;
+
         ServerTickManager tickManager = source.getServer().getTickManager();
         MutableText text = Text.literal("The tick rates of the specified chunks are as follows:\n");
         float firstRate = tickManager.tickRate$getChunkRate(source.getWorld(), chunks.stream().findFirst().orElseThrow().toLong());
@@ -280,6 +287,8 @@ public class TickCommandMixin {
 
     @Unique
     private static int executeChunkFreeze(ServerCommandSource source, List<ChunkPos> chunks, boolean frozen) {
+        if(chunkCheck(chunks, source)) return 0;
+
         ServerTickManager tickManager = source.getServer().getTickManager();
         tickManager.tickRate$setChunkFrozen(frozen, source.getWorld(), chunks);
         if(frozen) source.sendFeedback(() -> Text.literal(chunks.size() + " chunks have been frozen."), false);
@@ -290,6 +299,8 @@ public class TickCommandMixin {
 
     @Unique
     private static int executeChunkStep(ServerCommandSource source, List<ChunkPos> chunks, int steps) {
+        if(chunkCheck(chunks, source)) return 0;
+
         ServerTickManager tickManager = source.getServer().getTickManager();
         boolean success = tickManager.tickRate$stepChunk(steps, source.getWorld(), chunks);
         if(success && steps != 0) source.sendFeedback(() -> Text.literal(chunks.size() + " chunks will step " + steps + " ticks."), false);
@@ -301,6 +312,8 @@ public class TickCommandMixin {
 
     @Unique
     private static int executeChunkSprint(ServerCommandSource source, List<ChunkPos> chunks, int ticks) {
+        if(chunkCheck(chunks, source)) return 0;
+
         ServerTickManager tickManager = source.getServer().getTickManager();
         boolean success = tickManager.tickRate$sprintChunk(ticks, source.getWorld(), chunks);
         if(success && ticks != 0) source.sendFeedback(() -> Text.literal(chunks.size() + " chunks will sprint for " + ticks + " ticks."), false);
@@ -387,6 +400,17 @@ public class TickCommandMixin {
             else return false;
         });
         if(match) source.sendFeedback(() -> Text.literal("Some of the specified entities are players that do not have TickRate mod installed on their client, so their tick rate cannot be manipulated.").withColor(Colors.LIGHT_RED), false);
+        return match;
+    }
+
+    @Unique
+    // returns true if any of the chunks cannot be the command's target (meaning they are unloaded)
+    private static boolean chunkCheck(List<ChunkPos> chunks, ServerCommandSource source) {
+        boolean match = chunks.stream().anyMatch(chunkPos -> {
+            WorldChunk worldChunk = (WorldChunk) source.getWorld().getChunk(chunkPos.x,chunkPos.z,ChunkStatus.FULL,false);
+            return worldChunk==null || worldChunk.getLevelType() == ChunkLevelType.INACCESSIBLE;
+        });
+        if(match) source.sendFeedback(() -> Text.literal("Some of the specified chunks are not loaded!").withColor(Colors.LIGHT_RED), false);
         return match;
     }
 

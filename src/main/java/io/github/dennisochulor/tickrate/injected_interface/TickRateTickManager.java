@@ -26,6 +26,7 @@ public interface TickRateTickManager {
     default float tickRate$getServerRate() {return 0;}
     default void tickRate$ticked() {}
     default boolean tickRate$isIndividualSprint() {return false;}
+    default boolean tickRate$isServerSprint() {return false;}
     default void tickRate$removeEntity(Entity entity, boolean rate, boolean steps, boolean sprint) {}
 
     default void tickRate$setEntityRate(float rate, Collection<? extends Entity> entities) {}

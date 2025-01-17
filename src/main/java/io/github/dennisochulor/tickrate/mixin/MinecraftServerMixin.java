@@ -28,9 +28,10 @@ public abstract class MinecraftServerMixin {
 		return (int) this.getTickManager().getTickRate(); // mainloop rate
 	}
 
-	@Redirect(method = "runServer", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickManager;isSprinting()Z"))
-	private boolean runServer$isSprinting(ServerTickManager instance) {
-		return instance.isSprinting() || instance.tickRate$isIndividualSprint();
+	@Redirect(method = "runServer", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickManager;sprint()Z"))
+	private boolean runServer$sprint(ServerTickManager instance) {
+		if(instance.tickRate$isServerSprint()) return instance.sprint();
+		return instance.tickRate$isIndividualSprint();
 	}
 
 }

@@ -37,7 +37,7 @@ public abstract class ServerWorldMixin {
     @Inject(method = "tick(Ljava/util/function/BooleanSupplier;)V",  at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiler/Profiler;push(Ljava/lang/String;)V", args = "ldc=tickPending"))
     private void tick$modifyBl(CallbackInfo ci, @Local LocalBooleanRef bl) {
         ServerTickManager serverTickManager = (ServerTickManager) getTickManager();
-        if(serverTickManager.isSprinting()) bl.set(true);
+        if(serverTickManager.tickRate$isServerSprint()) bl.set(true);
         else if(serverTickManager.isFrozen()) bl.set(serverTickManager.isStepping());
         else bl.set(true);
         this.blockTickScheduler.tickRate$setWorld((ServerWorld) (Object)this); // this sucks man...
@@ -53,7 +53,7 @@ public abstract class ServerWorldMixin {
     @Inject(method = "tick(Ljava/util/function/BooleanSupplier;)V",  at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiler/Profiler;swap(Ljava/lang/String;)V", args = "ldc=blockEvents"))
     private void tick$modifyBl3(CallbackInfo ci, @Local LocalBooleanRef bl) {
         ServerTickManager serverTickManager = (ServerTickManager) getTickManager();
-        if(serverTickManager.isSprinting()) bl.set(true);
+        if(serverTickManager.tickRate$isServerSprint()) bl.set(true);
         else if(serverTickManager.isFrozen()) bl.set(serverTickManager.isStepping());
         else bl.set(true);
     }

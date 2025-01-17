@@ -5,6 +5,7 @@
   "mixins": [
     "ChunkTickSchedulerMixin",
     "MinecraftServerMixin",
+    "ServerChunkLoadingManagerMixin",
     "ServerLoginNetworkHandlerMixin",
     "ServerPlayNetworkHandlerMixin",
     "ServerTickManagerMixin",

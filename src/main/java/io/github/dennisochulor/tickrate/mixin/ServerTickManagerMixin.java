@@ -11,17 +11,11 @@ import net.minecraft.nbt.NbtOps;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.ServerTickManager;
 import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ChunkLevelType;
 import net.minecraft.util.TimeHelper;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
-import net.minecraft.world.chunk.ChunkStatus;
-import net.minecraft.world.chunk.WorldChunk;
 import net.minecraft.world.tick.TickManager;
-import org.spongepowered.asm.mixin.Final;
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -45,11 +39,9 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     @Unique private final Map<String,Integer> sprinting = new HashMap<>(); // uuid/world-longChunkPos -> sprintTicks
     @Unique private final Set<ServerPlayerEntity> playersWithMod = new HashSet<>(); // stores players that have this mod client-side
     @Unique private int sprintAvgTicksPerSecond = -1;
-    @Unique private int individualSprintTicks = 0;
     @Unique private File datafile;
 
     @Shadow public abstract void setTickRate(float tickRate);
-    @Shadow public abstract boolean isSprinting();
     @Shadow @Final private MinecraftServer server;
     @Shadow private long scheduledSprintTicks;
 
@@ -64,17 +56,18 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         updateFastestTicker();
     }
 
-    @Inject(method = "sprint", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickManager;finishSprinting()V", shift = At.Shift.BEFORE), cancellable = true)
-    public void sprint(CallbackInfoReturnable<Boolean> cir) {
-        if(scheduledSprintTicks == 0L) { // trick the server to continue sprinting for individual sprint
-            individualSprintTicks--;     // works together with MinecraftServerMixin#isSprinting()
-            cir.setReturnValue(true);
-        }
-    }
-
     @Inject(method = "finishSprinting", at = @At("TAIL"))
     public void finishSprinting(CallbackInfo ci) {
         tickRate$sendUpdatePacket(); // tell client to stop sprinting
+    }
+
+    /**
+     * @author Ninjaking312
+     * @reason individual sprint or server sprint are both just sprint to code that doesn't know the difference
+     */
+    @Overwrite
+    public boolean isSprinting() {
+        return tickRate$isServerSprint() || tickRate$isIndividualSprint();
     }
 
     @Override
@@ -163,7 +156,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     }
 
     public boolean tickRate$shouldTickEntity(Entity entity) {
-        if(isSprinting()) return true;
+        if(tickRate$isServerSprint()) return true;
         if(isFrozen()) {
             if(entity instanceof ServerPlayerEntity) return true;
             return isStepping();
@@ -195,7 +188,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     public boolean tickRate$shouldTickChunk(World world, long chunkPos) {
         String key = world.getRegistryKey().getValue() + "-" + chunkPos;
         if(chunksTicked.get(key) != null) return chunksTicked.get(key);
-        if(isSprinting()) return true;
+        if(tickRate$isServerSprint()) return true;
         if(isFrozen()) return isStepping();
 
         if(sprinting.computeIfPresent(key, (k,v) -> {
@@ -226,7 +219,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     }
 
     public boolean tickRate$shouldTickServer() {
-        if(isSprinting()) return true;
+        if(tickRate$isServerSprint()) return true;
         if(isFrozen()) return isStepping();
         return internalShouldTick(nominalTickRate);
     }
@@ -242,6 +235,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         }
         else {
             Float rate = chunks.get(key);
+            sprinting.remove(key); // just remove sprint if it unloads
             if(rate == null) return;
             chunks.remove(key);
             unloadedChunks.put(key,rate);
@@ -260,10 +254,8 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         }
         else {
             Float rate = entities.get(key);
-            if(rate == null) {
-                tickRate$removeEntity(entity, false, false, true); // if unloaded with no specific rate, just remove sprint!
-                return;
-            }
+            sprinting.remove(key); // just remove sprint if it unloads
+            if(rate == null) return;
 
             Entity.RemovalReason reason = entity.getRemovalReason();
             if(reason != null) {
@@ -294,7 +286,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     }
 
     public TickState tickRate$getServerTickState() {
-        return new TickState(tickRate$getServerRate(),isFrozen(),isStepping(),isSprinting());
+        return new TickState(tickRate$getServerRate(),isFrozen(),isStepping(),tickRate$isServerSprint());
     }
 
     public void tickRate$ticked() {
@@ -307,7 +299,6 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
             }
         }
         else {
-            individualSprintTicks = 0;
             sprintAvgTicksPerSecond = -1;
             ticks++;
             if(ticks > tickRate) {
@@ -319,7 +310,11 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     }
 
     public boolean tickRate$isIndividualSprint() {
-        return individualSprintTicks > 0;
+        return !sprinting.isEmpty();
+    }
+
+    public boolean tickRate$isServerSprint() {
+        return scheduledSprintTicks > 0L;
     }
 
     public void tickRate$removeEntity(Entity entity, boolean rate, boolean steps, boolean sprint) {
@@ -360,7 +355,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         if(entities.stream().anyMatch(e -> !this.steps.containsKey(e.getUuidAsString()) || this.sprinting.containsKey(e.getUuidAsString()))) {
             return false; // some are not frozen or are sprinting, error
         }
-        if(steps == 0) entities.forEach(e -> this.steps.remove(e.getUuidAsString()));
+        if(steps == 0) entities.forEach(e -> this.steps.put(e.getUuidAsString(), 0));
         else entities.forEach(e -> this.steps.put(e.getUuidAsString(), steps));
         return true;
     }
@@ -371,7 +366,6 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         }
         if(ticks == 0) entities.forEach(e -> this.sprinting.remove(e.getUuidAsString()));
         else entities.forEach(e -> this.sprinting.put(e.getUuidAsString(), ticks));
-        individualSprint();
         return true;
     }
 
@@ -385,17 +379,10 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
             chunks.forEach(chunkPos -> {
                 String key = world.getRegistryKey().getValue() + "-" + chunkPos.toLong();
                 this.chunks.remove(key);
-                unloadedChunks.remove(key);
             });
         }
         else {
-            chunks.forEach(chunkPos -> {
-                String key = world.getRegistryKey().getValue() + "-" + chunkPos.toLong();
-                // not using World#isChunkLoaded cause it can return FALSE before CHUNK_UNLOAD event is fired
-                WorldChunk worldChunk = (WorldChunk) world.getChunk(chunkPos.x,chunkPos.z,ChunkStatus.FULL,false);
-                if(worldChunk!=null && worldChunk.getLevelType().isAfter(ChunkLevelType.FULL)) this.chunks.put(key, rate);
-                else unloadedChunks.put(key, rate);
-            });
+            chunks.forEach(chunkPos -> this.chunks.put(world.getRegistryKey().getValue() + "-" + chunkPos.toLong(), rate));
         }
         updateFastestTicker();
     }
@@ -403,8 +390,6 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     public float tickRate$getChunkRate(World world, long chunkPos) {
         String key = world.getRegistryKey().getValue() + "-" + chunkPos;
         Float rate = chunks.get(key);
-        if(rate != null) return rate;
-        rate = unloadedChunks.get(key);
         if(rate != null) return rate;
         return nominalTickRate;
     }
@@ -418,10 +403,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
             });
         }
         else {
-            chunks.forEach(chunkPos -> {
-                String key = world.getRegistryKey().getValue() + "-" + chunkPos.toLong();
-                steps.remove(key);
-            });
+            chunks.forEach(chunkPos -> steps.remove(world.getRegistryKey().getValue() + "-" + chunkPos.toLong()));
         }
     }
 
@@ -432,7 +414,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         });
         if(error) return false; // some are not frozen or are sprinting, error
 
-        if(steps == 0) chunks.forEach(chunkPos -> this.steps.remove(world.getRegistryKey().getValue() + "-" + chunkPos.toLong()));
+        if(steps == 0) chunks.forEach(chunkPos -> this.steps.put(world.getRegistryKey().getValue() + "-" + chunkPos.toLong(), 0));
         else chunks.forEach(chunkPos -> this.steps.put(world.getRegistryKey().getValue() + "-" + chunkPos.toLong(), steps));
         return true;
     }
@@ -443,7 +425,6 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
 
         if(ticks == 0) chunks.forEach(chunkPos -> this.sprinting.remove(world.getRegistryKey().getValue() + "-" + chunkPos.toLong()));
         else chunks.forEach(chunkPos -> this.sprinting.put(world.getRegistryKey().getValue() + "-" + chunkPos.toLong(), ticks));
-        individualSprint();
         return true;
     }
 
@@ -485,15 +466,6 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
             setTickRate(fastest);
             ticks = 1; // reset it
         }
-    }
-
-    @Unique
-    private void individualSprint() {
-        int mostTicksRemaining = 0;
-        for(int ticks : sprinting.values()) {
-            mostTicksRemaining = Math.max(mostTicksRemaining,ticks);
-        }
-        individualSprintTicks = mostTicksRemaining;
     }
 
     @Unique
