@@ -42,7 +42,8 @@
 			"net/minecraft/client/render/RenderTickCounter": ["io/github/dennisochulor/tickrate/injected_interface/TickRateRenderTickCounter"],
 			"net/minecraft/world/tick/ChunkTickScheduler": ["io/github/dennisochulor/tickrate/injected_interface/TickRateChunkTickScheduler"],
 			"net/minecraft/server/ServerTickManager": ["io/github/dennisochulor/tickrate/injected_interface/TickRateTickManager"],
-			"net/minecraft/world/tick/WorldTickScheduler": ["io/github/dennisochulor/tickrate/injected_interface/TickRateWorldTickScheduler"]
+			"net/minecraft/world/tick/WorldTickScheduler": ["io/github/dennisochulor/tickrate/injected_interface/TickRateWorldTickScheduler"],
+			"net/minecraft/server/network/EntityTrackerEntry": ["io/github/dennisochulor/tickrate/injected_interface/TickRateEntityTrackerEntry"]
 		},
 		"lithium:options": {
 			"mixin.world.tick_scheduler": false

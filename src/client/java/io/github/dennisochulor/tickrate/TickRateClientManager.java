@@ -80,7 +80,7 @@ public class TickRateClientManager {
         float rate = state.rate();
         if(rate == -1.0f) rate = getChunkState(entity.getWorld(), entity.getChunkPos().toLong()).rate();
         if(serverState.frozen() || serverState.sprinting() || serverState.stepping())
-            return new TickState(rate,serverState.frozen(),serverState.stepping(),serverState.sprinting());
+            return new TickState(serverState.stepping() ? serverState.rate() : rate,serverState.frozen(),serverState.stepping(),serverState.sprinting());
         return new TickState(rate,state.frozen(),state.stepping(),state.sprinting());
     }
 
@@ -92,7 +92,7 @@ public class TickRateClientManager {
         float rate = state.rate();
         if(state.rate() == -1.0f) rate = serverState.rate();
         if(serverState.frozen() || serverState.sprinting() || serverState.stepping())
-            return new TickState(rate,serverState.frozen(),serverState.stepping(),serverState.sprinting());
+            return new TickState(serverState.stepping() ? serverState.rate() : rate,serverState.frozen(),serverState.stepping(),serverState.sprinting());
         return new TickState(rate,state.frozen(),state.stepping(),state.sprinting());
     }
 
