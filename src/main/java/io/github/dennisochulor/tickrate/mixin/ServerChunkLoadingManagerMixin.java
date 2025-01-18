@@ -41,6 +41,12 @@ public class ServerChunkLoadingManagerMixin {
         return bl;
     }
 
+    /**
+     * This relates to MC-76973
+     * Logically, this should apply uniformly to all entities, but for some unknown reason only projectiles/items
+     * work properly with this. Other entities will become noticeably less smooth at low TPS. Hence the
+     * distinction below is required. Sigh.
+     */
     @Redirect(method = "tickEntityMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/network/EntityTrackerEntry;tick()V"))
     void tickEntityMovement$tickEntityTrackerEntry(EntityTrackerEntry entry) {
         Entity entity = entry.tickRate$getEntity();
