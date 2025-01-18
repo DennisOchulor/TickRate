@@ -199,13 +199,10 @@ public class TickCommandMixin {
     @Overwrite
     private static int executeQuery(ServerCommandSource source) {
         ServerTickManager serverTickManager = source.getServer().getTickManager();
-        String string = format(source.getServer().getAverageNanosPerTick());
-        float f = serverTickManager.getTickRate();
-        String string2 = String.format(Locale.ROOT, "%.1f", f);
-        if (serverTickManager.tickRate$isServerSprint()) {
+        if (serverTickManager.isSprinting()) {
             source.sendFeedback(() -> Text.translatable("commands.tick.status.sprinting"), false);
-            source.sendFeedback(() -> Text.translatable("commands.tick.query.rate.sprinting", string2, string), false);
-        } else {
+        }
+        else {
             if (serverTickManager.isFrozen()) {
                 source.sendFeedback(() -> Text.translatable("commands.tick.status.frozen"), false);
             } else if (serverTickManager.getNanosPerTick() < source.getServer().getAverageNanosPerTick()) {
@@ -213,10 +210,10 @@ public class TickCommandMixin {
             } else {
                 source.sendFeedback(() -> Text.translatable("commands.tick.status.running"), false);
             }
-
-            source.sendFeedback(() -> Text.literal("Server's target tick rate: " + serverTickManager.tickRate$getServerRate() + " per second (" + format((long)((double) TimeHelper.SECOND_IN_NANOS / (double)serverTickManager.tickRate$getServerRate())) + " mspt)"), false);
-            source.sendFeedback(() -> Text.literal("Mainloop's target tick rate: " + serverTickManager.getTickRate() + " per second (" + format((long)((double) TimeHelper.SECOND_IN_NANOS / (double)serverTickManager.getTickRate())) + " mspt)"), false);
         }
+
+        source.sendFeedback(() -> Text.literal("Server's target tick rate: " + serverTickManager.tickRate$getServerRate() + " per second (" + format((long)((double) TimeHelper.SECOND_IN_NANOS / (double)serverTickManager.tickRate$getServerRate())) + " mspt)"), false);
+        source.sendFeedback(() -> Text.literal("Mainloop's target tick rate: " + serverTickManager.getTickRate() + " per second (" + format((long)((double) TimeHelper.SECOND_IN_NANOS / (double)serverTickManager.getTickRate())) + " mspt)"), false);
 
         long[] ls = Arrays.copyOf(source.getServer().getTickTimes(), source.getServer().getTickTimes().length);
         Arrays.sort(ls);
@@ -225,7 +222,7 @@ public class TickCommandMixin {
         String p99 = format(ls[(int)((double)ls.length * 0.99)]);
         float avg = source.getServer().getAverageTickTime();
         source.sendFeedback(() -> Text.literal("Avg: %.1fms P50: %sms P95: %sms P99: %sms, sample: %s".formatted(avg,p50,p95,p99,ls.length)), false);
-        return (int)f;
+        return (int) serverTickManager.tickRate$getServerRate();
     }
 
     @Inject(method = "executeSprint", at = @At("TAIL"))
