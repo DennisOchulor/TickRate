@@ -34,7 +34,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     @Unique private final Map<String,Float> chunks = new HashMap<>(); // world-longChunkPos -> tickRate
     @Unique private final Map<String,Float> unloadedEntities = new HashMap<>(); // uuid -> tickRate
     @Unique private final Map<String,Float> unloadedChunks = new HashMap<>(); // world-longChunkPos -> tickRate
-    @Unique private final Map<String,Boolean> chunksTicked = new HashMap<>(); // world-longChunkPos -> hasTickedThisMainloopTick, needed to ensure ChunkTickState is only updated ONCE per mainloop tick
+    @Unique private final Map<String,Boolean> ticked = new HashMap<>(); // world-longChunkPos -> hasTickedThisMainloopTick, needed to ensure ChunkTickState is only updated ONCE per mainloop tick
     @Unique private final Map<String,Integer> steps = new HashMap<>(); // uuid/world-longChunkPos -> steps, if steps==0, then it's frozen
     @Unique private final Map<String,Integer> sprinting = new HashMap<>(); // uuid/world-longChunkPos -> sprintTicks
     @Unique private final Set<ServerPlayerEntity> playersWithMod = new HashSet<>(); // stores players that have this mod client-side
@@ -156,6 +156,8 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     }
 
     public boolean tickRate$shouldTickEntity(Entity entity) {
+        String key = entity.getUuidAsString();
+        if(ticked.get(key) != null) return ticked.get(key);
         if(tickRate$isServerSprint()) return true;
         if(isFrozen()) {
             if(entity instanceof ServerPlayerEntity) return true;
@@ -163,31 +165,36 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         }
         //todo playersWithoutMod thingy
 
-        if(sprinting.computeIfPresent(entity.getUuidAsString(), (k,v) -> {
+        if(sprinting.computeIfPresent(key, (k,v) -> {
             if(v == 0) return null;
             return --v;
-        }) != null) return true;
+        }) != null)
+        {
+            ticked.put(key,true);
+            return true;
+        }
 
-        if(steps.getOrDefault(entity.getUuidAsString(),-1) == 0) return false;
+        if(steps.getOrDefault(key,-1) == 0) return false;
 
-        Float tickRate = entities.get(entity.getUuidAsString());
+        Float tickRate = entities.get(key);
         boolean shouldTick;
         if(tickRate != null)
             shouldTick = internalShouldTick(tickRate);
         else
             shouldTick = tickRate$shouldTickChunk(entity.getWorld(),entity.getChunkPos().toLong());
 
-        steps.computeIfPresent(entity.getUuidAsString(),(k,v) -> {
+        steps.computeIfPresent(key,(k,v) -> {
             if(v > 0 && shouldTick) return --v;
             return v;
         });
 
+        ticked.put(key,shouldTick);
         return shouldTick;
     }
 
     public boolean tickRate$shouldTickChunk(World world, long chunkPos) {
         String key = world.getRegistryKey().getValue() + "-" + chunkPos;
-        if(chunksTicked.get(key) != null) return chunksTicked.get(key);
+        if(ticked.get(key) != null) return ticked.get(key);
         if(tickRate$isServerSprint()) return true;
         if(isFrozen()) return isStepping();
 
@@ -196,7 +203,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
             return --v;
         }) != null)
         {
-            chunksTicked.put(key,true);
+            ticked.put(key,true);
             return true;
         }
 
@@ -214,7 +221,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
             return v;
         });
 
-        chunksTicked.put(key,shouldTick);
+        ticked.put(key,shouldTick);
         return shouldTick;
     }
 
@@ -306,7 +313,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
                 tickRate$sendUpdatePacket();
             }
         }
-        chunksTicked.clear();
+        ticked.clear();
     }
 
     public boolean tickRate$isIndividualSprint() {
