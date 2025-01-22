@@ -348,9 +348,9 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
 
     public void tickRate$setEntityFrozen(boolean frozen, Collection<? extends Entity> entities) {
         if(frozen) {
-            entities.forEach(e -> steps.put(e.getUuidAsString(),0));
-            entities.forEach(e -> { // if sprinting, stop the sprint
-               if(sprinting.containsKey(e.getUuidAsString())) sprinting.put(e.getUuidAsString(),0);
+            entities.forEach(e -> {
+                steps.put(e.getUuidAsString(),0);
+                sprinting.remove(e.getUuidAsString()); // if sprinting, stop the sprint
             });
         }
         else {
@@ -406,7 +406,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
             chunks.forEach(chunkPos -> {
                 String key = world.getRegistryKey().getValue() + "-" + chunkPos.toLong();
                 steps.put(key,0);
-                if(sprinting.containsKey(key)) sprinting.put(key,0); // if sprinting, stop the sprint
+                sprinting.remove(key); // if sprinting, stop the sprint
             });
         }
         else {
