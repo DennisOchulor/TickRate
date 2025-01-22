@@ -1,5 +1,6 @@
 package io.github.dennisochulor.tickrate;
 
+import io.github.dennisochulor.tickrate.api_impl.TickRateAPIImpl;
 import net.fabricmc.api.ModInitializer;
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
@@ -42,6 +43,7 @@ public class TickRate implements ModInitializer {
 
 		ServerLifecycleEvents.SERVER_STARTING.register(server -> {
 			server.getTickManager().tickRate$serverStarted();
+			TickRateAPIImpl.init(server);
 		});
 
 		ServerLifecycleEvents.AFTER_SAVE.register((server, flush, force) -> { // for autosaves and when server stops
