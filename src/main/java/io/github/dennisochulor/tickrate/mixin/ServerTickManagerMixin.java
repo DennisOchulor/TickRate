@@ -362,8 +362,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         if(entities.stream().anyMatch(e -> !this.steps.containsKey(e.getUuidAsString()) || this.sprinting.containsKey(e.getUuidAsString()))) {
             return false; // some are not frozen or are sprinting, error
         }
-        if(steps == 0) entities.forEach(e -> this.steps.put(e.getUuidAsString(), 0));
-        else entities.forEach(e -> this.steps.put(e.getUuidAsString(), steps));
+        entities.forEach(e -> this.steps.put(e.getUuidAsString(), steps));
         return true;
     }
 
@@ -381,7 +380,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         return getEntityTickState(key);
     }
 
-    public void tickRate$setChunkRate(float rate, World world, List<ChunkPos> chunks) {
+    public void tickRate$setChunkRate(float rate, World world, Collection<ChunkPos> chunks) {
         if(rate == 0) {
             chunks.forEach(chunkPos -> {
                 String key = world.getRegistryKey().getValue() + "-" + chunkPos.toLong();
@@ -401,7 +400,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         return nominalTickRate;
     }
 
-    public void tickRate$setChunkFrozen(boolean frozen, World world, List<ChunkPos> chunks) {
+    public void tickRate$setChunkFrozen(boolean frozen, World world, Collection<ChunkPos> chunks) {
         if(frozen) {
             chunks.forEach(chunkPos -> {
                 String key = world.getRegistryKey().getValue() + "-" + chunkPos.toLong();
@@ -414,19 +413,18 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         }
     }
 
-    public boolean tickRate$stepChunk(int steps, World world, List<ChunkPos> chunks) {
+    public boolean tickRate$stepChunk(int steps, World world, Collection<ChunkPos> chunks) {
         boolean error = chunks.stream().anyMatch(chunkPos -> {
             String key = world.getRegistryKey().getValue() + "-" + chunkPos.toLong();
             return !this.steps.containsKey(key) || this.sprinting.containsKey(key);
         });
         if(error) return false; // some are not frozen or are sprinting, error
 
-        if(steps == 0) chunks.forEach(chunkPos -> this.steps.put(world.getRegistryKey().getValue() + "-" + chunkPos.toLong(), 0));
-        else chunks.forEach(chunkPos -> this.steps.put(world.getRegistryKey().getValue() + "-" + chunkPos.toLong(), steps));
+        chunks.forEach(chunkPos -> this.steps.put(world.getRegistryKey().getValue() + "-" + chunkPos.toLong(), steps));
         return true;
     }
 
-    public boolean tickRate$sprintChunk(int ticks, World world, List<ChunkPos> chunks) {
+    public boolean tickRate$sprintChunk(int ticks, World world, Collection<ChunkPos> chunks) {
         if(chunks.stream().anyMatch(chunkPos -> this.steps.getOrDefault(world.getRegistryKey().getValue() + "-" + chunkPos.toLong(),-1) > 0))
             return false; // some are stepping, error
 

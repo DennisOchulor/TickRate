@@ -12,13 +12,15 @@ import net.minecraft.world.World;
  * These events are fired when the associated <code>/tick</code> command is run and also when the associated
  * API method is called. Registering event handlers for these events is identical to registering event handlers for Fabric events. <p>
  *
- * Unlike {@link TickRateAPI}, event handlers can be registered before the server has fully initialised.
+ * Unlike {@link TickRateAPI}, event handlers can be registered before the server has fully initialised. <p>
+ * It should be noted that these events do not necessarily fire immediately when a modification is made, there may be a delay
+ * of a couple ticks. Though usually it will be fired within the same tick.
  */
-@SuppressWarnings("unused")
 public interface TickRateEvents {
 
     /**
-     * Called when the tick rate of an entity has been modified.
+     * Called when the tick rate of an entity has been modified. <p>
+     * If the entity's rate has been reset, <code>rate</code> will be 0.
      */
     Event<EntityRate> ENTITY_RATE = EventFactory.createArrayBacked(EntityRate.class, callbacks -> ((entity, rate) -> {
         for (EntityRate callback : callbacks) {
@@ -54,7 +56,8 @@ public interface TickRateEvents {
     }));
 
     /**
-     * Called when the tick rate of a chunk is modified.
+     * Called when the tick rate of a chunk is modified. <p>
+     * If the chunk's rate has been reset, <code>rate</code> will be 0.
      */
     Event<ChunkRate> CHUNK_RATE = EventFactory.createArrayBacked(ChunkRate.class, callbacks -> ((world, chunkPos, rate) -> {
         for (ChunkRate callback : callbacks) {
@@ -93,6 +96,9 @@ public interface TickRateEvents {
 
     @FunctionalInterface
     interface EntityRate {
+        /**
+         * If the entity's rate has been reset, <code>rate</code> will be 0.
+         */
         void onEntityRate(Entity entity, float rate);
     }
 
@@ -113,6 +119,9 @@ public interface TickRateEvents {
 
     @FunctionalInterface
     interface ChunkRate {
+        /**
+         * If the chunk's rate has been reset, <code>rate</code> will be 0.
+         */
         void onChunkRate(World world, ChunkPos chunkPos, float rate);
     }
 

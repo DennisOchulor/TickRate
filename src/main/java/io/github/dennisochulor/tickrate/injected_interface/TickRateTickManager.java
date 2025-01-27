@@ -7,7 +7,6 @@ import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 
 import java.util.Collection;
-import java.util.List;
 
 public interface TickRateTickManager {
 
@@ -35,11 +34,11 @@ public interface TickRateTickManager {
     default boolean tickRate$stepEntity(int steps, Collection<? extends Entity> entities) {return false;}
     default boolean tickRate$sprintEntity(int ticks, Collection<? extends Entity> entities) {return false;}
 
-    default void tickRate$setChunkRate(float rate, World world, List<ChunkPos> chunks) {}
+    default void tickRate$setChunkRate(float rate, World world, Collection<ChunkPos> chunks) {}
     default float tickRate$getChunkRate(World world, long chunkPos) {return 0;}
-    default void tickRate$setChunkFrozen(boolean frozen, World world, List<ChunkPos> chunks) {}
-    default boolean tickRate$stepChunk(int steps, World world, List<ChunkPos> chunks) {return false;}
-    default boolean tickRate$sprintChunk(int ticks, World world, List<ChunkPos> chunks) {return false;}
+    default void tickRate$setChunkFrozen(boolean frozen, World world, Collection<ChunkPos> chunks) {}
+    default boolean tickRate$stepChunk(int steps, World world, Collection<ChunkPos> chunks) {return false;}
+    default boolean tickRate$sprintChunk(int ticks, World world, Collection<ChunkPos> chunks) {return false;}
 
     default TickState tickRate$getChunkTickState(World world, long chunkPos) {return null;}
     default TickState tickRate$getEntityTickState(Entity entity) {return null;}

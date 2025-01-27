@@ -35,16 +35,18 @@ public interface TickRateAPI {
     float queryEntity(Entity entity);
 
     /**
-     * Sets the tick rate of the specified entities. <code>rate</code> is rounded using {@link Math#round(float)}
+     * Sets the tick rate of the specified entities. <code>rate</code> is rounded using {@link Math#round(float)} <p>
+     * If <code>rate</code> is exactly <code>0.0f</code>, then the entities' tick rate will be reset.
      *
-     * @throws IllegalArgumentException if {@link Entity#isRemoved()} is true for any of the specified entities.
+     * @throws IllegalArgumentException if {@link Entity#isRemoved()} is true for any of the specified entities OR if <code>rate</code> is less than 1 and not 0.
      */
     void rateEntity(Collection<? extends Entity> entities, float rate);
 
     /**
-     * Sets the tick rate of the specified entity. <code>rate</code> is rounded using {@link Math#round(float)}
+     * Sets the tick rate of the specified entity. <code>rate</code> is rounded using {@link Math#round(float)} <p>
+     * If <code>rate</code> is exactly <code>0.0f</code>, then the entity's tick rate will be reset.
      *
-     * @throws IllegalArgumentException if {@link Entity#isRemoved()} is true.
+     * @throws IllegalArgumentException if {@link Entity#isRemoved()} is true OR if <code>rate</code> is less than 1 and not 0.
      */
     void rateEntity(Entity entity, float rate);
 
@@ -72,6 +74,7 @@ public interface TickRateAPI {
      * <ul>
      *          <li> {@link Entity#isRemoved()} is true for any of the specified entities.
      *          <li> Any of the specified entities are currently NOT frozen or ARE sprinting.
+     *          <li> <code>stepTicks</code> is less than 0.
      * </ul>
      */
     void stepEntity(Collection<? extends Entity> entities, int stepTicks);
@@ -84,6 +87,7 @@ public interface TickRateAPI {
      * <ul>
      *          <li> {@link Entity#isRemoved()} is true.
      *          <li> The specified entity is currently NOT frozen or IS sprinting.
+     *          <li> <code>stepTicks</code> is less than 0.
      * </ul>
      */
     void stepEntity(Entity entity, int stepTicks);
@@ -96,6 +100,7 @@ public interface TickRateAPI {
      * <ul>
      *          <li> {@link Entity#isRemoved()} is true for any of the specified entities.
      *          <li> Any of the specified entities are currently stepping.
+     *          <li> <code>sprintTicks</code> is less than 0.
      * </ul>
      */
     void sprintEntity(Collection<? extends Entity> entities, int sprintTicks);
@@ -108,6 +113,7 @@ public interface TickRateAPI {
      * <ul>
      *          <li> {@link Entity#isRemoved()} is true.
      *          <li> The specified entity is currently stepping.
+     *          <li> <code>sprintTicks</code> is less than 0.
      * </ul>
      */
     void sprintEntity(Entity entity, int sprintTicks);
@@ -123,18 +129,20 @@ public interface TickRateAPI {
     float queryChunk(World world, ChunkPos chunk);
 
     /**
-     * Sets the tick rate of the specified chunks. <code>rate</code> is rounded using {@link Math#round(float)}
+     * Sets the tick rate of the specified chunks. <code>rate</code> is rounded using {@link Math#round(float)} <p>
+     * If <code>rate</code> is exactly <code>0.0f</code>, then the chunks' tick rate will be reset.
      *
-     * @throws IllegalArgumentException if any of the chunks are {@link ChunkLevelType#INACCESSIBLE INACCESSIBLE} (not loaded).
+     * @throws IllegalArgumentException if any of the chunks are {@link ChunkLevelType#INACCESSIBLE INACCESSIBLE} (not loaded) OR if <code>rate</code> is less than 1 and not 0.
      */
-    void rateChunk(Collection<? extends ChunkPos> chunks, float rate);
+    void rateChunk(World world, Collection<ChunkPos> chunks, float rate);
 
     /**
-     * Sets the tick rate of the specified chunk. <code>rate</code> is rounded using {@link Math#round(float)}
+     * Sets the tick rate of the specified chunk. <code>rate</code> is rounded using {@link Math#round(float)} <p>
+     * If <code>rate</code> is exactly <code>0.0f</code>, then the chunk's tick rate will be reset.
      *
-     * @throws IllegalArgumentException if the chunk is {@link ChunkLevelType#INACCESSIBLE INACCESSIBLE} (not loaded).
+     * @throws IllegalArgumentException if the chunk is {@link ChunkLevelType#INACCESSIBLE INACCESSIBLE} (not loaded) OR if <code>rate</code> is less than 1 and not 0.
      */
-    void rateChunk(ChunkPos chunk, float rate);
+    void rateChunk(World world, ChunkPos chunk, float rate);
 
     /**
      * Freezes or unfreezes the specified chunks depending on <code>freeze</code>.
@@ -142,7 +150,7 @@ public interface TickRateAPI {
      * @param freeze <code>true</code> to freeze, <code>false</code> to unfreeze
      * @throws IllegalArgumentException if any of the chunks are {@link ChunkLevelType#INACCESSIBLE INACCESSIBLE} (not loaded).
      */
-    void freezeChunk(Collection<? extends ChunkPos> chunks, boolean freeze);
+    void freezeChunk(World world, Collection<ChunkPos> chunks, boolean freeze);
 
     /**
      * Freezes or unfreezes the specified chunk depending on <code>freeze</code>.
@@ -150,7 +158,7 @@ public interface TickRateAPI {
      * @param freeze <code>true</code> to freeze, <code>false</code> to unfreeze
      * @throws IllegalArgumentException if the chunk is {@link ChunkLevelType#INACCESSIBLE INACCESSIBLE} (not loaded).
      */
-    void freezeChunk(ChunkPos chunk, boolean freeze);
+    void freezeChunk(World world, ChunkPos chunk, boolean freeze);
 
     /**
      * Steps the specified chunks for <code>stepTicks</code> ticks. The chunks will step according to their current TPS. <p>
@@ -160,9 +168,10 @@ public interface TickRateAPI {
      * <ul>
      *          <li> Any of the chunks are {@link ChunkLevelType#INACCESSIBLE INACCESSIBLE} (not loaded).
      *          <li> Any of the specified chunks are currently NOT frozen or ARE sprinting.
+     *          <li> <code>stepTicks</code> is less than 0.
      * </ul>
      */
-    void stepChunk(Collection<? extends ChunkPos> chunks, int stepTicks);
+    void stepChunk(World world, Collection<ChunkPos> chunks, int stepTicks);
 
     /**
      * Steps the specified chunk for <code>stepTicks</code> ticks. The chunk will step according to its current TPS. <p>
@@ -172,9 +181,10 @@ public interface TickRateAPI {
      * <ul>
      *          <li> The chunk is {@link ChunkLevelType#INACCESSIBLE INACCESSIBLE} (not loaded).
      *          <li> The specified chunk is currently NOT frozen or IS sprinting.
+     *          <li> <code>stepTicks</code> is less than 0.
      * </ul>
      */
-    void stepChunk(ChunkPos chunk, int stepTicks);
+    void stepChunk(World world, ChunkPos chunk, int stepTicks);
 
     /**
      * Sprints the specified chunks for <code>sprintTicks</code> ticks. <p>
@@ -184,9 +194,10 @@ public interface TickRateAPI {
      * <ul>
      *          <li> Any of the chunks are {@link ChunkLevelType#INACCESSIBLE INACCESSIBLE} (not loaded).
      *          <li> Any of the specified chunks are currently stepping.
+     *          <li> <code>sprintTicks</code> is less than 0.
      * </ul>
      */
-    void sprintChunk(Collection<? extends ChunkPos> chunks, int sprintTicks);
+    void sprintChunk(World world, Collection<ChunkPos> chunks, int sprintTicks);
 
     /**
      * Sprints the specified chunk for <code>sprintTicks</code> ticks. <p>
@@ -196,8 +207,9 @@ public interface TickRateAPI {
      * <ul>
      *          <li> The chunk is {@link ChunkLevelType#INACCESSIBLE INACCESSIBLE} (not loaded).
      *          <li> The specified chunk is currently stepping.
+     *          <li> <code>sprintTicks</code> is less than 0.
      * </ul>
      */
-    void sprintChunk(ChunkPos chunk, int sprintTicks);
+    void sprintChunk(World world, ChunkPos chunk, int sprintTicks);
 
 }

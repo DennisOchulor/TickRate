@@ -6,6 +6,7 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.tree.LiteralCommandNode;
+import io.github.dennisochulor.tickrate.api.TickRateEvents;
 import net.minecraft.command.CommandSource;
 import net.minecraft.command.argument.BlockPosArgumentType;
 import net.minecraft.command.argument.ColumnPosArgumentType;
@@ -259,12 +260,14 @@ public class TickCommandMixin {
         ServerTickManager tickManager = source.getServer().getTickManager();
         tickManager.tickRate$setChunkRate(roundRate, source.getWorld(), chunks);
         tickManager.tickRate$sendUpdatePacket();
+
+        send(source, () -> chunks.forEach(chunkPos -> TickRateEvents.CHUNK_RATE.invoker().onChunkRate(source.getWorld(), chunkPos, rate)));
         if(roundRate != 0) {
             source.sendFeedback(() -> Text.of("Set tick rate of " + chunks.size() + " chunks to " + roundRate + " TPS."), false);
             return roundRate;
         }
         else {
-            source.sendFeedback(() -> Text.literal("Reset the target rate of " + chunks.size() + " chunks according to the server's tick rate."), false);
+            source.sendFeedback(() -> Text.literal("Reset the target rate of " + chunks.size() + " chunks."), false);
             return (int) tickManager.tickRate$getServerRate();
         }
     }
@@ -291,6 +294,7 @@ public class TickCommandMixin {
         if(frozen) source.sendFeedback(() -> Text.literal(chunks.size() + " chunks have been frozen."), false);
         else source.sendFeedback(() -> Text.literal(chunks.size() + " chunks have been unfrozen."), false);
         tickManager.tickRate$sendUpdatePacket();
+        send(source, () -> chunks.forEach(chunkPos -> TickRateEvents.CHUNK_FREEZE.invoker().onChunkFreeze(source.getWorld(), chunkPos, frozen)));
         return 1;
     }
 
@@ -300,8 +304,13 @@ public class TickCommandMixin {
 
         ServerTickManager tickManager = source.getServer().getTickManager();
         boolean success = tickManager.tickRate$stepChunk(steps, source.getWorld(), chunks);
-        if(success && steps != 0) source.sendFeedback(() -> Text.literal(chunks.size() + " chunks will step " + steps + " ticks."), false);
-        else if(success && steps == 0) source.sendFeedback(() -> Text.literal(chunks.size() + " chunks have stopped stepping."), false);
+        if(success) {
+            if(steps != 0) {
+                source.sendFeedback(() -> Text.literal(chunks.size() + " chunks will step " + steps + " ticks."), false);
+                send(source, () -> chunks.forEach(chunkPos -> TickRateEvents.CHUNK_STEP.invoker().onChunkStep(source.getWorld(), chunkPos, steps)));
+            }
+            else source.sendFeedback(() -> Text.literal(chunks.size() + " chunks have stopped stepping."), false);
+        }
         else source.sendFeedback(() -> Text.literal("All of the specified chunks must be frozen first and cannot be sprinting!").withColor(Colors.LIGHT_RED), false);
         tickManager.tickRate$sendUpdatePacket();
         return success ? 1 : 0;
@@ -313,8 +322,13 @@ public class TickCommandMixin {
 
         ServerTickManager tickManager = source.getServer().getTickManager();
         boolean success = tickManager.tickRate$sprintChunk(ticks, source.getWorld(), chunks);
-        if(success && ticks != 0) source.sendFeedback(() -> Text.literal(chunks.size() + " chunks will sprint for " + ticks + " ticks."), false);
-        else if(success && ticks == 0) source.sendFeedback(() -> Text.literal(chunks.size() + " chunks have stopped sprinting."), false);
+        if(success) {
+            if(ticks != 0) {
+                source.sendFeedback(() -> Text.literal(chunks.size() + " chunks will sprint for " + ticks + " ticks."), false);
+                send(source, () -> chunks.forEach(chunkPos -> TickRateEvents.CHUNK_SPRINT.invoker().onChunkSprint(source.getWorld(), chunkPos, ticks)));
+            }
+            else source.sendFeedback(() -> Text.literal(chunks.size() + " chunks have stopped sprinting."), false);
+        }
         else source.sendFeedback(() -> Text.literal("All of the specified chunks must not be stepping!").withColor(Colors.LIGHT_RED), false);
         tickManager.tickRate$sendUpdatePacket();
         return success ? 1 : 0;
@@ -327,15 +341,15 @@ public class TickCommandMixin {
 
         ServerTickManager tickManager = source.getServer().getTickManager();
         tickManager.tickRate$setEntityRate(roundRate, entities);
+        tickManager.tickRate$sendUpdatePacket();
+        send(source, () -> entities.forEach(entity -> TickRateEvents.ENTITY_RATE.invoker().onEntityRate(entity, rate)));
         if(roundRate != 0) {
             source.sendFeedback(() -> Text.of("Set tick rate of " + entities.size() + " entities to " + roundRate + " TPS."), false);
-            tickManager.tickRate$sendUpdatePacket();
             return roundRate;
         }
         else {
-            source.sendFeedback(() -> Text.literal("Reset the tick rate of " + entities.size() + " entities according to the server's tick rate."), false);
-            tickManager.tickRate$sendUpdatePacket();
-            return (int) tickManager.tickRate$getServerRate();
+            source.sendFeedback(() -> Text.literal("Reset the tick rate of " + entities.size() + " entities."), false);
+            return 0; // entities could be in different chunks, no reasonabe single int value can be returned, so 0 i guess.
         }
     }
 
@@ -359,6 +373,7 @@ public class TickCommandMixin {
         if(frozen) source.sendFeedback(() -> Text.literal(entities.size() + " entities have been frozen."), false);
         else source.sendFeedback(() -> Text.literal(entities.size() + " entities have been unfrozen."), false);
         tickManager.tickRate$sendUpdatePacket();
+        send(source, () -> entities.forEach(entity -> TickRateEvents.ENTITY_FREEZE.invoker().onEntityFreeze(entity, frozen)));
         return 1;
     }
 
@@ -368,8 +383,13 @@ public class TickCommandMixin {
 
         ServerTickManager tickManager = source.getServer().getTickManager();
         boolean success = tickManager.tickRate$stepEntity(steps,entities);
-        if(success && steps != 0) source.sendFeedback(() -> Text.literal(entities.size() + " entities will step " + steps + " ticks."), false);
-        else if(success && steps == 0) source.sendFeedback(() -> Text.literal(entities.size() + " entities have stopped stepping."), false);
+        if(success) {
+            if(steps != 0) {
+                source.sendFeedback(() -> Text.literal(entities.size() + " entities will step " + steps + " ticks."), false);
+                send(source, () -> entities.forEach(entity -> TickRateEvents.ENTITY_STEP.invoker().onEntityStep(entity, steps)));
+            }
+            else source.sendFeedback(() -> Text.literal(entities.size() + " entities have stopped stepping."), false);
+        }
         else source.sendFeedback(() -> Text.literal("All of the specified entities must be frozen first and cannot be sprinting!").withColor(Colors.LIGHT_RED), false);
         tickManager.tickRate$sendUpdatePacket();
         return success ? 1 : 0;
@@ -381,8 +401,13 @@ public class TickCommandMixin {
 
         ServerTickManager tickManager = source.getServer().getTickManager();
         boolean success = tickManager.tickRate$sprintEntity(ticks,entities);
-        if(success && ticks != 0) source.sendFeedback(() -> Text.literal(entities.size() + " entities will sprint for " + ticks + " ticks."), false);
-        else if(success && ticks == 0) source.sendFeedback(() -> Text.literal(entities.size() + " entities have stopped sprinting."), false);
+        if(success) {
+            if(ticks != 0) {
+                source.sendFeedback(() -> Text.literal(entities.size() + " entities will sprint for " + ticks + " ticks."), false);
+                send(source, () -> entities.forEach(entity -> TickRateEvents.ENTITY_SPRINT.invoker().onEntitySprint(entity, ticks)));
+            }
+            else source.sendFeedback(() -> Text.literal(entities.size() + " entities have stopped sprinting."), false);
+        }
         else source.sendFeedback(() -> Text.literal("All of the specified entities must not be stepping!").withColor(Colors.LIGHT_RED), false);
         tickManager.tickRate$sendUpdatePacket();
         return success ? 1 : 0;
@@ -490,6 +515,11 @@ public class TickCommandMixin {
             }
             default -> throw new IllegalStateException("Unexpected value: " + lastNode);
         };
+    }
+
+    @Unique
+    private static void send(ServerCommandSource source, Runnable runnable) {
+        source.getServer().send(source.getServer().createTask(runnable));
     }
 
 }
