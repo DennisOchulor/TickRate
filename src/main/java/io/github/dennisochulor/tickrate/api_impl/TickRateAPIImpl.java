@@ -68,6 +68,59 @@ public final class TickRateAPIImpl implements TickRateAPI {
     // API Implementation
 
     @Override
+    public float queryServer() {
+        return tickManager.tickRate$getServerRate();
+    }
+
+    @Override
+    public void rateServer(float rate) {
+        if(rate < 1) throw new IllegalArgumentException("rate must be >= 1");
+        int roundRate = Math.round(rate);
+        tickManager.tickRate$setServerRate(roundRate);
+        tickManager.tickRate$sendUpdatePacket();
+        send(() -> TickRateEvents.SERVER_RATE.invoker().onServerRate(roundRate));
+    }
+
+    @Override
+    public void freezeServer(boolean freeze) {
+        if(freeze) {
+            if(tickManager.tickRate$isServerSprint()) tickManager.stopSprinting();
+            if(tickManager.isStepping()) tickManager.stopStepping();
+        }
+        tickManager.setFrozen(freeze);
+        tickManager.tickRate$sendUpdatePacket();
+        send(() -> TickRateEvents.SERVER_FREEZE.invoker().onServerFreeze(freeze));
+    }
+
+    @Override
+    public void stepServer(int stepTicks) {
+        if(stepTicks < 0) throw new IllegalArgumentException("stepTicks must be >= 0");
+
+        if(stepTicks == 0) tickManager.stopStepping();
+        else {
+            if(!tickManager.step(stepTicks)) throw new IllegalStateException("server must be frozen to step!");
+            send(() -> TickRateEvents.SERVER_STEP.invoker().onServerStep(stepTicks));
+        }
+
+        tickManager.tickRate$sendUpdatePacket();
+    }
+
+    @Override
+    public void sprintServer(int sprintTicks) {
+        if(sprintTicks < 0) throw new IllegalArgumentException("sprintTicks must be >= 0");
+
+        if(sprintTicks == 0) tickManager.stopSprinting();
+        else {
+            tickManager.startSprint(sprintTicks);
+            send(() -> TickRateEvents.SERVER_SPRINT.invoker().onServerSprint(sprintTicks));
+        }
+
+        tickManager.tickRate$sendUpdatePacket();
+    }
+
+
+
+    @Override
     public float queryEntity(Entity entity) {
         entityCheck(List.of(entity));
         return tickManager.tickRate$getEntityRate(entity);
@@ -136,6 +189,8 @@ public final class TickRateAPIImpl implements TickRateAPI {
     public void sprintEntity(Entity entity, int sprintTicks) {
         sprintEntity(List.of(entity), sprintTicks);
     }
+
+
 
     @Override
     public float queryChunk(World world, ChunkPos chunk) {

@@ -25,6 +25,44 @@ public interface TickRateAPI {
     }
 
     /**
+     * Returns the server's tick rate.
+     */
+    float queryServer();
+
+    /**
+     * Set the tick rate of the server. <code>rate</code> is rounded using {@link Math#round(float)}
+     *
+     * @throws IllegalArgumentException if <code>rate</code> is less than 1.
+     */
+    void rateServer(float rate);
+
+    /**
+     * Freezes or unfreezes the server depending on <code>freeze</code>.
+     *
+     * @param freeze <code>true</code> to freeze, <code>false</code> to unfreeze.
+     */
+    void freezeServer(boolean freeze);
+
+    /**
+     * Steps the server. The server will step according to its current TPS. <p>
+     * If <code>stepTicks</code> is 0, the server will stop stepping.
+     *
+     * @throws IllegalArgumentException if <code>stepTicks</code> is less than 0.
+     * @throws IllegalStateException if the server is not frozen.
+     */
+    void stepServer(int stepTicks);
+
+    /**
+     * Sprints the server. <p>
+     * If <code>sprintTicks</code> is 0, the server will stop sprinting.
+     *
+     * @throws IllegalArgumentException if <code>sprintTicks</code> is less than 0.
+     */
+    void sprintServer(int sprintTicks);
+
+
+
+    /**
      * Returns the tick rate of the entity. <p>
      * If the entity has no specific tick rate, the tick rate of the chunk it is in will be returned.
      * If the chunk it is in also has no specific tick rate, the server's tick rate will be returned. <p>

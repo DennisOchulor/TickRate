@@ -19,6 +19,43 @@ import net.minecraft.world.World;
 public interface TickRateEvents {
 
     /**
+     * Called when the tick rate of the server has been modified.
+     */
+    Event<ServerRate> SERVER_RATE = EventFactory.createArrayBacked(ServerRate.class, callbacks -> rate -> {
+        for (ServerRate callback : callbacks) {
+            callback.onServerRate(rate);
+        }
+    });
+
+    /**
+     * Called when the server is frozen or unfrozen.
+     */
+    Event<ServerFreeze> SERVER_FREEZE = EventFactory.createArrayBacked(ServerFreeze.class, callbacks -> freeze -> {
+        for (ServerFreeze callback : callbacks) {
+            callback.onServerFreeze(freeze);
+        }
+    });
+
+    /**
+     * Called when the server starts stepping.
+     */
+    Event<ServerStep> SERVER_STEP = EventFactory.createArrayBacked(ServerStep.class, callbacks -> stepTicks -> {
+        for (ServerStep callback : callbacks) {
+            callback.onServerStep(stepTicks);
+        }
+    });
+
+    /**
+     * Called when the server starts sprinting.
+     */
+    Event<ServerSprint> SERVER_SPRINT = EventFactory.createArrayBacked(ServerSprint.class, callbacks -> sprintTicks -> {
+        for (ServerSprint callback : callbacks) {
+            callback.onServerSprint(sprintTicks);
+        }
+    });
+
+
+    /**
      * Called when the tick rate of an entity has been modified. <p>
      * If the entity's rate has been reset, <code>rate</code> will be 0.
      */
@@ -54,6 +91,7 @@ public interface TickRateEvents {
             callback.onEntitySprint(entity, sprintTicks);
         }
     }));
+
 
     /**
      * Called when the tick rate of a chunk is modified. <p>
@@ -93,6 +131,26 @@ public interface TickRateEvents {
     }));
 
 
+
+    @FunctionalInterface
+    interface ServerRate {
+        void onServerRate(float rate);
+    }
+
+    @FunctionalInterface
+    interface ServerFreeze {
+        void onServerFreeze(boolean freeze);
+    }
+
+    @FunctionalInterface
+    interface ServerStep {
+        void onServerStep(int stepTicks);
+    }
+
+    @FunctionalInterface
+    interface ServerSprint {
+        void onServerSprint(int sprintTicks);
+    }
 
     @FunctionalInterface
     interface EntityRate {

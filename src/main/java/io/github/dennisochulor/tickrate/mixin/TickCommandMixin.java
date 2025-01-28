@@ -189,6 +189,7 @@ public class TickCommandMixin {
         ServerTickManager tickManager = source.getServer().getTickManager();
         tickManager.tickRate$setServerRate(roundRate);
         tickManager.tickRate$sendUpdatePacket();
+        send(source, () -> TickRateEvents.SERVER_RATE.invoker().onServerRate(roundRate));
         source.sendFeedback(() -> Text.translatable("commands.tick.rate.success", roundRate), true);
         return roundRate;
     }
@@ -229,16 +230,19 @@ public class TickCommandMixin {
     @Inject(method = "executeSprint", at = @At("TAIL"))
     private static void executeSprint(ServerCommandSource source, int ticks, CallbackInfoReturnable<Integer> cir) {
         source.getServer().getTickManager().tickRate$sendUpdatePacket();
+        send(source, () -> TickRateEvents.SERVER_SPRINT.invoker().onServerSprint(ticks));
     }
 
     @Inject(method = "executeFreeze", at = @At("TAIL"))
     private static void executeFreeze(ServerCommandSource source, boolean frozen, CallbackInfoReturnable<Integer> cir) {
         source.getServer().getTickManager().tickRate$sendUpdatePacket();
+        send(source, () -> TickRateEvents.SERVER_FREEZE.invoker().onServerFreeze(frozen));
     }
 
     @Inject(method = "executeStep", at = @At("TAIL"))
     private static void executeStep(ServerCommandSource source, int ticks, CallbackInfoReturnable<Integer> cir) {
         source.getServer().getTickManager().tickRate$sendUpdatePacket();
+        send(source, () -> TickRateEvents.SERVER_STEP.invoker().onServerStep(ticks));
     }
 
     @Inject(method = "executeStopStep", at = @At("RETURN"))

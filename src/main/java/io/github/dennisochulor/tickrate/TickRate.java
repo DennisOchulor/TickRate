@@ -72,6 +72,10 @@ public class TickRate implements ModInitializer {
 				dispatcher.register(CommandManager.literal("tickratetest").then(CommandManager.argument("entity", EntityArgumentType.entity()).executes(context -> {
 					Test.test(EntityArgumentType.getEntity(context, "entity"));
 					return 1;
+				}))
+				.then(CommandManager.literal("server").executes(context -> {
+					Test.test(context.getSource().getServer());
+					return 1;
 				})));
 			});
 		}
