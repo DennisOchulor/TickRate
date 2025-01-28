@@ -11,8 +11,9 @@ import java.util.Collection;
 /**
  * API v0 for TickRate v0.3.0 <p>
  * This class represents the sole entrypoint for TickRate's API. This API should only be used on the server-side.
+ *
+ * @see TickRateEvents
  */
- @SuppressWarnings("unused")
 public interface TickRateAPI {
 
     /**
