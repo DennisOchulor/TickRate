@@ -50,6 +50,8 @@ public class TickRate implements ModInitializer {
 
 		ServerLifecycleEvents.SERVER_STARTED.register(TickRateAPIImpl::init);
 
+		ServerLifecycleEvents.SERVER_STOPPING.register(server -> TickRateAPIImpl.uninit());
+
 		ServerLifecycleEvents.AFTER_SAVE.register((server, flush, force) -> { // for autosaves and when server stops
 			server.getTickManager().tickRate$saveData();
 		});

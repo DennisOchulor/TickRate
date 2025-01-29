@@ -25,10 +25,15 @@ public final class TickRateAPIImpl implements TickRateAPI {
         return INSTANCE;
     }
 
-    /** Only ever called ONCE by TickRate's ModInitializer */
+    /** Only ever called when the logical server is fully initialised */
     public static void init(MinecraftServer server) {
-        if(INSTANCE != null) throw new IllegalStateException("Only one instance can be created!");
+        if(INSTANCE != null) throw new IllegalStateException("Only one instance can be present at any given time!");
         INSTANCE = new TickRateAPIImpl(server);
+    }
+
+    /** Only ever called when the logical server starts shutting down */
+    public static void uninit() {
+        INSTANCE = null;
     }
 
 

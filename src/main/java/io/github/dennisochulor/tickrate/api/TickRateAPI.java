@@ -10,14 +10,15 @@ import java.util.Collection;
 
 /**
  * API v0 for TickRate v0.3.0 <p>
- * This class represents the sole entrypoint for TickRate's API. This API should only be used on the server-side.
+ * This class represents the sole entrypoint for TickRate's API. This API should only be used on the logical server. <p>
  *
  * @see TickRateEvents
  */
 public interface TickRateAPI {
 
     /**
-     * Obtain the API instance. This method should only be called after the server has been fully initialised.
+     * Obtain the API instance. This method should only be called after the server has been fully initialised. <p>
+     * In singleplayer, a new API instance is used each time a new save is loaded.
      * @throws IllegalStateException if the server has not been fully intialised yet.
      */
     static TickRateAPI getInstance() {
