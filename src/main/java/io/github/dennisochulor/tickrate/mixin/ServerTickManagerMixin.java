@@ -12,6 +12,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.ServerTickManager;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.TimeHelper;
+import net.minecraft.util.WorldSavePath;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.tick.TickManager;
@@ -83,7 +84,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     }
 
     public void tickRate$serverStarted() {
-        datafile = server.isDedicated() ? server.getRunDirectory().resolve("world/data/TickRateData.nbt").toFile() : server.getRunDirectory().resolve("saves/" + server.getSaveProperties().getLevelName() + "/data/TickRateData.nbt").toFile();
+        datafile = server.getSavePath(WorldSavePath.ROOT).resolve("data/TickRateData.nbt").toFile();
         if(datafile.exists()) {
             try {
                 NbtCompound nbt = NbtIo.read(datafile.toPath());
