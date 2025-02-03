@@ -8,8 +8,6 @@ import net.minecraft.client.particle.ParticleManager;
 import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.ChunkPos;
 import org.spongepowered.asm.mixin.Mixin;
@@ -44,14 +42,9 @@ public class ParticleManagerMixin {
         else particle.tick();
     }
 
-    @Redirect(method = "renderParticles(Lnet/minecraft/client/render/Camera;FLnet/minecraft/client/render/VertexConsumerProvider$Immediate;Lnet/minecraft/client/particle/ParticleTextureSheet;Ljava/util/Queue;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/particle/Particle;render(Lnet/minecraft/client/render/VertexConsumer;Lnet/minecraft/client/render/Camera;F)V"))
-    private static void renderParticles(Particle particle, VertexConsumer vertexConsumer, Camera camera, float tickDelta) {
-        particle.render(vertexConsumer, camera, TickRateClientManager.getChunkTickDelta(particle.tickRate$getWorld(), ChunkPos.toLong(particle.tickRate$getBlockPos())).tickDelta());
-    }
-
-    @Redirect(method = "renderCustomParticles", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/particle/Particle;renderCustom(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;Lnet/minecraft/client/render/Camera;F)V"))
-    private static void renderParticles(Particle particle, MatrixStack matrices, VertexConsumerProvider vertexConsumers, Camera camera, float tickDelta) {
-        particle.renderCustom(matrices, vertexConsumers, camera, TickRateClientManager.getChunkTickDelta(particle.tickRate$getWorld(), ChunkPos.toLong(particle.tickRate$getBlockPos())).tickDelta());
+    @Redirect(method = "renderParticles", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/particle/Particle;buildGeometry(Lnet/minecraft/client/render/VertexConsumer;Lnet/minecraft/client/render/Camera;F)V"))
+    private void renderParticles(Particle particle, VertexConsumer vertexConsumer, Camera camera, float tickDelta) {
+        particle.buildGeometry(vertexConsumer, camera, TickRateClientManager.getChunkTickDelta(particle.tickRate$getWorld(), ChunkPos.toLong(particle.tickRate$getBlockPos())).tickDelta());
     }
 
 }

@@ -23,11 +23,6 @@ public abstract class MinecraftServerMixin {
 		if(getTickManager().tickRate$shouldTickServer()) instance.tick();
 	}
 
-	@ModifyConstant(method = "tick", constant = @Constant(intValue = 20))
-	private int tick$pauseWhenEmptySeconds(int constant) {
-		return (int) this.getTickManager().getTickRate(); // mainloop rate
-	}
-
 	@Redirect(method = "runServer", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickManager;sprint()Z"))
 	private boolean runServer$sprint(ServerTickManager instance) {
 		if(instance.tickRate$isServerSprint()) return instance.sprint();

@@ -12,9 +12,9 @@ public record TickState(float rate, boolean frozen, boolean stepping, boolean sp
 
     public static final PacketCodec<ByteBuf,TickState> PACKET_CODEC = PacketCodec.tuple(
             PacketCodecs.FLOAT, TickState::rate,
-            PacketCodecs.BOOLEAN, TickState::frozen,
-            PacketCodecs.BOOLEAN, TickState::stepping,
-            PacketCodecs.BOOLEAN, TickState::sprinting,
+            PacketCodecs.BOOL, TickState::frozen,
+            PacketCodecs.BOOL, TickState::stepping,
+            PacketCodecs.BOOL, TickState::sprinting,
             TickState::new
     );
 

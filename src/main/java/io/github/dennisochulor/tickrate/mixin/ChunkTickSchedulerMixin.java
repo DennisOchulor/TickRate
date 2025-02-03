@@ -3,7 +3,6 @@ package io.github.dennisochulor.tickrate.mixin;
 import io.github.dennisochulor.tickrate.injected_interface.TickRateChunkTickScheduler;
 import net.minecraft.world.tick.ChunkTickScheduler;
 import net.minecraft.world.tick.OrderedTick;
-import net.minecraft.world.tick.Tick;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -24,7 +23,7 @@ public abstract class ChunkTickSchedulerMixin<T> implements TickRateChunkTickSch
     @Shadow public abstract @Nullable OrderedTick<T> pollNextTick();
 
     @Unique private long chunkTime;
-    @Unique private long serverTime;
+    @Unique private long serverTime; // actually should be worldTime
     @Unique private boolean isFollowingServerTick = true;
 
     @ModifyVariable(method = "scheduleTick", at = @At("HEAD"), argsOnly = true)
@@ -36,15 +35,14 @@ public abstract class ChunkTickSchedulerMixin<T> implements TickRateChunkTickSch
         return orderedTick;
     }
 
-    @Redirect(method = "collectTicks", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/tick/OrderedTick;toTick(J)Lnet/minecraft/world/tick/Tick;"))
-    public Tick<T> collectTicks(OrderedTick<T> orderedTick, long time) {
-        if(isFollowingServerTick) return orderedTick.toTick(time);
+    @ModifyVariable(method = "toNbt(JLjava/util/function/Function;)Lnet/minecraft/nbt/NbtList;", at = @At(value = "INVOKE",
+        target = "Lnet/minecraft/world/tick/Tick;orderedTickToNbt(Lnet/minecraft/world/tick/OrderedTick;Ljava/util/function/Function;J)Lnet/minecraft/nbt/NbtCompound;"))
+    public OrderedTick<T> collectTicks(OrderedTick<T> orderedTick) {
+        if(isFollowingServerTick) return orderedTick;
         else {
-            long newTriggerTick = time + (orderedTick.triggerTick() - chunkTime);
-            OrderedTick<T> orderedTick1 = new OrderedTick<>(orderedTick.type(),orderedTick.pos(),newTriggerTick,orderedTick.subTickOrder());
-            return orderedTick1.toTick(time);
+            long newTriggerTick = serverTime + (orderedTick.triggerTick() - chunkTime);
+            return new OrderedTick<>(orderedTick.type(),orderedTick.pos(),newTriggerTick,orderedTick.subTickOrder());
         }
-
     }
 
     @Unique

@@ -34,7 +34,7 @@ public abstract class ServerWorldMixin {
         return tickManager.tickRate$shouldTickServer();
     }
 
-    @Inject(method = "tick(Ljava/util/function/BooleanSupplier;)V",  at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiler/Profiler;push(Ljava/lang/String;)V", args = "ldc=tickPending"))
+    @Inject(method = "tick(Ljava/util/function/BooleanSupplier;)V",  at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiler/Profiler;swap(Ljava/lang/String;)V", args = "ldc=tickPending"))
     private void tick$modifyBl(CallbackInfo ci, @Local LocalBooleanRef bl) {
         ServerTickManager serverTickManager = (ServerTickManager) getTickManager();
         if(serverTickManager.tickRate$isServerSprint()) bl.set(true);

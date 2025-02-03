@@ -4,6 +4,7 @@ import io.github.dennisochulor.tickrate.api.TickRateAPI;
 import io.github.dennisochulor.tickrate.api.TickRateEvents;
 import net.minecraft.entity.Entity;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.ServerTask;
 import net.minecraft.server.ServerTickManager;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ChunkLevelType;
@@ -66,7 +67,7 @@ public final class TickRateAPIImpl implements TickRateAPI {
     }
 
     private void send(Runnable runnable) {
-        server.send(server.createTask(runnable));
+        server.send(new ServerTask(server.getTicks(), runnable));
     }
 
 

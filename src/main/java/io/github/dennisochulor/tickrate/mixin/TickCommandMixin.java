@@ -13,6 +13,7 @@ import net.minecraft.command.argument.ColumnPosArgumentType;
 import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.command.argument.TimeArgumentType;
 import net.minecraft.entity.Entity;
+import net.minecraft.server.ServerTask;
 import net.minecraft.server.ServerTickManager;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
@@ -523,7 +524,7 @@ public class TickCommandMixin {
 
     @Unique
     private static void send(ServerCommandSource source, Runnable runnable) {
-        source.getServer().send(source.getServer().createTask(runnable));
+        source.getServer().send(new ServerTask(source.getServer().getTicks(), runnable));
     }
 
 }
