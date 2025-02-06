@@ -16,7 +16,9 @@ dependencies {
 }
 ```
 
-The API's documentation is provided by the sources/javadoc JAR hosted on the same repository. Due to an issue with Modrinth Maven, you may need to download these JARs manually.
+The API's documentation is provided by the sources/javadoc JAR hosted on the same repository. Make sure to downlaod them via your IDE.
+
+However, due to a potential issue with Modrinth Maven, you may need to download these JARs manually.
 
 ## Some cool datapacks
 These datapacks require the TickRate mod to function.
