@@ -41,8 +41,8 @@ public class WorldRendererMixin {
      See https://github.com/IrisShaders/Iris/blob/1.21.4/common/src/main/java/net/irisshaders/iris/mixin/MixinLevelRenderer.java
      */
 
-    @ModifyVariable(method = "render", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/systems/RenderSystem;disableBlend()V"), argsOnly = true)
-    public RenderTickCounter render$iris(RenderTickCounter renderTickCounter) {
+    @ModifyVariable(method = "render", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/systems/RenderSystem;setShaderFog(Lnet/minecraft/client/render/Fog;)V"), order = 100, argsOnly = true)
+    public RenderTickCounter renderEnd$iris(RenderTickCounter renderTickCounter) {
         if(isIrisLoaded) return playerRenderTickCounter;
         else return renderTickCounter;
     }
