@@ -1,4 +1,4 @@
-package io.github.dennisochulor.tickrate.mixin;
+package io.github.dennisochulor.tickrate.mixin.chunk;
 
 import io.github.dennisochulor.tickrate.injected_interface.TickRateEntityTrackerEntry;
 import net.minecraft.entity.Entity;

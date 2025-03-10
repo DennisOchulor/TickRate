@@ -1,4 +1,4 @@
-package io.github.dennisochulor.tickrate.mixin;
+package io.github.dennisochulor.tickrate.mixin.chunk;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.ItemEntity;
