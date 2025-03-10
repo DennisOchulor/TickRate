@@ -1,4 +1,4 @@
-package io.github.dennisochulor.tickrate.mixin.client;
+package io.github.dennisochulor.tickrate.mixin.client.render;
 
 import io.github.dennisochulor.tickrate.TickDeltaInfo;
 import io.github.dennisochulor.tickrate.TickRateClientManager;

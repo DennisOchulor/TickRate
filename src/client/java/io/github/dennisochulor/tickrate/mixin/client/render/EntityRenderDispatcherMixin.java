@@ -1,4 +1,4 @@
-package io.github.dennisochulor.tickrate.mixin.client;
+package io.github.dennisochulor.tickrate.mixin.client.render;
 
 import com.llamalad7.mixinextras.sugar.Local;
 import com.llamalad7.mixinextras.sugar.ref.LocalFloatRef;

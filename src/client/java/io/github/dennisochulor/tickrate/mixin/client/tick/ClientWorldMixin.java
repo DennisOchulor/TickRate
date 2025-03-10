@@ -1,4 +1,4 @@
-package io.github.dennisochulor.tickrate.mixin.client;
+package io.github.dennisochulor.tickrate.mixin.client.tick;
 
 import io.github.dennisochulor.tickrate.TickRateClientManager;
 import net.minecraft.block.Block;

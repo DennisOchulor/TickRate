@@ -1,4 +1,4 @@
-package io.github.dennisochulor.tickrate.mixin;
+package io.github.dennisochulor.tickrate.mixin.networking;
 
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerLoginNetworkHandler;
