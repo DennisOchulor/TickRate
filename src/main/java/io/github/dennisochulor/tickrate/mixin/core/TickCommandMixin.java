@@ -1,4 +1,4 @@
-package io.github.dennisochulor.tickrate.mixin;
+package io.github.dennisochulor.tickrate.mixin.core;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.FloatArgumentType;
