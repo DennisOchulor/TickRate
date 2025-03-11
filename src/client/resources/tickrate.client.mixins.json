@@ -3,23 +3,25 @@
   "package": "io.github.dennisochulor.tickrate.mixin.client",
   "compatibilityLevel": "JAVA_21",
   "client": [
-    "BlockEntityRenderDispatcherMixin",
-    "ClientWorldMixin",
-    "EnchantmentScreenMixin",
-    "EntityRenderDispatcherMixin",
-    "GameRendererMixin",
-    "MinecraftClientMixin",
     "ParticleManagerMixin",
     "ParticleMixin",
-    "RenderTickCounterDynamicMixin",
-    "RenderTickCounterMixin",
-    "WorldMixin",
-    "WorldRendererMixin"
+    "misc.EnchantmentScreenMixin",
+    "render.BlockEntityRenderDispatcherMixin",
+    "render.EntityRenderDispatcherMixin",
+    "render.GameRendererMixin",
+    "render.RenderTickCounterDynamicMixin",
+    "render.RenderTickCounterMixin",
+    "render.WorldRendererMixin",
+    "sound.ClientWorldMixin",
+    "sound.SoundSystemMixin",
+    "tick.ClientWorldMixin",
+    "tick.MinecraftClientMixin",
+    "tick.WorldMixin"
   ],
   "injectors": {
     "defaultRequire": 1
   },
   "mixins": [
-    "StatusEffectUtilMixin"
+    "misc.StatusEffectUtilMixin"
   ]
 }
