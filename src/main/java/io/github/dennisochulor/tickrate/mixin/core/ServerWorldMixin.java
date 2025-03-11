@@ -1,4 +1,4 @@
-package io.github.dennisochulor.tickrate.mixin;
+package io.github.dennisochulor.tickrate.mixin.core;
 
 import com.llamalad7.mixinextras.sugar.Local;
 import com.llamalad7.mixinextras.sugar.ref.LocalBooleanRef;

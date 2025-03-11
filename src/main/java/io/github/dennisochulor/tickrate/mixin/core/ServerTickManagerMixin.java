@@ -1,4 +1,4 @@
-package io.github.dennisochulor.tickrate.mixin;
+package io.github.dennisochulor.tickrate.mixin.core;
 
 import io.github.dennisochulor.tickrate.TickRateS2CUpdatePayload;
 import io.github.dennisochulor.tickrate.injected_interface.TickRateTickManager;
