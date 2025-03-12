@@ -11,7 +11,6 @@ import net.minecraft.sound.SoundEvent;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -33,7 +32,7 @@ public class ClientWorldMixin {
             case MASTER,MUSIC,RECORDS,VOICE,NEUTRAL,HOSTILE -> pitch;
             case PLAYERS -> pitch * (TickRateClientManager.getEntityState(client.player).rate() / 20.0F);
             case WEATHER -> pitch * (TickRateClientManager.getServerState().rate() / 20.0F);
-            case BLOCKS, AMBIENT -> pitch * (TickRateClientManager.getChunkState((World)(Object)this, ChunkPos.toLong(new BlockPos(MathHelper.floor(x), MathHelper.floor(y), MathHelper.floor(z)))).rate() / 20.0F);
+            case BLOCKS, AMBIENT -> pitch * (TickRateClientManager.getChunkState(ChunkPos.toLong(new BlockPos(MathHelper.floor(x), MathHelper.floor(y), MathHelper.floor(z)))).rate() / 20.0F);
         };
     }
 
@@ -48,7 +47,7 @@ public class ClientWorldMixin {
             case MASTER,MUSIC,RECORDS,VOICE,NEUTRAL,HOSTILE -> pitch;
             case PLAYERS -> pitch * (TickRateClientManager.getEntityState(client.player).rate() / 20.0F);
             case WEATHER -> pitch * (TickRateClientManager.getServerState().rate() / 20.0F);
-            case BLOCKS, AMBIENT -> pitch * (TickRateClientManager.getChunkState((World)(Object)this, ChunkPos.toLong(new BlockPos(MathHelper.floor(x), MathHelper.floor(y), MathHelper.floor(z)))).rate() / 20.0F);
+            case BLOCKS, AMBIENT -> pitch * (TickRateClientManager.getChunkState(ChunkPos.toLong(new BlockPos(MathHelper.floor(x), MathHelper.floor(y), MathHelper.floor(z)))).rate() / 20.0F);
         };
     }
 

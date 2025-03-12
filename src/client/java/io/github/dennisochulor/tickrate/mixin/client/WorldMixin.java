@@ -35,7 +35,7 @@ public abstract class WorldMixin {
     protected void tickBlockEntities(BlockEntityTickInvoker instance) {
         if(isClient() && TickRateClientManager.serverHasMod()) {
             RenderTickCounter renderTickCounter = MinecraftClient.getInstance().getRenderTickCounter();
-            if(renderTickCounter.tickRate$getMovingI() < TickRateClientManager.getChunkTickDelta((World)(Object)this, ChunkPos.toLong(instance.getPos())).i()) {
+            if(renderTickCounter.tickRate$getMovingI() < TickRateClientManager.getChunkTickDelta(ChunkPos.toLong(instance.getPos())).i()) {
                 instance.tick();
             }
         }

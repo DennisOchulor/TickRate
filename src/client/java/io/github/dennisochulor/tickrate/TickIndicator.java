@@ -21,7 +21,7 @@ public class TickIndicator {
     public static void tick() {
         if(!TickIndicator.isEnabled() || !TickRateClientManager.serverHasMod()) return;
         MinecraftClient client = MinecraftClient.getInstance();
-        TickState chunkState = TickRateClientManager.getChunkState(client.player.clientWorld, client.player.getChunkPos().toLong());
+        TickState chunkState = TickRateClientManager.getChunkState(client.player.getChunkPos().toLong());
         int chunkRate = (int) chunkState.rate();
         TickState entityState = client.targetedEntity!=null ? TickRateClientManager.getEntityState(client.targetedEntity) : null;
         int entityRate = (int) (entityState!=null ? entityState.rate() : 0);

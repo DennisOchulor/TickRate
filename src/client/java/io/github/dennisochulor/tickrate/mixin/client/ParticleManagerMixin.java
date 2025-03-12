@@ -11,20 +11,17 @@ import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.ChunkPos;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
 @Mixin(ParticleManager.class)
 public class ParticleManagerMixin {
 
-    @Shadow protected ClientWorld world;
-
     @Redirect(method = "tickParticle", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/particle/Particle;tick()V"))
     private void tickParticle(Particle particle) {
         if(TickRateClientManager.serverHasMod()) {
             RenderTickCounter renderTickCounter = MinecraftClient.getInstance().getRenderTickCounter();
-            if(renderTickCounter.tickRate$getMovingI() < TickRateClientManager.getChunkTickDelta(world, ChunkPos.toLong(particle.tickRate$getBlockPos())).i()) {
+            if(renderTickCounter.tickRate$getMovingI() < TickRateClientManager.getChunkTickDelta(ChunkPos.toLong(particle.tickRate$getBlockPos())).i()) {
                 particle.tick();
             }
         }
@@ -35,7 +32,7 @@ public class ParticleManagerMixin {
     public void tick$emitters(EmitterParticle particle) {
         if(TickRateClientManager.serverHasMod()) {
             RenderTickCounter renderTickCounter = MinecraftClient.getInstance().getRenderTickCounter();
-            if(renderTickCounter.tickRate$getMovingI() < TickRateClientManager.getChunkTickDelta(world, ChunkPos.toLong(particle.tickRate$getBlockPos())).i()) {
+            if(renderTickCounter.tickRate$getMovingI() < TickRateClientManager.getChunkTickDelta(ChunkPos.toLong(particle.tickRate$getBlockPos())).i()) {
                 particle.tick();
             }
         }

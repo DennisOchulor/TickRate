@@ -4,7 +4,6 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.world.World;
 import net.minecraft.world.tick.TickManager;
 
 import java.util.HashMap;
@@ -16,8 +15,8 @@ public class TickRateClientManager {
 
     private static boolean serverHasMod = false;
     private static TickState serverState;
-    private static final Map<String,TickState> entities = new HashMap<>();
-    private static final Map<String,TickState> chunks = new HashMap<>();
+    private static final Map<Integer,TickState> entities = new HashMap<>(); // only has entities for current client world
+    private static final Map<Long,TickState> chunks = new HashMap<>(); // only has chunks for current client world
 
     public static void update(TickRateS2CUpdatePayload payload) {
         serverState = payload.server();
@@ -61,12 +60,12 @@ public class TickRateClientManager {
         return renderTickCounter.tickRate$getSpecificTickDeltaInfo((int) state.rate());
     }
 
-    public static TickDeltaInfo getChunkTickDelta(World world, long chunkPos) {
+    public static TickDeltaInfo getChunkTickDelta(long chunkPos) {
         RenderTickCounter renderTickCounter = MinecraftClient.getInstance().getRenderTickCounter();
         if(!serverHasMod) return TickDeltaInfo.ofServer(false);
         if(MinecraftClient.getInstance().isPaused()) return TickDeltaInfo.NO_ANIMATE;
 
-        TickState state = getChunkState(world, chunkPos);
+        TickState state = getChunkState(chunkPos);
         if(state.sprinting()) return renderTickCounter.tickRate$getSpecificTickDeltaInfo(20); // animate at max 20 TPS
         if(state.frozen() && !state.stepping()) return TickDeltaInfo.NO_ANIMATE;
         return renderTickCounter.tickRate$getSpecificTickDeltaInfo((int) state.rate());
@@ -74,19 +73,22 @@ public class TickRateClientManager {
 
     public static TickState getEntityState(Entity entity) {
         if(entity.hasVehicle()) return getEntityState(entity.getRootVehicle()); // all passengers will follow TPS of the root entity
-        TickState state = entities.get(entity.getUuidAsString());
-        if(state == null) return getChunkState(entity.getWorld(), entity.getChunkPos().toLong());
+        TickState state = entities.get(entity.getId());
+        if(state == null) return getChunkState(entity.getChunkPos().toLong());
 
         float rate = state.rate();
-        if(rate == -1.0f) rate = getChunkState(entity.getWorld(), entity.getChunkPos().toLong()).rate();
+        if(rate == -1.0f) rate = getChunkState(entity.getChunkPos().toLong()).rate();
         if(serverState.frozen() || serverState.sprinting() || serverState.stepping())
             return new TickState(serverState.stepping() ? serverState.rate() : rate,serverState.frozen(),serverState.stepping(),serverState.sprinting());
         return new TickState(rate,state.frozen(),state.stepping(),state.sprinting());
     }
 
-    public static TickState getChunkState(World world, long chunkPos) {
+    /**
+     * World is assumed to be the {@link MinecraftClient#world}
+     */
+    public static TickState getChunkState(long chunkPos) {
         if(!serverHasMod) return getServerState();
-        TickState state = chunks.get(world.getRegistryKey().getValue() + "-" + chunkPos);
+        TickState state = chunks.get(chunkPos);
         if(state == null) return serverState;
 
         float rate = state.rate();

@@ -8,6 +8,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.ServerTickManager;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -139,7 +140,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     }
 
     public void tickRate$sendUpdatePacket() {
-        TickState server = tickRate$getServerTickState();
+        TickState server1 = tickRate$getServerTickState();
         Map<String,TickState> entities1 = new HashMap<>();
         Map<String,TickState> chunks1 = new HashMap<>();
         this.entities.keySet().forEach(key -> entities1.put(key,getEntityTickState(key)));
@@ -152,8 +153,23 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
             if(key.contains(":")) chunks1.putIfAbsent(key, getChunkTickState(key)); // only chunk keys have : in them
             else entities1.putIfAbsent(key, getEntityTickState(key));
         });
-        TickRateS2CUpdatePayload payload = new TickRateS2CUpdatePayload(server,entities1,chunks1);
-        playersWithMod.forEach(player -> ServerPlayNetworking.send(player, payload));
+
+        Map<RegistryKey<World>,TickRateS2CUpdatePayload> worldPayloads = new HashMap<>();
+        server.getWorlds().forEach(serverWorld -> {
+            Map<Integer,TickState> entities2 = new HashMap<>();
+            Map<Long,TickState> chunks2 = new HashMap<>();
+            String worldRegistryId = serverWorld.getRegistryKey().getValue().toString();
+            entities1.forEach((uuid,state) -> {
+                Entity e = serverWorld.getEntity(UUID.fromString(uuid));
+                if(e != null) entities2.put(e.getId(), state);
+            });
+            chunks1.forEach((key,state) -> {
+                String[] arr = key.split("-", 2); // longChunkPos could be -ve itself
+                if(arr[0].equals(worldRegistryId)) chunks2.put(Long.parseLong(arr[1]),state);
+            });
+            worldPayloads.put(serverWorld.getRegistryKey(), new TickRateS2CUpdatePayload(server1, entities2, chunks2));
+        });
+        playersWithMod.forEach(player -> ServerPlayNetworking.send(player, worldPayloads.get(player.getWorld().getRegistryKey())));
     }
 
     public boolean tickRate$shouldTickEntity(Entity entity) {
