@@ -1,4 +1,4 @@
-package io.github.dennisochulor.tickrate.mixin.client;
+package io.github.dennisochulor.tickrate.mixin.client.misc;
 
 import io.github.dennisochulor.tickrate.injected_interface.TickRateParticle;
 import net.minecraft.client.particle.Particle;

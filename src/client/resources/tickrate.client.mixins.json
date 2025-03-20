@@ -3,8 +3,8 @@
   "package": "io.github.dennisochulor.tickrate.mixin.client",
   "compatibilityLevel": "JAVA_21",
   "client": [
-    "ParticleManagerMixin",
-    "ParticleMixin",
+    "misc.ParticleManagerMixin",
+    "misc.ParticleMixin",
     "misc.EnchantmentScreenMixin",
     "render.BlockEntityRenderDispatcherMixin",
     "render.EntityRenderDispatcherMixin",
