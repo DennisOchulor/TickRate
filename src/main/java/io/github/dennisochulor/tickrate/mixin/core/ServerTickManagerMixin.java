@@ -180,7 +180,6 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
             if(entity instanceof ServerPlayerEntity) return true;
             return isStepping();
         }
-        //todo playersWithoutMod thingy
 
         if(sprinting.computeIfPresent(key, (k,v) -> {
             if(v == 0) return null;
@@ -530,9 +529,5 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         boolean sprinting = this.sprinting.containsKey(key);
         return new TickState(rate,frozen,stepping,sprinting);
     }
-
-    // todo getEntity/ChunkTickStateDeep?
-    // todo change getEntity/ChunkRate to wrap the above
-    // todo server sprint special case for sound
 
 }
