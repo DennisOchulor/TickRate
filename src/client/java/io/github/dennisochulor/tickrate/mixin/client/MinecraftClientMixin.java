@@ -1,4 +1,4 @@
-package io.github.dennisochulor.tickrate.mixin.client;
+package io.github.dennisochulor.tickrate.mixin.client.tick;
 
 import io.github.dennisochulor.tickrate.TickIndicator;
 import io.github.dennisochulor.tickrate.TickRateClientManager;
@@ -6,6 +6,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.option.GameOptions;
 import net.minecraft.client.particle.ParticleManager;
+import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.client.texture.TextureManager;
@@ -35,6 +36,7 @@ public abstract class MinecraftClientMixin {
 	@Shadow @Final private TextureManager textureManager;
 	@Shadow private volatile boolean paused;
 	@Shadow @Final public WorldRenderer worldRenderer;
+	@Shadow @Final public GameRenderer gameRenderer;
 
 	@Redirect(method = "getTargetMillisPerTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/tick/TickManager;getMillisPerTick()F"))
 	private float getMillisPerTick(TickManager instance) {
@@ -59,6 +61,7 @@ public abstract class MinecraftClientMixin {
 
 			if(!this.paused && i < renderTickCounter.tickRate$getI()) { // tick according to server, not the player
 				this.world.getTickManager().step();
+				if(this.world.getTickManager().shouldTick()) this.worldRenderer.addWeatherParticlesAndSound(this.gameRenderer.getCamera());
 				this.world.tick(() -> true);
 				this.worldRenderer.tick();
 			}

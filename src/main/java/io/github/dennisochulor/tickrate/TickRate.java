@@ -21,6 +21,9 @@ public class TickRate implements ModInitializer {
 
 	public static final String MOD_ID = "tickrate";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+	public static final float MAX_SOUND_PITCH = 4.0F;
+	public static final float MIN_SOUND_PITCH = 0.25F;
+
 
 	@Override
 	public void onInitialize() {

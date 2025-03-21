@@ -1,6 +1,9 @@
 package io.github.dennisochulor.tickrate.mixin.sound;
 
+import io.github.dennisochulor.tickrate.TickRate;
+import io.github.dennisochulor.tickrate.TickState;
 import net.minecraft.entity.Entity;
+import net.minecraft.server.ServerTickManager;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -17,7 +20,10 @@ public class EntityMixin {
         if(world.isClient()) return pitch;
 
         Entity entity = (Entity) (Object) this;
-        return pitch * (entity.getServer().getTickManager().tickRate$getEntityRate(entity) / 20.0F);
+        ServerTickManager tickManager = entity.getServer().getTickManager();
+        TickState state = tickManager.tickRate$getEntityTickStateDeep(entity);
+        if(state.sprinting()) return TickRate.MAX_SOUND_PITCH;
+        else return pitch * (state.rate() / 20.0F);
     }
 
 }
