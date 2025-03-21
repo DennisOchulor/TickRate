@@ -1,6 +1,7 @@
 package io.github.dennisochulor.tickrate.mixin.client;
 
 import io.github.dennisochulor.tickrate.TickDeltaInfo;
+import io.github.dennisochulor.tickrate.TickRateClientManager;
 import io.github.dennisochulor.tickrate.injected_interface.TickRateRenderTickCounter;
 import net.minecraft.client.render.RenderTickCounter;
 import org.spongepowered.asm.mixin.Final;
@@ -46,6 +47,7 @@ public class RenderTickCounterDynamicMixin implements TickRateRenderTickCounter 
     @Inject(method = "beginRenderTick(J)I", at = @At("TAIL"), locals = LocalCapture.CAPTURE_FAILHARD)
     private void beginRenderTick(long timeMillis, CallbackInfoReturnable<Integer> cir, int i) {
         this.i = i;
+        TickRateClientManager.clearCache();
     }
 
     @Unique

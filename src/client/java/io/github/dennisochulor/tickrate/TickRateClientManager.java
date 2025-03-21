@@ -17,6 +17,8 @@ public class TickRateClientManager {
     private static TickState serverState;
     private static final Map<Integer,TickState> entities = new HashMap<>(); // only has entities for current client world
     private static final Map<Long,TickState> chunks = new HashMap<>(); // only has chunks for current client world
+    private static final Map<Integer,TickDeltaInfo> entityCache = new HashMap<>();
+    private static final Map<Long,TickDeltaInfo> chunkCache = new HashMap<>();
 
     public static void update(TickRateS2CUpdatePayload payload) {
         serverState = payload.server();
@@ -24,6 +26,12 @@ public class TickRateClientManager {
         chunks.clear();
         entities.putAll(payload.entities());
         chunks.putAll(payload.chunks());
+    }
+
+    // called in RenderTickCounterDynamicMixin
+    public static void clearCache() {
+        entityCache.clear();
+        chunkCache.clear();
     }
 
     public static void setServerHasMod(boolean serverHasMod) {
@@ -44,31 +52,45 @@ public class TickRateClientManager {
     }
 
     public static TickDeltaInfo getEntityTickDelta(Entity entity) {
-        RenderTickCounter renderTickCounter = MinecraftClient.getInstance().getRenderTickCounter();
-        if(!serverHasMod) return TickDeltaInfo.ofServer(false);
-        if(MinecraftClient.getInstance().isPaused()) return TickDeltaInfo.NO_ANIMATE;
-        if(entity instanceof PlayerEntity && serverState.frozen()) return TickDeltaInfo.ofServer(true); // tick freeze doesn't affect players
-        if(entity.hasVehicle()) return getEntityTickDelta(entity.getRootVehicle());
+        TickDeltaInfo info = entityCache.get(entity.getId());
+        if(info != null) return info;
 
-        // client's own player OR entities where client player is a passenger can go above 20TPS limit
-        boolean cappedAt20TPS = !(entity==MinecraftClient.getInstance().player) && !entity.hasPassenger(MinecraftClient.getInstance().player);
-        TickState state = getEntityState(entity); // this also handles passenger entities
-        if(state.sprinting()) // animate at max 20 TPS but for client player we don't know the TPS, so just say 100 :P
-            return cappedAt20TPS ? renderTickCounter.tickRate$getSpecificTickDeltaInfo(20) : renderTickCounter.tickRate$getClientPlayerTickDeltaInfo(100);
-        if(state.frozen() && !state.stepping()) return TickDeltaInfo.NO_ANIMATE;
-        if(!cappedAt20TPS) return renderTickCounter.tickRate$getClientPlayerTickDeltaInfo((int) state.rate());
-        return renderTickCounter.tickRate$getSpecificTickDeltaInfo((int) state.rate());
+        RenderTickCounter renderTickCounter = MinecraftClient.getInstance().getRenderTickCounter();
+        if(!serverHasMod) info = TickDeltaInfo.ofServer(false);
+        else if(MinecraftClient.getInstance().isPaused()) info = TickDeltaInfo.NO_ANIMATE;
+        else if(entity instanceof PlayerEntity && serverState.frozen()) info = TickDeltaInfo.ofServer(true); // tick freeze doesn't affect players
+        else if(entity.hasVehicle()) info = getEntityTickDelta(entity.getRootVehicle());
+        else {
+            // client's own player OR entities where client player is a passenger can go above 20TPS limit
+            boolean cappedAt20TPS = !(entity==MinecraftClient.getInstance().player) && !entity.hasPassenger(MinecraftClient.getInstance().player);
+            TickState state = getEntityState(entity); // this also handles passenger entities
+            if(state.sprinting()) // animate at max 20 TPS but for client player we don't know the TPS, so just say 100 :P
+                info = cappedAt20TPS ? renderTickCounter.tickRate$getSpecificTickDeltaInfo(20) : renderTickCounter.tickRate$getClientPlayerTickDeltaInfo(100);
+            else if(state.frozen() && !state.stepping()) info = TickDeltaInfo.NO_ANIMATE;
+            else if(!cappedAt20TPS) info = renderTickCounter.tickRate$getClientPlayerTickDeltaInfo((int) state.rate());
+            else info = renderTickCounter.tickRate$getSpecificTickDeltaInfo((int) state.rate());
+        }
+
+        entityCache.put(entity.getId(), info);
+        return info;
     }
 
     public static TickDeltaInfo getChunkTickDelta(long chunkPos) {
-        RenderTickCounter renderTickCounter = MinecraftClient.getInstance().getRenderTickCounter();
-        if(!serverHasMod) return TickDeltaInfo.ofServer(false);
-        if(MinecraftClient.getInstance().isPaused()) return TickDeltaInfo.NO_ANIMATE;
+        TickDeltaInfo info = chunkCache.get(chunkPos);
+        if(info != null) return info;
 
-        TickState state = getChunkState(chunkPos);
-        if(state.sprinting()) return renderTickCounter.tickRate$getSpecificTickDeltaInfo(20); // animate at max 20 TPS
-        if(state.frozen() && !state.stepping()) return TickDeltaInfo.NO_ANIMATE;
-        return renderTickCounter.tickRate$getSpecificTickDeltaInfo((int) state.rate());
+        RenderTickCounter renderTickCounter = MinecraftClient.getInstance().getRenderTickCounter();
+        if(!serverHasMod) info = TickDeltaInfo.ofServer(false);
+        else if(MinecraftClient.getInstance().isPaused()) info = TickDeltaInfo.NO_ANIMATE;
+        else {
+            TickState state = getChunkState(chunkPos);
+            if(state.sprinting()) info = renderTickCounter.tickRate$getSpecificTickDeltaInfo(20); // animate at max 20 TPS
+            else if(state.frozen() && !state.stepping()) info = TickDeltaInfo.NO_ANIMATE;
+            else info = renderTickCounter.tickRate$getSpecificTickDeltaInfo((int) state.rate());
+        }
+
+        chunkCache.put(chunkPos, info);
+        return info;
     }
 
     public static TickState getEntityState(Entity entity) {
