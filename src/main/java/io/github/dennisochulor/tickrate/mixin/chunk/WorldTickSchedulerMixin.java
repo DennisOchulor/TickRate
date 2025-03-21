@@ -45,7 +45,7 @@ public class WorldTickSchedulerMixin<T> implements TickRateWorldTickScheduler {
             ChunkTickScheduler<T> chunkTickScheduler = chunkTickSchedulers.get(l);
             ServerTickManager tickManager = (ServerTickManager) world.getTickManager();
             chunkTickScheduler.tickRate$setServerTime(time);
-            TickState tickState = tickManager.tickRate$getChunkTickState(world,l);
+            TickState tickState = tickManager.tickRate$getChunkTickStateShallow(world,l);
             if(tickState.rate() == -1.0f && !tickState.frozen() && !tickState.sprinting()) {
                 chunkTickScheduler.tickRate$toggleMode(true);
             }

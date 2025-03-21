@@ -9,7 +9,7 @@ import net.minecraft.world.World;
 import java.util.Collection;
 
 /**
- * API v0 for TickRate v0.3.0 <p>
+ * API v1 for TickRate v0.4.0 <p>
  * This class represents the sole entrypoint for TickRate's API. This API should only be used on the logical server. <p>
  *
  * @see TickRateEvents
@@ -69,6 +69,7 @@ public interface TickRateAPI {
      * If the chunk it is in also has no specific tick rate, the server's tick rate will be returned. <p>
      *
      * If the entity is a passenger, the tick rate of its {@link Entity#getRootVehicle() root vehicle} will be returned.
+     * If the server is stepping, the server's tick rate is returned.
      *
      * @throws IllegalArgumentException if {@link Entity#isRemoved()} is true.
      */
@@ -163,6 +164,8 @@ public interface TickRateAPI {
     /**
      * Returns the tick rate of the chunk. <p>
      * If the chunk has no specific tick rate, the server's tick rate will be returned.
+     * <p>
+     * If the server is stepping, the server's tick rate is returned.
      *
      * @throws IllegalArgumentException if the chunk is {@link ChunkLevelType#INACCESSIBLE INACCESSIBLE} (not loaded).
      */

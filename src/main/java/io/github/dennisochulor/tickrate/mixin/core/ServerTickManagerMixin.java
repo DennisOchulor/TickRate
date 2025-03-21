@@ -355,6 +355,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     }
 
     public float tickRate$getEntityRate(Entity entity) {
+        if(isStepping()) return nominalTickRate; // server step override
         if(entity.hasVehicle()) return tickRate$getEntityRate(entity.getRootVehicle()); //passengers follow tick rate of root vehicle
         Float rate = entities.get(entity.getUuidAsString());
         if(rate != null) return rate;
@@ -392,9 +393,20 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         return true;
     }
 
-    public TickState tickRate$getEntityTickState(Entity entity) {
-        String key = entity.getUuidAsString();
-        return getEntityTickState(key);
+    public TickState tickRate$getEntityTickStateShallow(Entity entity) {
+        return getEntityTickState(entity.getUuidAsString());
+    }
+
+    public TickState tickRate$getEntityTickStateDeep(Entity entity) {
+        if(entity.hasVehicle()) return tickRate$getEntityTickStateDeep(entity.getRootVehicle()); // all passengers will follow TPS of the root entity
+        TickState state = tickRate$getEntityTickStateShallow(entity);
+        float rate = state.rate();
+        TickState serverState = tickRate$getServerTickState();
+
+        if(rate == -1.0f) rate = tickRate$getChunkTickStateDeep(entity.getWorld(), entity.getChunkPos().toLong()).rate();
+        if(serverState.frozen() || serverState.sprinting() || serverState.stepping())
+            return new TickState(serverState.stepping() ? serverState.rate() : rate,serverState.frozen(),serverState.stepping(),serverState.sprinting());
+        return new TickState(rate,state.frozen(),state.stepping(),state.sprinting());
     }
 
     public void tickRate$setChunkRate(float rate, World world, Collection<ChunkPos> chunks) {
@@ -411,6 +423,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     }
 
     public float tickRate$getChunkRate(World world, long chunkPos) {
+        if(isStepping()) return nominalTickRate; // server step override
         String key = world.getRegistryKey().getValue() + "-" + chunkPos;
         Float rate = chunks.get(key);
         if(rate != null) return rate;
@@ -450,9 +463,19 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         return true;
     }
 
-    public TickState tickRate$getChunkTickState(World world, long chunkPos) {
-        String key = world.getRegistryKey().getValue() + "-" + chunkPos;
-        return getChunkTickState(key);
+    public TickState tickRate$getChunkTickStateShallow(World world, long chunkPos) {
+        return getChunkTickState(world.getRegistryKey().getValue() + "-" + chunkPos);
+    }
+
+    public TickState tickRate$getChunkTickStateDeep(World world, long chunkPos) {
+        TickState state = tickRate$getChunkTickStateShallow(world, chunkPos);
+        float rate = state.rate();
+        TickState serverState = tickRate$getServerTickState();
+
+        if(state.rate() == -1.0f) rate = serverState.rate();
+        if(serverState.frozen() || serverState.sprinting() || serverState.stepping())
+            return new TickState(serverState.stepping() ? serverState.rate() : rate,serverState.frozen(),serverState.stepping(),serverState.sprinting());
+        return new TickState(rate,state.frozen(),state.stepping(),state.sprinting());
     }
 
 
@@ -508,5 +531,8 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         return new TickState(rate,frozen,stepping,sprinting);
     }
 
+    // todo getEntity/ChunkTickStateDeep?
+    // todo change getEntity/ChunkRate to wrap the above
+    // todo server sprint special case for sound
 
 }

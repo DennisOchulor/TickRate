@@ -40,8 +40,10 @@ public interface TickRateTickManager {
     default boolean tickRate$stepChunk(int steps, World world, Collection<ChunkPos> chunks) {return false;}
     default boolean tickRate$sprintChunk(int ticks, World world, Collection<ChunkPos> chunks) {return false;}
 
-    default TickState tickRate$getChunkTickState(World world, long chunkPos) {return null;}
-    default TickState tickRate$getEntityTickState(Entity entity) {return null;}
+    default TickState tickRate$getChunkTickStateShallow(World world, long chunkPos) {return null;}
+    default TickState tickRate$getEntityTickStateShallow(Entity entity) {return null;}
+    default TickState tickRate$getChunkTickStateDeep(World world, long chunkPos) {return null;}
+    default TickState tickRate$getEntityTickStateDeep(Entity entity) {return null;}
     default TickState tickRate$getServerTickState() {return null;}
 
 }
