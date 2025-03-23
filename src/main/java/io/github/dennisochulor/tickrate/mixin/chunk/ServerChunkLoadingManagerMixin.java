@@ -9,7 +9,6 @@ import net.minecraft.server.world.ChunkLevelType;
 import net.minecraft.server.world.ServerChunkLoadingManager;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.ChunkPos;
-import net.minecraft.world.chunk.WorldChunk;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -19,8 +18,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
-import java.util.List;
 
 @Mixin(ServerChunkLoadingManager.class)
 public class ServerChunkLoadingManagerMixin {
@@ -58,15 +55,6 @@ public class ServerChunkLoadingManagerMixin {
             if(this.bl || tickManager.tickRate$shouldTickEntity(entity)) entry.tick();
         }
         else entry.tick();
-    }
-
-    @Redirect(method = "collectSpawningChunks", at = @At(value = "INVOKE", target = "Ljava/util/List;add(Ljava/lang/Object;)Z"))
-    private <E> boolean collectSpawningChunks(List<E> list, E e) {
-        ServerTickManager tickManager = (ServerTickManager) world.getTickManager();
-        WorldChunk chunk = (WorldChunk) e;
-        if(tickManager.tickRate$shouldTickChunk(world, chunk.getPos().toLong()))
-            return list.add(e);
-        else return false;
     }
 
 }
