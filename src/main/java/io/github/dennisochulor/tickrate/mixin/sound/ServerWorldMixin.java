@@ -29,15 +29,15 @@ public class ServerWorldMixin {
     /**
      * Entity pitch change is handled by EntityMixin already
      */
-    @ModifyVariable(method = "playSound(Lnet/minecraft/entity/player/PlayerEntity;DDDLnet/minecraft/registry/entry/RegistryEntry;Lnet/minecraft/sound/SoundCategory;FFJ)V", at = @At("HEAD"), argsOnly = true, ordinal = 1)
-    public float playSound(float pitch, @Local(argsOnly = true) PlayerEntity player, @Local(argsOnly = true, ordinal = 0) double x, @Local(argsOnly = true, ordinal = 1) double y, @Local(argsOnly = true, ordinal = 2) double z, @Local(argsOnly = true) SoundCategory category, @Local(argsOnly = true) RegistryEntry<SoundEvent> event) {
+    @ModifyVariable(method = "playSound", at = @At("HEAD"), argsOnly = true, ordinal = 1)
+    public float playSound(float pitch, @Local(argsOnly = true) Entity entity, @Local(argsOnly = true, ordinal = 0) double x, @Local(argsOnly = true, ordinal = 1) double y, @Local(argsOnly = true, ordinal = 2) double z, @Local(argsOnly = true) SoundCategory category, @Local(argsOnly = true) RegistryEntry<SoundEvent> event) {
         ServerTickManager tickManager = server.getTickManager();
         return switch(category) {
             case MASTER,MUSIC,RECORDS,VOICE,NEUTRAL,HOSTILE -> pitch;
             case PLAYERS -> {
                 TickState state;
-                if(player != null)
-                    state = tickManager.tickRate$getEntityTickStateDeep(player);
+                if(entity != null) // possibly handles player sounds
+                    state = tickManager.tickRate$getEntityTickStateDeep(entity);
                 else
                     state = tickManager.tickRate$getChunkTickStateDeep((World) (Object) this, ChunkPos.toLong(new BlockPos(MathHelper.floor(x), MathHelper.floor(y), MathHelper.floor(z))));
                 if(state.sprinting()) yield TickRate.MAX_SOUND_PITCH;
@@ -57,7 +57,7 @@ public class ServerWorldMixin {
     }
 
     @ModifyVariable(method = "playSoundFromEntity", at = @At("HEAD"), argsOnly = true, ordinal = 1)
-    public float playSoundFromEntity(float pitch, @Local(argsOnly = true) Entity entity) { // never called apparently
+    public float playSoundFromEntity(float pitch, @Local(argsOnly = true, ordinal = 1) Entity entity) { // never called apparently
         TickState state = server.getTickManager().tickRate$getEntityTickStateDeep(entity);
         if(state.sprinting()) return TickRate.MAX_SOUND_PITCH;
         else return pitch * (state.rate() / 20.0F);

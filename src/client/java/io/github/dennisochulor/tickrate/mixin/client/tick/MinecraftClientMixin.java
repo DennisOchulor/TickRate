@@ -48,7 +48,7 @@ public abstract class MinecraftClientMixin {
 	private void render(boolean tick, CallbackInfo ci) {
 		if(!TickRateClientManager.serverHasMod()) return;
 		RenderTickCounter renderTickCounter = getRenderTickCounter();
-		int playerChunkI = TickRateClientManager.getChunkTickDelta(this.player.getChunkPos().toLong()).i();
+		int playerChunkI = TickRateClientManager.getChunkTickProgress(this.player.getChunkPos().toLong()).i();
 		for(int i=0; i<10; i++) { // these things need to tick all 10 times
 			renderTickCounter.tickRate$setMovingI(i);
 			this.world.tickEntities();
@@ -76,7 +76,7 @@ public abstract class MinecraftClientMixin {
 	@ModifyVariable(method = "render", at = @At(value = "STORE"), ordinal = 0)
 	private int render(int i) { // make the clientTick follow the player's tick rate (which may differ from the server)
 		if(!TickRateClientManager.serverHasMod()) return i;
-		return TickRateClientManager.getEntityTickDelta(this.player).i();
+		return TickRateClientManager.getEntityTickProgress(this.player).i();
 	}
 
 	@Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/world/ClientWorld;tickEntities()V"))

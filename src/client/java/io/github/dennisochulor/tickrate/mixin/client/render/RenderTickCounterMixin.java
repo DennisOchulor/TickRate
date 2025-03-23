@@ -1,6 +1,6 @@
 package io.github.dennisochulor.tickrate.mixin.client.render;
 
-import io.github.dennisochulor.tickrate.TickDeltaInfo;
+import io.github.dennisochulor.tickrate.TickProgressInfo;
 import io.github.dennisochulor.tickrate.injected_interface.TickRateRenderTickCounter;
 import net.minecraft.client.render.RenderTickCounter;
 import org.spongepowered.asm.mixin.Mixin;
@@ -10,9 +10,9 @@ import org.spongepowered.asm.mixin.Unique;
 public interface RenderTickCounterMixin extends TickRateRenderTickCounter {
 
     @Unique
-    default TickDeltaInfo tickRate$getSpecificTickDeltaInfo(int tps) {return null;}
+    default TickProgressInfo tickRate$getSpecificTickProgressInfo(int tps) {return null;}
     @Unique
-    default TickDeltaInfo tickRate$getClientPlayerTickDeltaInfo(int tps) {return null;}
+    default TickProgressInfo tickRate$getClientPlayerTickProgressInfo(int tps) {return null;}
     @Unique
     default void tickRate$setMovingI(int newI) {}
     @Unique

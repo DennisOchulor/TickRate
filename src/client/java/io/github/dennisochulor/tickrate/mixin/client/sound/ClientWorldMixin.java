@@ -28,7 +28,7 @@ public class ClientWorldMixin {
     /**
      * Entity pitch change is handled by EntityMixin (common side) already
      */
-    @ModifyArg(method = "playSound(Lnet/minecraft/entity/player/PlayerEntity;DDDLnet/minecraft/registry/entry/RegistryEntry;Lnet/minecraft/sound/SoundCategory;FFJ)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/world/ClientWorld;playSound(DDDLnet/minecraft/sound/SoundEvent;Lnet/minecraft/sound/SoundCategory;FFZJ)V"), index = 6)
+    @ModifyArg(method = "playSound(Lnet/minecraft/entity/Entity;DDDLnet/minecraft/registry/entry/RegistryEntry;Lnet/minecraft/sound/SoundCategory;FFJ)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/world/ClientWorld;playSound(DDDLnet/minecraft/sound/SoundEvent;Lnet/minecraft/sound/SoundCategory;FFZJ)V"), index = 6)
     public float playSoundWithPlayer(float pitch, @Local(argsOnly = true, ordinal = 0) double x, @Local(argsOnly = true, ordinal = 1) double y, @Local(argsOnly = true, ordinal = 2) double z, @Local(argsOnly = true) SoundCategory category, @Local(argsOnly = true) RegistryEntry<SoundEvent> event) {
         return switch(category) {
             case MASTER,MUSIC,RECORDS,VOICE,NEUTRAL,HOSTILE -> pitch;
@@ -50,8 +50,8 @@ public class ClientWorldMixin {
         };
     }
 
-    @ModifyVariable(method = "playSoundFromEntity*", at = @At("HEAD"), argsOnly = true, ordinal = 1)
-    public float playSoundFromEntity(float pitch, @Local(argsOnly = true) Entity entity) { // never called apparently
+    @ModifyVariable(method = "playSoundFromEntity", at = @At("HEAD"), argsOnly = true, ordinal = 1)
+    public float playSoundFromEntity(float pitch, @Local(argsOnly = true, ordinal = 1) Entity entity) {
         TickState state = TickRateClientManager.getEntityState(entity);
         if(state.sprinting()) return TickRate.MAX_SOUND_PITCH;
         else return pitch * (state.rate() / 20.0F);

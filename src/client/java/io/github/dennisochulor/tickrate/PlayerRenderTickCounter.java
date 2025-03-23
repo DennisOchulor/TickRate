@@ -7,26 +7,26 @@ import net.minecraft.client.render.RenderTickCounter;
 public class PlayerRenderTickCounter implements RenderTickCounter {
 
     @Override
-    public float getLastFrameDuration() {
+    public float getDynamicDeltaTicks() {
         if(TickRateClientManager.serverHasMod())
-            return TickRateClientManager.getEntityTickDelta(MinecraftClient.getInstance().player).lastFrameDuration();
-        else return MinecraftClient.getInstance().getRenderTickCounter().getLastFrameDuration();
+            return TickRateClientManager.getEntityTickProgress(MinecraftClient.getInstance().player).dynamicDeltaTicks();
+        else return MinecraftClient.getInstance().getRenderTickCounter().getDynamicDeltaTicks();
     }
 
     @Override
-    public float getTickDelta(boolean ignoreFreeze) {
+    public float getTickProgress(boolean ignoreFreeze) {
         if(TickRateClientManager.serverHasMod()) {
             if(MinecraftClient.getInstance().world.getTickManager().isFrozen())
-                return MinecraftClient.getInstance().getRenderTickCounter().getTickDelta(ignoreFreeze);
+                return MinecraftClient.getInstance().getRenderTickCounter().getTickProgress(ignoreFreeze);
             else
-                return TickRateClientManager.getEntityTickDelta(MinecraftClient.getInstance().player).tickDelta();
+                return TickRateClientManager.getEntityTickProgress(MinecraftClient.getInstance().player).tickProgress();
         }
-        else return MinecraftClient.getInstance().getRenderTickCounter().getTickDelta(ignoreFreeze);
+        else return MinecraftClient.getInstance().getRenderTickCounter().getTickProgress(ignoreFreeze);
     }
 
     @Override
-    public float getLastDuration() {
-        return MinecraftClient.getInstance().getRenderTickCounter().getLastDuration();
+    public float getFixedDeltaTicks() {
+        return MinecraftClient.getInstance().getRenderTickCounter().getFixedDeltaTicks();
     }
 
 }

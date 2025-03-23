@@ -1,6 +1,6 @@
 package io.github.dennisochulor.tickrate.mixin.client.render;
 
-import io.github.dennisochulor.tickrate.TickDeltaInfo;
+import io.github.dennisochulor.tickrate.TickProgressInfo;
 import io.github.dennisochulor.tickrate.TickRateClientManager;
 import io.github.dennisochulor.tickrate.injected_interface.TickRateRenderTickCounter;
 import net.minecraft.client.render.RenderTickCounter;
@@ -21,25 +21,25 @@ import java.util.Set;
 @Mixin(RenderTickCounter.Dynamic.class)
 public class RenderTickCounterDynamicMixin implements TickRateRenderTickCounter {
 
-    @Shadow private long prevTimeMillis;
-    @Shadow private float tickDelta;
+    @Shadow private long lastTimeMillis; // formerly prevTickMillis
+    @Shadow private float tickProgress; // formerly tickDelta
     @Shadow @Final private float tickTime;
 
-    @Unique private long prevPrevTickMillis;
-    @Unique private float prevTickDelta;
+    @Unique private long lastLastTimeMillis; // formerly prevPrevTickMillis
+    @Unique private float lastTickProgress; // formerly prevTickDelta
     @Unique private int movingI;
     @Unique private int i;
-    // all things (except client's player) ticking at a certain TPS will tick/animate the exact same client-side, so just map TPS->TickDeltaInfo
-    @Unique private final Map<Integer, TickDeltaInfo> prevTickDeltas = new HashMap<>();
+    // all things (except client's player) ticking at a certain TPS will tick/animate the exact same client-side, so just map TPS->TickProgressInfo
+    @Unique private final Map<Integer, TickProgressInfo> prevTickProgress = new HashMap<>();
     @Unique private final Set<Integer> isUpdated = new HashSet<>();
     // the client's player can go above 20TPS, so it needs special treatment
-    @Unique private TickDeltaInfo clientPlayerTickDeltaInfo = TickDeltaInfo.NO_ANIMATE;
+    @Unique private TickProgressInfo clientPlayerTickProgressInfo = TickProgressInfo.NO_ANIMATE;
     @Unique private boolean clientPlayerUpdated = false;
 
     @Inject(method = "beginRenderTick(J)I", at = @At("HEAD"))
     private void beginRenderTick(long timeMillis, CallbackInfoReturnable<Integer> cir) {
-        prevPrevTickMillis = prevTimeMillis;
-        prevTickDelta = tickDelta;
+        lastLastTimeMillis = lastTimeMillis;
+        lastTickProgress = tickProgress;
         isUpdated.clear();
         clientPlayerUpdated = false;
     }
@@ -51,31 +51,31 @@ public class RenderTickCounterDynamicMixin implements TickRateRenderTickCounter 
     }
 
     @Unique
-    public TickDeltaInfo tickRate$getSpecificTickDeltaInfo(int tps) {
+    public TickProgressInfo tickRate$getSpecificTickProgressInfo(int tps) {
         float millisPerTick = 1000.0f / tps;
-        if(isUpdated.contains(tps)) return prevTickDeltas.get(tps);
-        float lastFrameDuration = (float)(prevTimeMillis - prevPrevTickMillis) / Math.max(millisPerTick, tickTime);
-        float specificTickDelta = prevTickDeltas.getOrDefault(tps,new TickDeltaInfo(prevTickDelta,0,0)).tickDelta() + lastFrameDuration;
-        int i = (int) specificTickDelta;
-        specificTickDelta -= (float) i;
-        TickDeltaInfo info = new TickDeltaInfo(specificTickDelta,i,lastFrameDuration);
+        if(isUpdated.contains(tps)) return prevTickProgress.get(tps);
+        float dynamicDeltaTicks = (float)(lastTimeMillis - lastLastTimeMillis) / Math.max(millisPerTick, tickTime);
+        float specificTickProgress = prevTickProgress.getOrDefault(tps,new TickProgressInfo(lastTickProgress,0,0)).tickProgress() + dynamicDeltaTicks;
+        int i = (int) specificTickProgress;
+        specificTickProgress -= (float) i;
+        TickProgressInfo info = new TickProgressInfo(specificTickProgress,i, dynamicDeltaTicks);
         isUpdated.add(tps);
-        prevTickDeltas.put(tps,info);
+        prevTickProgress.put(tps,info);
         return info;
     }
 
     @Unique
-    public TickDeltaInfo tickRate$getClientPlayerTickDeltaInfo(int tps) {
+    public TickProgressInfo tickRate$getClientPlayerTickProgressInfo(int tps) {
         // the client's player can go above 20TPS, so it needs special treatment
         float millisPerTick = 1000.0f / tps;
-        if(clientPlayerUpdated) return clientPlayerTickDeltaInfo;
-        float lastFrameDuration = (float)(prevTimeMillis - prevPrevTickMillis) / millisPerTick;
-        float specificTickDelta = clientPlayerTickDeltaInfo.tickDelta() + lastFrameDuration;
-        int i = (int) specificTickDelta;
-        specificTickDelta -= (float) i;
-        clientPlayerTickDeltaInfo = new TickDeltaInfo(specificTickDelta,i,lastFrameDuration);
+        if(clientPlayerUpdated) return clientPlayerTickProgressInfo;
+        float dynamicDeltaTicks = (float)(lastTimeMillis - lastLastTimeMillis) / millisPerTick;
+        float specificTickProgress = clientPlayerTickProgressInfo.tickProgress() + dynamicDeltaTicks;
+        int i = (int) specificTickProgress;
+        specificTickProgress -= (float) i;
+        clientPlayerTickProgressInfo = new TickProgressInfo(specificTickProgress,i, dynamicDeltaTicks);
         clientPlayerUpdated = true;
-        return clientPlayerTickDeltaInfo;
+        return clientPlayerTickProgressInfo;
     }
 
     @Override

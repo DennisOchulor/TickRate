@@ -7,6 +7,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.fluid.Fluid;
 import net.minecraft.server.ServerTickManager;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.profiler.Profiler;
 import net.minecraft.world.tick.TickManager;
@@ -64,6 +65,7 @@ public abstract class ServerWorldMixin {
         if(!tickManager1.tickRate$shouldTickEntity(entity)) ci.cancel();
     }
 
+    // handles block entity ticking, among other things
     @Inject(method = "shouldTickBlocksInChunk", at = @At("HEAD"), cancellable = true)
     public void shouldTickBlocksInChunk(long chunkPos, CallbackInfoReturnable<Boolean> cir) {
         ServerWorld world = (ServerWorld) (Object) this;
@@ -71,8 +73,22 @@ public abstract class ServerWorldMixin {
         if(!tickManager.tickRate$shouldTickChunk(world, chunkPos)) cir.setReturnValue(false);
     }
 
-    @Inject(method = "shouldTick(Lnet/minecraft/util/math/ChunkPos;)Z", at = @At("HEAD"), cancellable = true)
-    public void shouldTick(ChunkPos pos, CallbackInfoReturnable<Boolean> cir) {
+    @Inject(method = "shouldTickChunkAt", at = @At("HEAD"), cancellable = true)
+    public void shouldTickChunkAt(ChunkPos pos, CallbackInfoReturnable<Boolean> cir) {
+        ServerWorld world = (ServerWorld) (Object) this;
+        ServerTickManager tickManager = (ServerTickManager) getTickManager();
+        if(!tickManager.tickRate$shouldTickChunk(world, pos.toLong())) cir.setReturnValue(false);
+    }
+
+    @Inject(method = "shouldTickEntityAt", at = @At("HEAD"), cancellable = true)
+    public void shouldTickEntityAt(BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
+        ServerWorld world = (ServerWorld) (Object) this;
+        ServerTickManager tickManager = (ServerTickManager) getTickManager();
+        if(!tickManager.tickRate$shouldTickChunk(world, ChunkPos.toLong(pos))) cir.setReturnValue(false);
+    }
+
+    @Inject(method = "canSpawnEntitiesAt", at = @At("HEAD"), cancellable = true)
+    public void canSpawnEntitiesAt(ChunkPos pos, CallbackInfoReturnable<Boolean> cir) {
         ServerWorld world = (ServerWorld) (Object) this;
         ServerTickManager tickManager = (ServerTickManager) getTickManager();
         if(!tickManager.tickRate$shouldTickChunk(world, pos.toLong())) cir.setReturnValue(false);

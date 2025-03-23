@@ -22,7 +22,7 @@ public class ParticleManagerMixin {
     private void tickParticle(Particle particle) {
         if(TickRateClientManager.serverHasMod()) {
             RenderTickCounter renderTickCounter = MinecraftClient.getInstance().getRenderTickCounter();
-            if(renderTickCounter.tickRate$getMovingI() < TickRateClientManager.getChunkTickDelta(ChunkPos.toLong(particle.tickRate$getBlockPos())).i()) {
+            if(renderTickCounter.tickRate$getMovingI() < TickRateClientManager.getChunkTickProgress(ChunkPos.toLong(particle.tickRate$getBlockPos())).i()) {
                 particle.tick();
             }
         }
@@ -33,7 +33,7 @@ public class ParticleManagerMixin {
     public void tick$emitters(EmitterParticle particle) {
         if(TickRateClientManager.serverHasMod()) {
             RenderTickCounter renderTickCounter = MinecraftClient.getInstance().getRenderTickCounter();
-            if(renderTickCounter.tickRate$getMovingI() < TickRateClientManager.getChunkTickDelta(ChunkPos.toLong(particle.tickRate$getBlockPos())).i()) {
+            if(renderTickCounter.tickRate$getMovingI() < TickRateClientManager.getChunkTickProgress(ChunkPos.toLong(particle.tickRate$getBlockPos())).i()) {
                 particle.tick();
             }
         }
@@ -42,12 +42,12 @@ public class ParticleManagerMixin {
 
     @Redirect(method = "renderParticles(Lnet/minecraft/client/render/Camera;FLnet/minecraft/client/render/VertexConsumerProvider$Immediate;Lnet/minecraft/client/particle/ParticleTextureSheet;Ljava/util/Queue;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/particle/Particle;render(Lnet/minecraft/client/render/VertexConsumer;Lnet/minecraft/client/render/Camera;F)V"))
     private static void renderParticles(Particle particle, VertexConsumer vertexConsumer, Camera camera, float tickDelta) {
-        particle.render(vertexConsumer, camera, TickRateClientManager.getChunkTickDelta(ChunkPos.toLong(particle.tickRate$getBlockPos())).tickDelta());
+        particle.render(vertexConsumer, camera, TickRateClientManager.getChunkTickProgress(ChunkPos.toLong(particle.tickRate$getBlockPos())).tickProgress());
     }
 
     @Redirect(method = "renderCustomParticles", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/particle/Particle;renderCustom(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;Lnet/minecraft/client/render/Camera;F)V"))
     private static void renderParticles(Particle particle, MatrixStack matrices, VertexConsumerProvider vertexConsumers, Camera camera, float tickDelta) {
-        particle.renderCustom(matrices, vertexConsumers, camera, TickRateClientManager.getChunkTickDelta(ChunkPos.toLong(particle.tickRate$getBlockPos())).tickDelta());
+        particle.renderCustom(matrices, vertexConsumers, camera, TickRateClientManager.getChunkTickProgress(ChunkPos.toLong(particle.tickRate$getBlockPos())).tickProgress());
     }
 
 }

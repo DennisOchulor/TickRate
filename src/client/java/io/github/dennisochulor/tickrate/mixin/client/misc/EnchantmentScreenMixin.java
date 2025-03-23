@@ -11,8 +11,8 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 @Mixin(EnchantmentScreen.class)
 public class EnchantmentScreenMixin {
 
-    @Redirect(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/RenderTickCounter;getTickDelta(Z)F"))
+    @Redirect(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/RenderTickCounter;getTickProgress(Z)F"))
     public float render(RenderTickCounter instance, boolean ignoreFreeze) {
-        return TickRateClientManager.getEntityTickDelta(MinecraftClient.getInstance().player).tickDelta();
+        return TickRateClientManager.getEntityTickProgress(MinecraftClient.getInstance().player).tickProgress();
     }
 }

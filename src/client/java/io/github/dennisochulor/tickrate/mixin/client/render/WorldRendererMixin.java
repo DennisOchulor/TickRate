@@ -26,7 +26,7 @@ public class WorldRendererMixin {
 
     @Inject(method = "renderEntity", at = @At("HEAD"))
     private void renderEntity(Entity entity, double cameraX, double cameraY, double cameraZ, float tickDelta, MatrixStack matrices, VertexConsumerProvider vertexConsumers, CallbackInfo ci, @Local(argsOnly = true) LocalFloatRef tickDeltaRef) {
-        tickDeltaRef.set(TickRateClientManager.getEntityTickDelta(entity).tickDelta()); // tickDelta
+        tickDeltaRef.set(TickRateClientManager.getEntityTickProgress(entity).tickProgress()); // tickProgress
     }
 
     @ModifyVariable(method = "render", at = @At("HEAD"), argsOnly = true)
