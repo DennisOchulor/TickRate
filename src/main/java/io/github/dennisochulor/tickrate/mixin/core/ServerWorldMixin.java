@@ -7,8 +7,10 @@ import net.minecraft.entity.Entity;
 import net.minecraft.fluid.Fluid;
 import net.minecraft.server.ServerTickManager;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.profiler.Profiler;
+import net.minecraft.world.chunk.WorldChunk;
 import net.minecraft.world.tick.TickManager;
 import net.minecraft.world.tick.WorldTickScheduler;
 import org.spongepowered.asm.mixin.Final;
@@ -64,6 +66,15 @@ public abstract class ServerWorldMixin {
         if(!tickManager1.tickRate$shouldTickEntity(entity)) ci.cancel();
     }
 
+    // for random ticks
+    @Inject(method = "tickChunk", at = @At("HEAD"), cancellable = true)
+    private void tickChunk(WorldChunk chunk, int randomTickSpeed, CallbackInfo ci) {
+        ServerTickManager tickManager = (ServerTickManager) getTickManager();
+        if(!tickManager.tickRate$shouldTickChunk(chunk.getWorld(), chunk.getPos().toLong()))
+            ci.cancel();
+    }
+
+    // handles block entity ticking, among other things
     @Inject(method = "shouldTickBlocksInChunk", at = @At("HEAD"), cancellable = true)
     public void shouldTickBlocksInChunk(long chunkPos, CallbackInfoReturnable<Boolean> cir) {
         ServerWorld world = (ServerWorld) (Object) this;
