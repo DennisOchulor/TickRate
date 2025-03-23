@@ -14,7 +14,7 @@ public record TickRateS2CUpdatePayload(TickState server, Map<Integer,TickState> 
     public static final Id<TickRateS2CUpdatePayload> ID = new Id<>(Identifier.of(TickRate.MOD_ID,"update"));
     public static final PacketCodec<RegistryByteBuf, TickRateS2CUpdatePayload> CODEC = PacketCodec.tuple(TickState.PACKET_CODEC, TickRateS2CUpdatePayload::server,
         PacketCodecs.map(HashMap::new,PacketCodecs.INTEGER,TickState.PACKET_CODEC), TickRateS2CUpdatePayload::entities,
-        PacketCodecs.map(HashMap::new,PacketCodecs.LONG,TickState.PACKET_CODEC), TickRateS2CUpdatePayload::chunks,
+        PacketCodecs.map(HashMap::new,PacketCodecs.VAR_LONG,TickState.PACKET_CODEC), TickRateS2CUpdatePayload::chunks,
         TickRateS2CUpdatePayload::new);
 
     @Override

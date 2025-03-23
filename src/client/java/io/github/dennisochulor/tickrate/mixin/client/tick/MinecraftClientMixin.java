@@ -61,7 +61,7 @@ public abstract class MinecraftClientMixin {
 
 			if(!this.paused && i < renderTickCounter.tickRate$getI()) { // tick according to server, not the player
 				this.world.getTickManager().step();
-				if(this.world.getTickManager().shouldTick()) this.worldRenderer.addWeatherParticlesAndSound(this.gameRenderer.getCamera());
+				if(this.world.getTickManager().shouldTick()) this.worldRenderer.tickRainSplashing(this.gameRenderer.getCamera());
 				this.world.tick(() -> true);
 				this.worldRenderer.tick();
 			}
