@@ -24,7 +24,7 @@ public class GameRendererMixin {
     }
 
     @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/WorldRenderer;addWeatherParticlesAndSound(Lnet/minecraft/client/render/Camera;)V"))
-    public void tick(WorldRenderer instance, Camera camera) {
+    public void tick$WeatherParticlesAndSound(WorldRenderer instance, Camera camera) {
         if(!TickRateClientManager.serverHasMod()) instance.addWeatherParticlesAndSound(camera);
         // otherwise NO-OP
     }
