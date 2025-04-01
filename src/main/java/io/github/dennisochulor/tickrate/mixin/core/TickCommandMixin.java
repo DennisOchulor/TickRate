@@ -155,10 +155,10 @@ public class TickCommandMixin {
     private static int executeRate(ServerCommandSource source, float rate) {
         int roundRate = Math.round(rate); // can't actually accept decimals
         ServerTickManager tickManager = source.getServer().getTickManager();
-        tickManager.tickRate$setServerRate(roundRate);
+        tickManager.tickRate$setServerRate(rate);
         tickManager.tickRate$sendUpdatePacket();
-        send(source, () -> TickRateEvents.SERVER_RATE.invoker().onServerRate(roundRate));
-        source.sendFeedback(() -> Text.translatable("commands.tick.rate.success", roundRate), true);
+        send(source, () -> TickRateEvents.SERVER_RATE.invoker().onServerRate(rate));
+        source.sendFeedback(() -> Text.translatable("commands.tick.rate.success", rate), true);
         return roundRate;
     }
 
@@ -230,12 +230,12 @@ public class TickCommandMixin {
 
         int roundRate = Math.round(rate); // can't actually accept decimals
         ServerTickManager tickManager = source.getServer().getTickManager();
-        tickManager.tickRate$setChunkRate(roundRate, source.getWorld(), chunks);
+        tickManager.tickRate$setChunkRate(rate, source.getWorld(), chunks);
         tickManager.tickRate$sendUpdatePacket();
 
         send(source, () -> chunks.forEach(chunkPos -> TickRateEvents.CHUNK_RATE.invoker().onChunkRate(source.getWorld(), chunkPos, rate)));
         if(roundRate != 0) {
-            source.sendFeedback(() -> Text.of("Set tick rate of " + chunks.size() + " chunks to " + roundRate + " TPS."), false);
+            source.sendFeedback(() -> Text.of("Set tick rate of " + chunks.size() + " chunks to " + rate + " TPS."), false);
             return roundRate;
         }
         else {
@@ -312,11 +312,11 @@ public class TickCommandMixin {
         if(entityCheck(entities,source)) return 0;
 
         ServerTickManager tickManager = source.getServer().getTickManager();
-        tickManager.tickRate$setEntityRate(roundRate, entities);
+        tickManager.tickRate$setEntityRate(rate, entities);
         tickManager.tickRate$sendUpdatePacket();
         send(source, () -> entities.forEach(entity -> TickRateEvents.ENTITY_RATE.invoker().onEntityRate(entity, rate)));
         if(roundRate != 0) {
-            source.sendFeedback(() -> Text.of("Set tick rate of " + entities.size() + " entities to " + roundRate + " TPS."), false);
+            source.sendFeedback(() -> Text.of("Set tick rate of " + entities.size() + " entities to " + rate + " TPS."), false);
             return roundRate;
         }
         else {
