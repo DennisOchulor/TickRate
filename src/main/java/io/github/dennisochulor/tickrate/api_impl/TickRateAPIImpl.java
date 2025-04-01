@@ -81,7 +81,7 @@ public final class TickRateAPIImpl implements TickRateAPI {
     @Override
     public void rateServer(float rate) {
         if(rate < 1) throw new IllegalArgumentException("rate must be >= 1");
-        int roundRate = Math.round(rate);
+        float roundRate = Math.round(rate*100)/100;
         tickManager.tickRate$setServerRate(roundRate);
         tickManager.tickRate$sendUpdatePacket();
         send(() -> TickRateEvents.SERVER_RATE.invoker().onServerRate(roundRate));
@@ -138,9 +138,9 @@ public final class TickRateAPIImpl implements TickRateAPI {
         entityCheck(entities);
 
         int roundRate = Math.round(rate);
-        tickManager.tickRate$setEntityRate(roundRate, entities);
+        tickManager.tickRate$setEntityRate(rate, entities);
         tickManager.tickRate$sendUpdatePacket();
-        send(() -> entities.forEach(entity -> TickRateEvents.ENTITY_RATE.invoker().onEntityRate(entity, roundRate)));
+        send(() -> entities.forEach(entity -> TickRateEvents.ENTITY_RATE.invoker().onEntityRate(entity, rate)));
     }
 
     @Override
@@ -209,7 +209,7 @@ public final class TickRateAPIImpl implements TickRateAPI {
         if(rate < 1.0f && rate != 0.0f) throw new IllegalArgumentException("rate must be >= 1 or exactly 0");
         chunkCheck(world, chunks);
 
-        int roundRate = Math.round(rate);
+        float roundRate = Math.round(rate*100)/100;
         tickManager.tickRate$setChunkRate(rate, world, chunks);
         tickManager.tickRate$sendUpdatePacket();
         send(() -> chunks.forEach(chunkPos -> TickRateEvents.CHUNK_RATE.invoker().onChunkRate(world, chunkPos, roundRate)));
