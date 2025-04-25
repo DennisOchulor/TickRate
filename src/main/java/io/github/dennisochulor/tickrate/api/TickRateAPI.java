@@ -9,15 +9,15 @@ import net.minecraft.world.World;
 import java.util.Collection;
 
 /**
- * API v1 for TickRate v0.4.0 <p>
- * This class represents the sole entrypoint for TickRate's API. This API should only be used on the logical server. <p>
+ * API v2 for TickRate v0.4.1 <p>
+ * This class represents the sole entrypoint for TickRate's API. This API should only be used on the logical server.
  *
  * @see TickRateEvents
  */
 public interface TickRateAPI {
 
     /**
-     * Obtain the API instance. This method should only be called after the server has been fully initialised. <p>
+     * Obtain the API instance. This method should only be called after the server has been fully initialised (e.g. when the SERVER_STARTED event is fired). <p>
      * In singleplayer, a new API instance is used each time a new save is loaded.
      * @throws IllegalStateException if the server has not been fully intialised yet.
      */
