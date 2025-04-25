@@ -214,10 +214,10 @@ public final class Test {
 
     private static void register() {
         if(!registered) { // only do it once
-            TickRateEvents.SERVER_RATE.register(rate -> LOGGER.info("server rate {}", rate));
-            TickRateEvents.SERVER_FREEZE.register(freeze -> LOGGER.info("server freeze {}", freeze));
-            TickRateEvents.SERVER_STEP.register(stepTicks -> LOGGER.info("server step {}", stepTicks));
-            TickRateEvents.SERVER_SPRINT.register(sprintTicks -> LOGGER.info("server sprint {}", sprintTicks));
+            TickRateEvents.SERVER_RATE.register((server, rate) -> LOGGER.info("server rate {}", rate));
+            TickRateEvents.SERVER_FREEZE.register((server, freeze) -> LOGGER.info("server freeze {}", freeze));
+            TickRateEvents.SERVER_STEP.register((server, stepTicks) -> LOGGER.info("server step {}", stepTicks));
+            TickRateEvents.SERVER_SPRINT.register((server, sprintTicks) -> LOGGER.info("server sprint {}", sprintTicks));
 
             TickRateEvents.ENTITY_RATE.register((entity, rate) -> LOGGER.info("{} rate {}", entity.getUuidAsString(), rate));
             TickRateEvents.ENTITY_FREEZE.register((entity, freeze) -> LOGGER.info("{} freeze {}", entity.getUuidAsString(), freeze));

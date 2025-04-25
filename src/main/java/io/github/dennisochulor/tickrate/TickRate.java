@@ -49,11 +49,12 @@ public class TickRate implements ModInitializer {
 			tickManager.tickRate$sendUpdatePacket();
 		}));
 
-		ServerLifecycleEvents.SERVER_STARTING.register(server -> server.getTickManager().tickRate$serverStarted());
+		ServerLifecycleEvents.SERVER_STARTING.register(server -> {
+			server.getTickManager().tickRate$serverStarted();
+			TickRateAPIImpl.init(server);
+		});
 
-		ServerLifecycleEvents.SERVER_STARTED.register(TickRateAPIImpl::init);
-
-		ServerLifecycleEvents.SERVER_STOPPING.register(server -> TickRateAPIImpl.uninit());
+		ServerLifecycleEvents.SERVER_STOPPED.register(server -> TickRateAPIImpl.uninit());
 
 		ServerLifecycleEvents.AFTER_SAVE.register((server, flush, force) -> { // for autosaves and when server stops
 			server.getTickManager().tickRate$saveData();

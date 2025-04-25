@@ -3,6 +3,7 @@ package io.github.dennisochulor.tickrate.api;
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.EventFactory;
 import net.minecraft.entity.Entity;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 
@@ -12,45 +13,46 @@ import net.minecraft.world.World;
  * These events are fired when the associated <code>/tick</code> command is run and also when the associated
  * API method is called. Registering event handlers for these events is identical to registering event handlers for Fabric events. <p>
  *
- * Unlike {@link TickRateAPI}, event handlers can be registered before the server has fully initialised. <p>
- * It should be noted that these events do not necessarily fire immediately when a modification is made, there may be a delay
- * of a couple ticks. Though usually it will be fired within the same tick.
+ * Unlike {@link TickRateAPI}, event handlers can be registered before the server has fully initialised.<p>
+ *
+ * Note that if any {@link TickRateAPI} methods that trigger events are <i>not</i> called on the server thread, then the event will fire off-thread.
+ * For regular in-game command executions, events are always fired on-thread.
  */
 public interface TickRateEvents {
 
     /**
      * Called when the tick rate of the server has been modified.
      */
-    Event<ServerRate> SERVER_RATE = EventFactory.createArrayBacked(ServerRate.class, callbacks -> rate -> {
+    Event<ServerRate> SERVER_RATE = EventFactory.createArrayBacked(ServerRate.class, callbacks -> (server, rate) -> {
         for (ServerRate callback : callbacks) {
-            callback.onServerRate(rate);
+            callback.onServerRate(server, rate);
         }
     });
 
     /**
      * Called when the server is frozen or unfrozen.
      */
-    Event<ServerFreeze> SERVER_FREEZE = EventFactory.createArrayBacked(ServerFreeze.class, callbacks -> freeze -> {
+    Event<ServerFreeze> SERVER_FREEZE = EventFactory.createArrayBacked(ServerFreeze.class, callbacks -> (server, freeze) -> {
         for (ServerFreeze callback : callbacks) {
-            callback.onServerFreeze(freeze);
+            callback.onServerFreeze(server, freeze);
         }
     });
 
     /**
      * Called when the server starts stepping.
      */
-    Event<ServerStep> SERVER_STEP = EventFactory.createArrayBacked(ServerStep.class, callbacks -> stepTicks -> {
+    Event<ServerStep> SERVER_STEP = EventFactory.createArrayBacked(ServerStep.class, callbacks -> (server, stepTicks) -> {
         for (ServerStep callback : callbacks) {
-            callback.onServerStep(stepTicks);
+            callback.onServerStep(server, stepTicks);
         }
     });
 
     /**
      * Called when the server starts sprinting.
      */
-    Event<ServerSprint> SERVER_SPRINT = EventFactory.createArrayBacked(ServerSprint.class, callbacks -> sprintTicks -> {
+    Event<ServerSprint> SERVER_SPRINT = EventFactory.createArrayBacked(ServerSprint.class, callbacks -> (server, sprintTicks) -> {
         for (ServerSprint callback : callbacks) {
-            callback.onServerSprint(sprintTicks);
+            callback.onServerSprint(server, sprintTicks);
         }
     });
 
@@ -134,22 +136,22 @@ public interface TickRateEvents {
 
     @FunctionalInterface
     interface ServerRate {
-        void onServerRate(float rate);
+        void onServerRate(MinecraftServer server, float rate);
     }
 
     @FunctionalInterface
     interface ServerFreeze {
-        void onServerFreeze(boolean freeze);
+        void onServerFreeze(MinecraftServer server, boolean freeze);
     }
 
     @FunctionalInterface
     interface ServerStep {
-        void onServerStep(int stepTicks);
+        void onServerStep(MinecraftServer server, int stepTicks);
     }
 
     @FunctionalInterface
     interface ServerSprint {
-        void onServerSprint(int sprintTicks);
+        void onServerSprint(MinecraftServer server, int sprintTicks);
     }
 
     @FunctionalInterface

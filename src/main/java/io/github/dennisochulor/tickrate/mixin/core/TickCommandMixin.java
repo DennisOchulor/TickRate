@@ -156,7 +156,7 @@ public class TickCommandMixin {
         ServerTickManager tickManager = source.getServer().getTickManager();
         tickManager.tickRate$setServerRate(roundRate);
         tickManager.tickRate$sendUpdatePacket();
-        send(source, () -> TickRateEvents.SERVER_RATE.invoker().onServerRate(roundRate));
+        TickRateEvents.SERVER_RATE.invoker().onServerRate(source.getServer(), roundRate);
         source.sendFeedback(() -> Text.translatable("commands.tick.rate.success", roundRate), true);
         return roundRate;
     }
@@ -197,19 +197,19 @@ public class TickCommandMixin {
     @Inject(method = "executeSprint", at = @At("TAIL"))
     private static void executeSprint(ServerCommandSource source, int ticks, CallbackInfoReturnable<Integer> cir) {
         source.getServer().getTickManager().tickRate$sendUpdatePacket();
-        send(source, () -> TickRateEvents.SERVER_SPRINT.invoker().onServerSprint(ticks));
+        TickRateEvents.SERVER_SPRINT.invoker().onServerSprint(source.getServer(), ticks);
     }
 
     @Inject(method = "executeFreeze", at = @At("TAIL"))
     private static void executeFreeze(ServerCommandSource source, boolean frozen, CallbackInfoReturnable<Integer> cir) {
         source.getServer().getTickManager().tickRate$sendUpdatePacket();
-        send(source, () -> TickRateEvents.SERVER_FREEZE.invoker().onServerFreeze(frozen));
+        TickRateEvents.SERVER_FREEZE.invoker().onServerFreeze(source.getServer(), frozen);
     }
 
     @Inject(method = "executeStep", at = @At("TAIL"))
     private static void executeStep(ServerCommandSource source, int ticks, CallbackInfoReturnable<Integer> cir) {
         source.getServer().getTickManager().tickRate$sendUpdatePacket();
-        send(source, () -> TickRateEvents.SERVER_STEP.invoker().onServerStep(ticks));
+        TickRateEvents.SERVER_STEP.invoker().onServerStep(source.getServer(), ticks);
     }
 
     @Inject(method = "executeStopStep", at = @At("RETURN"))
@@ -232,7 +232,7 @@ public class TickCommandMixin {
         tickManager.tickRate$setChunkRate(roundRate, source.getWorld(), chunks);
         tickManager.tickRate$sendUpdatePacket();
 
-        send(source, () -> chunks.forEach(chunkPos -> TickRateEvents.CHUNK_RATE.invoker().onChunkRate(source.getWorld(), chunkPos, rate)));
+        chunks.forEach(chunkPos -> TickRateEvents.CHUNK_RATE.invoker().onChunkRate(source.getWorld(), chunkPos, rate));
         if(roundRate != 0) {
             source.sendFeedback(() -> Text.of("Set tick rate of " + chunks.size() + " chunks to " + roundRate + " TPS."), false);
             return roundRate;
@@ -265,7 +265,7 @@ public class TickCommandMixin {
         if(frozen) source.sendFeedback(() -> Text.literal(chunks.size() + " chunks have been frozen."), false);
         else source.sendFeedback(() -> Text.literal(chunks.size() + " chunks have been unfrozen."), false);
         tickManager.tickRate$sendUpdatePacket();
-        send(source, () -> chunks.forEach(chunkPos -> TickRateEvents.CHUNK_FREEZE.invoker().onChunkFreeze(source.getWorld(), chunkPos, frozen)));
+        chunks.forEach(chunkPos -> TickRateEvents.CHUNK_FREEZE.invoker().onChunkFreeze(source.getWorld(), chunkPos, frozen));
         return 1;
     }
 
@@ -278,7 +278,7 @@ public class TickCommandMixin {
         if(success) {
             if(steps != 0) {
                 source.sendFeedback(() -> Text.literal(chunks.size() + " chunks will step " + steps + " ticks."), false);
-                send(source, () -> chunks.forEach(chunkPos -> TickRateEvents.CHUNK_STEP.invoker().onChunkStep(source.getWorld(), chunkPos, steps)));
+                chunks.forEach(chunkPos -> TickRateEvents.CHUNK_STEP.invoker().onChunkStep(source.getWorld(), chunkPos, steps));
             }
             else source.sendFeedback(() -> Text.literal(chunks.size() + " chunks have stopped stepping."), false);
         }
@@ -296,7 +296,7 @@ public class TickCommandMixin {
         if(success) {
             if(ticks != 0) {
                 source.sendFeedback(() -> Text.literal(chunks.size() + " chunks will sprint for " + ticks + " ticks."), false);
-                send(source, () -> chunks.forEach(chunkPos -> TickRateEvents.CHUNK_SPRINT.invoker().onChunkSprint(source.getWorld(), chunkPos, ticks)));
+                chunks.forEach(chunkPos -> TickRateEvents.CHUNK_SPRINT.invoker().onChunkSprint(source.getWorld(), chunkPos, ticks));
             }
             else source.sendFeedback(() -> Text.literal(chunks.size() + " chunks have stopped sprinting."), false);
         }
@@ -313,7 +313,7 @@ public class TickCommandMixin {
         ServerTickManager tickManager = source.getServer().getTickManager();
         tickManager.tickRate$setEntityRate(roundRate, entities);
         tickManager.tickRate$sendUpdatePacket();
-        send(source, () -> entities.forEach(entity -> TickRateEvents.ENTITY_RATE.invoker().onEntityRate(entity, rate)));
+        entities.forEach(entity -> TickRateEvents.ENTITY_RATE.invoker().onEntityRate(entity, rate));
         if(roundRate != 0) {
             source.sendFeedback(() -> Text.of("Set tick rate of " + entities.size() + " entities to " + roundRate + " TPS."), false);
             return roundRate;
@@ -344,7 +344,7 @@ public class TickCommandMixin {
         if(frozen) source.sendFeedback(() -> Text.literal(entities.size() + " entities have been frozen."), false);
         else source.sendFeedback(() -> Text.literal(entities.size() + " entities have been unfrozen."), false);
         tickManager.tickRate$sendUpdatePacket();
-        send(source, () -> entities.forEach(entity -> TickRateEvents.ENTITY_FREEZE.invoker().onEntityFreeze(entity, frozen)));
+        entities.forEach(entity -> TickRateEvents.ENTITY_FREEZE.invoker().onEntityFreeze(entity, frozen));
         return 1;
     }
 
@@ -357,7 +357,7 @@ public class TickCommandMixin {
         if(success) {
             if(steps != 0) {
                 source.sendFeedback(() -> Text.literal(entities.size() + " entities will step " + steps + " ticks."), false);
-                send(source, () -> entities.forEach(entity -> TickRateEvents.ENTITY_STEP.invoker().onEntityStep(entity, steps)));
+                entities.forEach(entity -> TickRateEvents.ENTITY_STEP.invoker().onEntityStep(entity, steps));
             }
             else source.sendFeedback(() -> Text.literal(entities.size() + " entities have stopped stepping."), false);
         }
@@ -375,7 +375,7 @@ public class TickCommandMixin {
         if(success) {
             if(ticks != 0) {
                 source.sendFeedback(() -> Text.literal(entities.size() + " entities will sprint for " + ticks + " ticks."), false);
-                send(source, () -> entities.forEach(entity -> TickRateEvents.ENTITY_SPRINT.invoker().onEntitySprint(entity, ticks)));
+                entities.forEach(entity -> TickRateEvents.ENTITY_SPRINT.invoker().onEntitySprint(entity, ticks));
             }
             else source.sendFeedback(() -> Text.literal(entities.size() + " entities have stopped sprinting."), false);
         }
@@ -486,11 +486,6 @@ public class TickCommandMixin {
             }
             default -> throw new IllegalStateException("Unexpected value: " + lastNode);
         };
-    }
-
-    @Unique
-    private static void send(ServerCommandSource source, Runnable runnable) {
-        source.getServer().send(source.getServer().createTask(runnable));
     }
 
 }
