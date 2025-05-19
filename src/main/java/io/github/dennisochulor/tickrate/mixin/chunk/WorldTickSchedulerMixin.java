@@ -26,6 +26,7 @@ public class WorldTickSchedulerMixin<T> implements TickRateWorldTickScheduler {
     @Shadow @Final private LongPredicate tickingFutureReadyPredicate;
     @Shadow @Final private Long2LongMap nextTriggerTickByChunkPos;
     @Shadow @Final private Queue<ChunkTickScheduler<T>> tickableChunkTickSchedulers;
+
     @Unique private World world;
 
     /**
@@ -77,7 +78,7 @@ public class WorldTickSchedulerMixin<T> implements TickRateWorldTickScheduler {
         }
     }
 
-    @Unique
+    @Unique // should only be called ONCE inside ServerWorld <init>
     public void tickRate$setWorld(ServerWorld world) {
         this.world = world;
     }
