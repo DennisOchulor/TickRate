@@ -28,6 +28,12 @@ public abstract class ServerWorldMixin {
     @Shadow @Final private WorldTickScheduler<Block> blockTickScheduler;
     @Shadow @Final private WorldTickScheduler<Fluid> fluidTickScheduler;
 
+    @Inject(method = "<init>", at = @At("TAIL"))
+    private void init(CallbackInfo ci) {
+        this.blockTickScheduler.tickRate$setWorld((ServerWorld) (Object)this);
+        this.fluidTickScheduler.tickRate$setWorld((ServerWorld) (Object)this);
+    }
+
     @ModifyVariable(method = "tick(Ljava/util/function/BooleanSupplier;)V", at = @At("STORE"), ordinal = 0)
     private boolean tick$shouldTick(boolean value) {
         ServerTickManager tickManager = (ServerTickManager) getTickManager();
@@ -40,8 +46,6 @@ public abstract class ServerWorldMixin {
         if(serverTickManager.tickRate$isServerSprint()) bl.set(true);
         else if(serverTickManager.isFrozen()) bl.set(serverTickManager.isStepping());
         else bl.set(true);
-        this.blockTickScheduler.tickRate$setWorld((ServerWorld) (Object)this); // this sucks man...
-        this.fluidTickScheduler.tickRate$setWorld((ServerWorld) (Object)this); // this sucks man...
     }
 
     @Inject(method = "tick(Ljava/util/function/BooleanSupplier;)V",  at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiler/Profiler;swap(Ljava/lang/String;)V", args = "ldc=raid"))
