@@ -40,7 +40,7 @@ public class ClientWorldMixin {
                 else yield pitch * (state.rate() / 20.0F);
             }
             case BLOCKS, AMBIENT -> {
-                TickState state = TickRateClientManager.getChunkState(ChunkPos.toLong(new BlockPos(MathHelper.floor(x), MathHelper.floor(y), MathHelper.floor(z))));
+                TickState state = TickRateClientManager.getChunkState(new ChunkPos(new BlockPos(MathHelper.floor(x), MathHelper.floor(y), MathHelper.floor(z))));
                 if(state.sprinting()) yield TickRate.MAX_SOUND_PITCH;
                 else yield pitch * (state.rate() / 20.0F);
             }
@@ -66,7 +66,7 @@ public class ClientWorldMixin {
                 else yield pitch * (state.rate() / 20.0F);
             }
             case BLOCKS, AMBIENT -> {
-                TickState state = TickRateClientManager.getChunkState(client.player.getChunkPos().toLong());
+                TickState state = TickRateClientManager.getChunkState(client.player.getChunkPos());
                 if(state.sprinting()) yield TickRate.MAX_SOUND_PITCH;
                 else yield pitch * (state.rate() / 20.0F);
             }

@@ -36,7 +36,7 @@ public class ServerWorldMixin {
                 if(entity != null) // possibly handles player sounds
                     state = tickManager.tickRate$getEntityTickStateDeep(entity);
                 else
-                    state = tickManager.tickRate$getChunkTickStateDeep((World) (Object) this, ChunkPos.toLong(new BlockPos(MathHelper.floor(x), MathHelper.floor(y), MathHelper.floor(z))));
+                    state = tickManager.tickRate$getChunkTickStateDeep((World) (Object) this, new ChunkPos(new BlockPos(MathHelper.floor(x), MathHelper.floor(y), MathHelper.floor(z))));
                 if(state.sprinting()) yield TickRate.MAX_SOUND_PITCH;
                 else yield pitch * (state.rate() / 20.0F);
             }
@@ -46,7 +46,7 @@ public class ServerWorldMixin {
                 else yield pitch * (state.rate() / 20.0F);
             }
             case BLOCKS, AMBIENT -> {
-                TickState state = tickManager.tickRate$getChunkTickStateDeep((World)(Object)this, ChunkPos.toLong(new BlockPos(MathHelper.floor(x), MathHelper.floor(y), MathHelper.floor(z))));
+                TickState state = tickManager.tickRate$getChunkTickStateDeep((World)(Object)this, new ChunkPos(new BlockPos(MathHelper.floor(x), MathHelper.floor(y), MathHelper.floor(z))));
                 if(state.sprinting()) yield TickRate.MAX_SOUND_PITCH;
                 else yield pitch * (state.rate() / 20.0F);
             }

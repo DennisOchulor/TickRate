@@ -14,7 +14,7 @@ public class BlockEntityRenderDispatcherMixin {
 
     @ModifyVariable(method = "render(Lnet/minecraft/block/entity/BlockEntity;FLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;)V", at = @At("HEAD"), argsOnly = true)
     private float render(float tickProgress, @Local(argsOnly = true) BlockEntity blockEntity) {
-        return TickRateClientManager.getChunkTickProgress(ChunkPos.toLong(blockEntity.getPos())).tickProgress();
+        return TickRateClientManager.getChunkTickProgress(new ChunkPos(blockEntity.getPos())).tickProgress();
     }
 
 }

@@ -57,7 +57,7 @@ public class TickCommandMixin {
                 .executes(context -> executeChunkQuery(context.getSource(), getChunks(context,1))).build();
 
         LiteralCommandNode<ServerCommandSource> chunkRate = CommandManager.literal("rate")
-                .then(CommandManager.literal("reset").executes(context -> executeChunkRate(context.getSource(), getChunks(context,2), 0.0f)))
+                .then(CommandManager.literal("reset").executes(context -> executeChunkRate(context.getSource(), getChunks(context,2), -1.0f)))
                 .then(CommandManager.argument("rate", FloatArgumentType.floatArg(1.0F, 10000.0F))
                         .suggests((context, suggestionsBuilder) -> CommandSource.suggestMatching(new String[]{DEFAULT_TICK_RATE_STRING,"reset"}, suggestionsBuilder))
                         .executes(context -> executeChunkRate(context.getSource(), getChunks(context,2), FloatArgumentType.getFloat(context, "rate")))).build();
@@ -88,7 +88,7 @@ public class TickCommandMixin {
                                         .executes(context -> executeEntityQuery(context.getSource(), EntityArgumentType.getEntities(context, "entities")))
                                 )
                                 .then(CommandManager.literal("rate")
-                                        .then(CommandManager.literal("reset").executes(context -> executeEntityRate(context.getSource(), EntityArgumentType.getEntities(context, "entities"), 0.0f)))
+                                        .then(CommandManager.literal("reset").executes(context -> executeEntityRate(context.getSource(), EntityArgumentType.getEntities(context, "entities"), -1.0f)))
                                         .then(CommandManager.argument("rate", FloatArgumentType.floatArg(1.0F, 10000.0F))
                                                 .suggests((context, suggestionsBuilder) -> CommandSource.suggestMatching(new String[]{DEFAULT_TICK_RATE_STRING,"reset"}, suggestionsBuilder))
                                                 .executes(context -> executeEntityRate(context.getSource(), EntityArgumentType.getEntities(context, "entities"), FloatArgumentType.getFloat(context, "rate"))))
@@ -155,7 +155,6 @@ public class TickCommandMixin {
         int roundRate = Math.round(rate); // can't actually accept decimals
         ServerTickManager tickManager = source.getServer().getTickManager();
         tickManager.tickRate$setServerRate(roundRate);
-        tickManager.tickRate$sendUpdatePacket();
         TickRateEvents.SERVER_RATE.invoker().onServerRate(source.getServer(), roundRate);
         source.sendFeedback(() -> Text.translatable("commands.tick.rate.success", roundRate), true);
         return roundRate;
@@ -191,46 +190,33 @@ public class TickCommandMixin {
         String p99 = format(ls[(int)((double)ls.length * 0.99)]);
         float avg = source.getServer().getAverageTickTime();
         source.sendFeedback(() -> Text.literal("Avg: %.1fms P50: %sms P95: %sms P99: %sms, sample: %s".formatted(avg,p50,p95,p99,ls.length)), false);
-        return (int) serverTickManager.tickRate$getServerRate();
+        return serverTickManager.tickRate$getServerRate();
     }
 
     @Inject(method = "executeSprint", at = @At("TAIL"))
     private static void executeSprint(ServerCommandSource source, int ticks, CallbackInfoReturnable<Integer> cir) {
-        source.getServer().getTickManager().tickRate$sendUpdatePacket();
         TickRateEvents.SERVER_SPRINT.invoker().onServerSprint(source.getServer(), ticks);
     }
 
     @Inject(method = "executeFreeze", at = @At("TAIL"))
     private static void executeFreeze(ServerCommandSource source, boolean frozen, CallbackInfoReturnable<Integer> cir) {
-        source.getServer().getTickManager().tickRate$sendUpdatePacket();
         TickRateEvents.SERVER_FREEZE.invoker().onServerFreeze(source.getServer(), frozen);
     }
 
     @Inject(method = "executeStep", at = @At("TAIL"))
     private static void executeStep(ServerCommandSource source, int ticks, CallbackInfoReturnable<Integer> cir) {
-        source.getServer().getTickManager().tickRate$sendUpdatePacket();
         TickRateEvents.SERVER_STEP.invoker().onServerStep(source.getServer(), ticks);
-    }
-
-    @Inject(method = "executeStopStep", at = @At("RETURN"))
-    private static void executeStopStep(ServerCommandSource source, CallbackInfoReturnable<Integer> cir) {
-        source.getServer().getTickManager().tickRate$sendUpdatePacket();
-    }
-
-    @Inject(method = "executeStopSprint", at = @At("RETURN"))
-    private static void executeStopSprint(ServerCommandSource source, CallbackInfoReturnable<Integer> cir) {
-        source.getServer().getTickManager().tickRate$sendUpdatePacket();
     }
 
 
     @Unique
     private static int executeChunkRate(ServerCommandSource source, List<ChunkPos> chunks, float rate) {
-        if(chunkCheck(chunks, source)) return 0;
+        List<WorldChunk> worldChunks = chunkCheck(chunks, source);
+        if(worldChunks == null) return 0;
 
         int roundRate = Math.round(rate); // can't actually accept decimals
         ServerTickManager tickManager = source.getServer().getTickManager();
-        tickManager.tickRate$setChunkRate(roundRate, source.getWorld(), chunks);
-        tickManager.tickRate$sendUpdatePacket();
+        tickManager.tickRate$setRate(roundRate, worldChunks);
 
         chunks.forEach(chunkPos -> TickRateEvents.CHUNK_RATE.invoker().onChunkRate(source.getWorld(), chunkPos, rate));
         if(roundRate != 0) {
@@ -239,18 +225,19 @@ public class TickCommandMixin {
         }
         else {
             source.sendFeedback(() -> Text.literal("Reset the target rate of " + chunks.size() + " chunks."), false);
-            return (int) tickManager.tickRate$getServerRate();
+            return tickManager.tickRate$getServerRate();
         }
     }
 
     @Unique
     private static int executeChunkQuery(ServerCommandSource source, List<ChunkPos> chunks) {
-        if(chunkCheck(chunks, source)) return 0;
+        List<WorldChunk> worldChunks = chunkCheck(chunks, source);
+        if(worldChunks == null) return 0;
 
         ServerTickManager tickManager = source.getServer().getTickManager();
         MutableText text = Text.literal("The tick rates of the specified chunks are as follows:\n");
-        float firstRate = tickManager.tickRate$getChunkRate(source.getWorld(), chunks.stream().findFirst().orElseThrow().toLong());
-        chunks.forEach(chunk -> text.append("Chunk ").append(chunk.toString()).append(" - ").append(String.valueOf(tickManager.tickRate$getChunkRate(source.getWorld(), chunk.toLong()))).append(" TPS").append("\n"));
+        float firstRate = tickManager.tickRate$getChunkRate(worldChunks.getFirst());
+        worldChunks.forEach(chunk -> text.append("Chunk ").append(chunk.getPos().toString()).append(" - ").append(String.valueOf(tickManager.tickRate$getChunkRate(chunk))).append(" TPS").append("\n"));
         text.getSiblings().removeLast(); // to remove last \n
         source.sendFeedback(() -> text, false);
         return (int) firstRate;
@@ -258,23 +245,24 @@ public class TickCommandMixin {
 
     @Unique
     private static int executeChunkFreeze(ServerCommandSource source, List<ChunkPos> chunks, boolean frozen) {
-        if(chunkCheck(chunks, source)) return 0;
+        List<WorldChunk> worldChunks = chunkCheck(chunks, source);
+        if(worldChunks == null) return 0;
 
         ServerTickManager tickManager = source.getServer().getTickManager();
-        tickManager.tickRate$setChunkFrozen(frozen, source.getWorld(), chunks);
+        tickManager.tickRate$setFrozen(frozen, worldChunks);
         if(frozen) source.sendFeedback(() -> Text.literal(chunks.size() + " chunks have been frozen."), false);
         else source.sendFeedback(() -> Text.literal(chunks.size() + " chunks have been unfrozen."), false);
-        tickManager.tickRate$sendUpdatePacket();
         chunks.forEach(chunkPos -> TickRateEvents.CHUNK_FREEZE.invoker().onChunkFreeze(source.getWorld(), chunkPos, frozen));
         return 1;
     }
 
     @Unique
     private static int executeChunkStep(ServerCommandSource source, List<ChunkPos> chunks, int steps) {
-        if(chunkCheck(chunks, source)) return 0;
+        List<WorldChunk> worldChunks = chunkCheck(chunks, source);
+        if(worldChunks == null) return 0;
 
         ServerTickManager tickManager = source.getServer().getTickManager();
-        boolean success = tickManager.tickRate$stepChunk(steps, source.getWorld(), chunks);
+        boolean success = tickManager.tickRate$step(steps, worldChunks);
         if(success) {
             if(steps != 0) {
                 source.sendFeedback(() -> Text.literal(chunks.size() + " chunks will step " + steps + " ticks."), false);
@@ -283,16 +271,16 @@ public class TickCommandMixin {
             else source.sendFeedback(() -> Text.literal(chunks.size() + " chunks have stopped stepping."), false);
         }
         else source.sendFeedback(() -> Text.literal("All of the specified chunks must be frozen first and cannot be sprinting!").withColor(Colors.LIGHT_RED), false);
-        tickManager.tickRate$sendUpdatePacket();
         return success ? 1 : 0;
     }
 
     @Unique
     private static int executeChunkSprint(ServerCommandSource source, List<ChunkPos> chunks, int ticks) {
-        if(chunkCheck(chunks, source)) return 0;
+        List<WorldChunk> worldChunks = chunkCheck(chunks, source);
+        if(worldChunks == null) return 0;
 
         ServerTickManager tickManager = source.getServer().getTickManager();
-        boolean success = tickManager.tickRate$sprintChunk(ticks, source.getWorld(), chunks);
+        boolean success = tickManager.tickRate$sprint(ticks, worldChunks);
         if(success) {
             if(ticks != 0) {
                 source.sendFeedback(() -> Text.literal(chunks.size() + " chunks will sprint for " + ticks + " ticks."), false);
@@ -301,7 +289,6 @@ public class TickCommandMixin {
             else source.sendFeedback(() -> Text.literal(chunks.size() + " chunks have stopped sprinting."), false);
         }
         else source.sendFeedback(() -> Text.literal("All of the specified chunks must not be stepping!").withColor(Colors.LIGHT_RED), false);
-        tickManager.tickRate$sendUpdatePacket();
         return success ? 1 : 0;
     }
 
@@ -311,8 +298,7 @@ public class TickCommandMixin {
         if(entityCheck(entities,source)) return 0;
 
         ServerTickManager tickManager = source.getServer().getTickManager();
-        tickManager.tickRate$setEntityRate(roundRate, entities);
-        tickManager.tickRate$sendUpdatePacket();
+        tickManager.tickRate$setRate(roundRate, entities);
         entities.forEach(entity -> TickRateEvents.ENTITY_RATE.invoker().onEntityRate(entity, rate));
         if(roundRate != 0) {
             source.sendFeedback(() -> Text.of("Set tick rate of " + entities.size() + " entities to " + roundRate + " TPS."), false);
@@ -340,10 +326,9 @@ public class TickCommandMixin {
         if(entityCheck(entities,source)) return 0;
 
         ServerTickManager tickManager = source.getServer().getTickManager();
-        tickManager.tickRate$setEntityFrozen(frozen, entities);
+        tickManager.tickRate$setFrozen(frozen, entities);
         if(frozen) source.sendFeedback(() -> Text.literal(entities.size() + " entities have been frozen."), false);
         else source.sendFeedback(() -> Text.literal(entities.size() + " entities have been unfrozen."), false);
-        tickManager.tickRate$sendUpdatePacket();
         entities.forEach(entity -> TickRateEvents.ENTITY_FREEZE.invoker().onEntityFreeze(entity, frozen));
         return 1;
     }
@@ -353,7 +338,7 @@ public class TickCommandMixin {
         if(entityCheck(entities,source)) return 0;
 
         ServerTickManager tickManager = source.getServer().getTickManager();
-        boolean success = tickManager.tickRate$stepEntity(steps,entities);
+        boolean success = tickManager.tickRate$step(steps,entities);
         if(success) {
             if(steps != 0) {
                 source.sendFeedback(() -> Text.literal(entities.size() + " entities will step " + steps + " ticks."), false);
@@ -362,7 +347,6 @@ public class TickCommandMixin {
             else source.sendFeedback(() -> Text.literal(entities.size() + " entities have stopped stepping."), false);
         }
         else source.sendFeedback(() -> Text.literal("All of the specified entities must be frozen first and cannot be sprinting!").withColor(Colors.LIGHT_RED), false);
-        tickManager.tickRate$sendUpdatePacket();
         return success ? 1 : 0;
     }
 
@@ -371,7 +355,7 @@ public class TickCommandMixin {
         if(entityCheck(entities,source)) return 0;
 
         ServerTickManager tickManager = source.getServer().getTickManager();
-        boolean success = tickManager.tickRate$sprintEntity(ticks,entities);
+        boolean success = tickManager.tickRate$sprint(ticks,entities);
         if(success) {
             if(ticks != 0) {
                 source.sendFeedback(() -> Text.literal(entities.size() + " entities will sprint for " + ticks + " ticks."), false);
@@ -380,7 +364,6 @@ public class TickCommandMixin {
             else source.sendFeedback(() -> Text.literal(entities.size() + " entities have stopped sprinting."), false);
         }
         else source.sendFeedback(() -> Text.literal("All of the specified entities must not be stepping!").withColor(Colors.LIGHT_RED), false);
-        tickManager.tickRate$sendUpdatePacket();
         return success ? 1 : 0;
     }
 
@@ -397,14 +380,20 @@ public class TickCommandMixin {
     }
 
     @Unique
-    // returns true if any of the chunks cannot be the command's target (meaning they are unloaded)
-    private static boolean chunkCheck(List<ChunkPos> chunks, ServerCommandSource source) {
+    // returns NULL if any of the chunks cannot be the command's target (meaning they are unloaded)
+    private static List<WorldChunk> chunkCheck(List<ChunkPos> chunks, ServerCommandSource source) {
+        List<WorldChunk> worldChunks = new ArrayList<>();
         boolean match = chunks.stream().anyMatch(chunkPos -> {
             WorldChunk worldChunk = (WorldChunk) source.getWorld().getChunk(chunkPos.x,chunkPos.z,ChunkStatus.FULL,false);
+            worldChunks.add(worldChunk);
             return worldChunk==null || worldChunk.getLevelType() == ChunkLevelType.INACCESSIBLE;
         });
-        if(match) source.sendFeedback(() -> Text.literal("Some of the specified chunks are not loaded!").withColor(Colors.LIGHT_RED), false);
-        return match;
+
+        if(match) {
+            source.sendFeedback(() -> Text.literal("Some of the specified chunks are not loaded!").withColor(Colors.LIGHT_RED), false);
+            return null;
+        }
+        return worldChunks;
     }
 
     /**

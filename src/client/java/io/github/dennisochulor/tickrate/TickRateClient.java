@@ -14,11 +14,7 @@ public class TickRateClient implements ClientModInitializer {
 
 		ClientPlayNetworking.registerGlobalReceiver(TickRateHelloPayload.ID, (payload, context) -> {
 			context.responseSender().sendPacket(new TickRateHelloPayload());
-		});
-
-		ClientPlayNetworking.registerGlobalReceiver(TickRateS2CUpdatePayload.ID, (payload, context) -> {
-			TickRateClientManager.update(payload);
-			TickRateClientManager.setServerHasMod(true); // it's here and not at Hello to ensure TickRateClientManager#serverState is not null
+			TickRateClientManager.setServerHasMod(true);
 		});
 
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
