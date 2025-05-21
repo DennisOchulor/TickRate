@@ -201,7 +201,7 @@ public final class TickRateAPIImpl implements TickRateAPI {
 
         int roundRate = Math.round(rate);
         tickManager.tickRate$setRate(roundRate==0 ? -1 : roundRate, worldChunks);
-        chunks.forEach(chunkPos -> TickRateEvents.CHUNK_RATE.invoker().onChunkRate(world, chunkPos, roundRate));
+        worldChunks.forEach(worldChunk -> TickRateEvents.CHUNK_RATE.invoker().onChunkRate(worldChunk, roundRate));
     }
 
     @Override
@@ -211,10 +211,10 @@ public final class TickRateAPIImpl implements TickRateAPI {
 
     @Override
     public void freezeChunk(World world, Collection<ChunkPos> chunks, boolean freeze) {
-        List<WorldChunk> worldChunks =  chunkCheck(world, chunks);
+        List<WorldChunk> worldChunks = chunkCheck(world, chunks);
 
         tickManager.tickRate$setFrozen(freeze, worldChunks);
-        chunks.forEach(chunkPos -> TickRateEvents.CHUNK_FREEZE.invoker().onChunkFreeze(world, chunkPos, freeze));
+        worldChunks.forEach(worldChunk -> TickRateEvents.CHUNK_FREEZE.invoker().onChunkFreeze(worldChunk, freeze));
     }
 
     @Override
@@ -225,10 +225,10 @@ public final class TickRateAPIImpl implements TickRateAPI {
     @Override
     public void stepChunk(World world, Collection<ChunkPos> chunks, int stepTicks) {
         if(stepTicks < 0) throw new IllegalArgumentException("stepTicks must be >= 0");
-        List<WorldChunk> worldChunks =  chunkCheck(world, chunks);
+        List<WorldChunk> worldChunks = chunkCheck(world, chunks);
 
         if(tickManager.tickRate$step(stepTicks, worldChunks)) {
-            if(stepTicks != 0) chunks.forEach(chunkPos -> TickRateEvents.CHUNK_STEP.invoker().onChunkStep(world, chunkPos, stepTicks));
+            if(stepTicks != 0) worldChunks.forEach(worldChunk -> TickRateEvents.CHUNK_STEP.invoker().onChunkStep(worldChunk, stepTicks));
         }
         else throw new IllegalArgumentException("All of the specified chunks must be frozen first and cannot be sprinting!");
     }
@@ -244,7 +244,7 @@ public final class TickRateAPIImpl implements TickRateAPI {
         List<WorldChunk> worldChunks = chunkCheck(world, chunks);
 
         if(tickManager.tickRate$sprint(sprintTicks, worldChunks)) {
-            if(sprintTicks != 0) chunks.forEach(chunkPos -> TickRateEvents.CHUNK_SPRINT.invoker().onChunkSprint(world, chunkPos, sprintTicks));
+            if(sprintTicks != 0) worldChunks.forEach(worldChunk -> TickRateEvents.CHUNK_SPRINT.invoker().onChunkSprint(worldChunk, sprintTicks));
         }
         else throw new IllegalArgumentException("All of the specified chunks must not be stepping!");
     }
