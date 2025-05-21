@@ -3,6 +3,7 @@ package io.github.dennisochulor.tickrate.mixin.core;
 import static io.github.dennisochulor.tickrate.TickRateAttachments.*;
 
 import com.llamalad7.mixinextras.sugar.Local;
+import io.github.dennisochulor.tickrate.TickRate;
 import io.github.dennisochulor.tickrate.injected_interface.TickRateTickManager;
 import io.github.dennisochulor.tickrate.TickState;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentTarget;
@@ -90,8 +91,6 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     }
 
     public void tickRate$serverStarting() {
-        TickState serverState = server.getOverworld().getAttachedOrCreate(TICK_STATE_SERVER);
-        updateTickersMap(serverState.rate(), 1);
 //        datafile = server.getSavePath(WorldSavePath.ROOT).resolve("data/TickRateData.nbt").toFile();
 //        if(datafile.exists()) {
 //            try {
@@ -115,7 +114,12 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
 //        }
     }
 
-    public void tickRate$saveData() {
+    public void tickRate$serverStarted() {
+        TickState serverState = server.getOverworld().getAttachedOrCreate(TICK_STATE_SERVER);
+        updateTickersMap(serverState.rate(), 1);
+    }
+
+        public void tickRate$saveData() {
 //        NbtCompound nbt = new NbtCompound();
 //        nbt.putFloat("nominalTickRate",nominalTickRate);
 //        var entitiesNbt = NbtOps.INSTANCE.mapBuilder();
@@ -207,7 +211,14 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         String key = world.getRegistryKey().getValue() + "-" + chunkPos.toLong();
         Boolean cachedShouldTick = ticked.get(key);
         if(cachedShouldTick != null) return cachedShouldTick;
-        else return tickRate$shouldTickChunk((WorldChunk) world.getChunk(chunkPos.x, chunkPos.z, ChunkStatus.FULL, false));
+        else {
+            WorldChunk worldChunk = (WorldChunk) world.getChunk(chunkPos.x, chunkPos.z, ChunkStatus.FULL, false);
+            if(worldChunk == null) { // chunk is not fully loaded and accessible yet, so just don't tick it.
+                ticked.put(key, false);
+                return false;
+            }
+            else return tickRate$shouldTickChunk(worldChunk);
+        }
     }
 
     public boolean tickRate$shouldTickChunk(WorldChunk chunk) {
@@ -276,15 +287,17 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     }
 
     public void tickRate$updateLoad(AttachmentTarget attachmentTarget, boolean loaded) {
-        TickState tickState = attachmentTarget.getAttachedOrElse(TICK_STATE, TickState.DEFAULT);
+        TickState tickState = attachmentTarget.getAttached(TICK_STATE);
+        if(tickState == null) return;
+
         if(loaded) {
             if(tickState.sprinting()) numberOfIndividualSprints++;
-            updateTickersMap(tickState.rate(), 1);
+            if(tickState.rate() != -1) updateTickersMap(tickState.rate(), 1);
             if(tickState.rate() > tickRate) updateFastestTicker();
         }
         else {
             if(tickState.sprinting()) numberOfIndividualSprints--;
-            updateTickersMap(tickState.rate(), -1);
+            if(tickState.rate() != -1) updateTickersMap(tickState.rate(), -1);
             if(tickState.rate() == tickRate) updateFastestTicker();
         }
     }
@@ -436,8 +449,9 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     }
 
     public TickState tickRate$getChunkTickStateShallow(World world, ChunkPos chunkPos) {
-        Chunk chunk = world.getChunk(chunkPos.x, chunkPos.z, ChunkStatus.FULL, false);
-        return chunk.getAttachedOrElse(TICK_STATE, TickState.DEFAULT);
+        // try get the correct TickState as soon as it is available.
+        Chunk chunk = world.getChunk(chunkPos.x, chunkPos.z, ChunkStatus.STRUCTURE_STARTS, false);
+        return chunk==null ? TickState.DEFAULT : chunk.getAttachedOrElse(TICK_STATE, TickState.DEFAULT);
     }
 
     public TickState tickRate$getChunkTickStateDeep(World world, ChunkPos chunkPos) {
@@ -476,6 +490,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         if(isStepping()) return;
 
         int fastest = tickers.firstKey();
+        TickRate.LOGGER.warn("fastest:{}, tickRate:{}", fastest, tickRate);
         if(fastest != tickRate) {
             setTickRate(fastest);
             ticks = 1; // reset it

@@ -224,10 +224,10 @@ public final class Test {
             TickRateEvents.ENTITY_STEP.register((entity, stepTicks) -> LOGGER.info("{} step {}", entity.getUuidAsString(), stepTicks));
             TickRateEvents.ENTITY_SPRINT.register((entity, sprintTicks) -> LOGGER.info("{} sprint {}", entity.getUuidAsString(), sprintTicks));
 
-            TickRateEvents.CHUNK_RATE.register((world, chunkPos, rate) -> LOGGER.info("{} {} rate {}", world.getRegistryKey().getValue(), chunkPos, rate));
-            TickRateEvents.CHUNK_FREEZE.register((world, chunkPos, freeze) -> LOGGER.info("{} {} freeze {}", world.getRegistryKey().getValue(), chunkPos, freeze));
-            TickRateEvents.CHUNK_STEP.register((world, chunkPos, stepTicks) -> LOGGER.info("{} {} step {}", world.getRegistryKey().getValue(), chunkPos, stepTicks));
-            TickRateEvents.CHUNK_SPRINT.register((world, chunkPos, sprintTicks) -> LOGGER.info("{} {} sprint {}", world.getRegistryKey().getValue(), chunkPos, sprintTicks));
+            TickRateEvents.CHUNK_RATE.register((chunk, rate) -> LOGGER.info("{} {} rate {}", chunk.getWorld().getRegistryKey().getValue(), chunk.getPos(), rate));
+            TickRateEvents.CHUNK_FREEZE.register((chunk, freeze) -> LOGGER.info("{} {} freeze {}", chunk.getWorld().getRegistryKey().getValue(), chunk.getPos(), freeze));
+            TickRateEvents.CHUNK_STEP.register((chunk, stepTicks) -> LOGGER.info("{} {} step {}", chunk.getWorld().getRegistryKey().getValue(), chunk.getPos(), stepTicks));
+            TickRateEvents.CHUNK_SPRINT.register((chunk, sprintTicks) -> LOGGER.info("{} {} sprint {}", chunk.getWorld().getRegistryKey().getValue(), chunk.getPos(), sprintTicks));
             registered = true;
         }
     }

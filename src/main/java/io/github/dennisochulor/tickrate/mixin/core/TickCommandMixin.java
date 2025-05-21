@@ -113,6 +113,7 @@ public class TickCommandMixin {
                                                 .executes(context -> executeSprint(context.getSource(), entityCheck(EntityArgumentType.getEntities(context, "entities"), context.getSource()), IntegerArgumentType.getInteger(context, "time"))))
                                 )
                         )
+                )
                 .then(
                         CommandManager.literal("chunk")
                                 .then(CommandManager.argument("from", ColumnPosArgumentType.columnPos())
@@ -141,8 +142,7 @@ public class TickCommandMixin {
                                                 )
                                         )
                                 )
-                )
-        );
+                );
         return builder;
     }
 
@@ -230,7 +230,7 @@ public class TickCommandMixin {
             default -> throw new IllegalArgumentException("Unknown target type: " + targets.getFirst());
         }
 
-        if(roundRate != 0) {
+        if(roundRate != -1) {
             source.sendFeedback(() -> Text.of("Set tick rate of " + targets.size() + " " + targetType + " to " + roundRate + " TPS."), false);
             return roundRate;
         }

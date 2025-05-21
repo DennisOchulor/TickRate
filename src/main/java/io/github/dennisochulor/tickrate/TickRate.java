@@ -47,9 +47,10 @@ public class TickRate implements ModInitializer {
 			tickManager.tickRate$addPlayerWithMod(context.player());
 		}));
 
-		ServerLifecycleEvents.SERVER_STARTING.register(server -> {
-			server.getTickManager().tickRate$serverStarting();
-			TickRateAPIImpl.init(server);
+		ServerLifecycleEvents.SERVER_STARTING.register(TickRateAPIImpl::init);
+
+		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+			server.getTickManager().tickRate$serverStarted();
 		});
 
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> TickRateAPIImpl.uninit());
@@ -74,7 +75,12 @@ public class TickRate implements ModInitializer {
 			ServerTickManager tickManager = (ServerTickManager) serverWorld.getTickManager();
 			// consider chunk LOADED if FULL, BLOCK_TICKING, ENTITY_TICKING
 			// consider chunk UNLOADED if INACCESSIBLE
-			tickManager.tickRate$updateLoad(worldChunk, newLevelType.isAfter(ChunkLevelType.FULL));
+			if(oldLevelType == ChunkLevelType.INACCESSIBLE && newLevelType.isAfter(ChunkLevelType.FULL)) {
+				tickManager.tickRate$updateLoad(worldChunk, true);
+			}
+			else if(newLevelType == ChunkLevelType.INACCESSIBLE) {
+				tickManager.tickRate$updateLoad(worldChunk, false);
+			}
 		});
 
 		// TickRate testing command
