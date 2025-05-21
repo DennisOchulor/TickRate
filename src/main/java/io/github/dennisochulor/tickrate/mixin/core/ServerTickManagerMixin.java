@@ -1,21 +1,21 @@
 package io.github.dennisochulor.tickrate.mixin.core;
 
-import io.github.dennisochulor.tickrate.TickRateS2CUpdatePayload;
+import static io.github.dennisochulor.tickrate.TickRateAttachments.*;
+
+import com.llamalad7.mixinextras.sugar.Local;
 import io.github.dennisochulor.tickrate.injected_interface.TickRateTickManager;
 import io.github.dennisochulor.tickrate.TickState;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.fabricmc.fabric.api.attachment.v1.AttachmentTarget;
 import net.minecraft.entity.Entity;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtIo;
-import net.minecraft.nbt.NbtOps;
-import net.minecraft.registry.RegistryKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.ServerTickManager;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.TimeHelper;
-import net.minecraft.util.WorldSavePath;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
+import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.ChunkStatus;
+import net.minecraft.world.chunk.WorldChunk;
 import net.minecraft.world.tick.TickManager;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;
@@ -23,44 +23,61 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.*;
 
 @Mixin(ServerTickManager.class)
 public abstract class ServerTickManagerMixin extends TickManager implements TickRateTickManager {
 
-    @Unique private float nominalTickRate = 20.0f;
     @Unique private int ticks = 0;
-    @Unique private final Map<String,Float> entities = new HashMap<>(); // uuid -> tickRate
-    @Unique private final Map<String,Float> chunks = new HashMap<>(); // world-longChunkPos -> tickRate
-    @Unique private final Map<String,Float> unloadedEntities = new HashMap<>(); // uuid -> tickRate
-    @Unique private final Map<String,Float> unloadedChunks = new HashMap<>(); // world-longChunkPos -> tickRate
-    @Unique private final Map<String,Boolean> ticked = new HashMap<>(); // world-longChunkPos -> hasTickedThisMainloopTick, needed to ensure ChunkTickState is only updated ONCE per mainloop tick
-    @Unique private final Map<String,Integer> steps = new HashMap<>(); // uuid/world-longChunkPos -> steps, if steps==0, then it's frozen
-    @Unique private final Map<String,Integer> sprinting = new HashMap<>(); // uuid/world-longChunkPos -> sprintTicks
-    @Unique private final Set<ServerPlayerEntity> playersWithMod = new HashSet<>(); // stores players that have this mod client-side
+    @Unique private final Map<String,Boolean> ticked = new HashMap<>(); // someIdentifierString -> cachedShouldTick, needed to ensure TickState is only updated ONCE per mainloop tick
+    @Unique private final SortedMap<Integer,Integer> tickers = new TreeMap<>(Comparator.reverseOrder()); // tickRate -> numberOfTickers, for fastest ticker tracking
+    @Unique private final Set<UUID> playersWithMod = new HashSet<>(); // stores players that have this mod client-side
     @Unique private int sprintAvgTicksPerSecond = -1;
-    @Unique private File datafile;
+    @Unique private int numberOfIndividualSprints = 0;
+    //@Unique private File datafile;
 
     @Shadow public abstract void setTickRate(float tickRate);
     @Shadow @Final private MinecraftServer server;
     @Shadow private long scheduledSprintTicks;
 
     @Inject(method = "step", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickManager;sendStepPacket()V"))
-    public void serverTickManager$step(int ticks, CallbackInfoReturnable<Boolean> cir) {
+    public void serverTickManager$step(int ticks, CallbackInfoReturnable<Boolean> cir) { // for server step start
         this.stepTicks++; // for some reason, the first tick is always skipped. so artificially add one :P
-        setTickRate(nominalTickRate);
+        setTickRate(server.getOverworld().getAttached(TICK_STATE_SERVER).rate());
+        server.getOverworld().modifyAttached(TICK_STATE_SERVER, tickState -> tickState.withStepping(true));
     }
 
     @Inject(method = "stopStepping", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickManager;sendStepPacket()V"))
-    public void stopStepping(CallbackInfoReturnable<Boolean> cir) {
+    public void stopStepping(CallbackInfoReturnable<Boolean> cir) { // for server step manual stop
+        server.getOverworld().modifyAttached(TICK_STATE_SERVER, tickState -> tickState.withStepping(false));
         updateFastestTicker();
     }
 
+    @Override
+    public void step() {
+        this.shouldTick = !this.frozen || this.stepTicks > 0;
+        if (this.stepTicks > 0) {
+            this.stepTicks--;
+            if(this.stepTicks == 0) { // for natural server step end
+                updateFastestTicker();
+                server.getOverworld().modifyAttached(TICK_STATE_SERVER, tickState -> tickState.withStepping(false)); // tell client to stop stepping
+            }
+        }
+    }
+
+    @Inject(method = "startSprint", at = @At("TAIL"))
+    public void startSprint(int ticks, CallbackInfoReturnable<Boolean> cir) { // for server sprint start
+        server.getOverworld().modifyAttached(TICK_STATE_SERVER, tickState -> tickState.withSprinting(true));
+    }
+
     @Inject(method = "finishSprinting", at = @At("TAIL"))
-    public void finishSprinting(CallbackInfo ci) {
-        tickRate$sendUpdatePacket(); // tell client to stop sprinting
+    public void finishSprinting(CallbackInfo ci) { // for server sprint both manual/natural stop
+        server.getOverworld().modifyAttached(TICK_STATE_SERVER, tickState -> tickState.withSprinting(false));
+    }
+
+    @Inject(method = "setFrozen", at = @At("TAIL"))
+    public void setFrozen(CallbackInfo ci, @Local(argsOnly = true) boolean frozen) { // for server (un)freeze
+        server.getOverworld().modifyAttached(TICK_STATE_SERVER, tickState -> tickState.withFrozen(frozen));
     }
 
     /**
@@ -72,244 +89,224 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         return tickRate$isServerSprint() || tickRate$isIndividualSprint();
     }
 
-    @Override
-    public void step() {
-        this.shouldTick = !this.frozen || this.stepTicks > 0;
-        if (this.stepTicks > 0) {
-            this.stepTicks--;
-            if(this.stepTicks == 0) {
-                updateFastestTicker();
-                tickRate$sendUpdatePacket(); // tell client to stop stepping
-            }
-        }
-    }
-
-    public void tickRate$serverStarted() {
-        datafile = server.getSavePath(WorldSavePath.ROOT).resolve("data/TickRateData.nbt").toFile();
-        if(datafile.exists()) {
-            try {
-                NbtCompound nbt = NbtIo.read(datafile.toPath());
-                nominalTickRate = nbt.getFloat("nominalTickRate");
-                NbtOps.INSTANCE.getMap(nbt.get("entities")).getOrThrow().entries().forEach(pair -> {
-                    String key = NbtOps.INSTANCE.getStringValue(pair.getFirst()).getOrThrow();
-                    float value = NbtOps.INSTANCE.getNumberValue(pair.getSecond()).getOrThrow().floatValue();
-                    unloadedEntities.put(key,value);
-                });
-                NbtOps.INSTANCE.getMap(nbt.get("chunks")).getOrThrow().entries().forEach(pair -> {
-                    String key = NbtOps.INSTANCE.getStringValue(pair.getFirst()).getOrThrow();
-                    float value = NbtOps.INSTANCE.getNumberValue(pair.getSecond()).getOrThrow().floatValue();
-                    unloadedChunks.put(key,value);
-                });
-                updateFastestTicker();
-            }
-            catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
+    public void tickRate$serverStarting() {
+        server.getOverworld().modifyAttached(TICK_STATE_SERVER, tickState -> {
+            tickState = tickState==null ? TickState.DEFAULT : tickState;
+            updateTickersMap(tickState.rate(), 1);
+            return tickState;
+        });
+//        datafile = server.getSavePath(WorldSavePath.ROOT).resolve("data/TickRateData.nbt").toFile();
+//        if(datafile.exists()) {
+//            try {
+//                NbtCompound nbt = NbtIo.read(datafile.toPath());
+//                nominalTickRate = nbt.getFloat("nominalTickRate").orElse(20.0f);
+//                NbtOps.INSTANCE.getMap(nbt.get("entities")).getOrThrow().entries().forEach(pair -> {
+//                    String key = NbtOps.INSTANCE.getStringValue(pair.getFirst()).getOrThrow();
+//                    float value = NbtOps.INSTANCE.getNumberValue(pair.getSecond()).getOrThrow().floatValue();
+//                    unloadedEntities.put(key,value);
+//                });
+//                NbtOps.INSTANCE.getMap(nbt.get("chunks")).getOrThrow().entries().forEach(pair -> {
+//                    String key = NbtOps.INSTANCE.getStringValue(pair.getFirst()).getOrThrow();
+//                    float value = NbtOps.INSTANCE.getNumberValue(pair.getSecond()).getOrThrow().floatValue();
+//                    unloadedChunks.put(key,value);
+//                });
+//                updateFastestTicker();
+//            }
+//            catch (IOException e) {
+//                throw new RuntimeException(e);
+//            }
+//        }
     }
 
     public void tickRate$saveData() {
-        NbtCompound nbt = new NbtCompound();
-        nbt.putFloat("nominalTickRate",nominalTickRate);
-        var entitiesNbt = NbtOps.INSTANCE.mapBuilder();
-        entities.forEach((k,v) -> entitiesNbt.add(k,NbtOps.INSTANCE.createFloat(v)));
-        unloadedEntities.forEach((k,v) -> entitiesNbt.add(k,NbtOps.INSTANCE.createFloat(v)));
-        var chunksNbt = NbtOps.INSTANCE.mapBuilder();
-        chunks.forEach((k,v) -> chunksNbt.add(k,NbtOps.INSTANCE.createFloat(v)));
-        unloadedChunks.forEach((k,v) -> chunksNbt.add(k,NbtOps.INSTANCE.createFloat(v)));
-        nbt.put("entities", entitiesNbt.build(NbtOps.INSTANCE.empty()).getOrThrow());
-        nbt.put("chunks", chunksNbt.build(NbtOps.INSTANCE.empty()).getOrThrow());
-        try {
-            NbtIo.write(nbt,datafile.toPath());
-        }
-        catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+//        NbtCompound nbt = new NbtCompound();
+//        nbt.putFloat("nominalTickRate",nominalTickRate);
+//        var entitiesNbt = NbtOps.INSTANCE.mapBuilder();
+//        entities.forEach((k,v) -> entitiesNbt.add(k,NbtOps.INSTANCE.createFloat(v)));
+//        unloadedEntities.forEach((k,v) -> entitiesNbt.add(k,NbtOps.INSTANCE.createFloat(v)));
+//        var chunksNbt = NbtOps.INSTANCE.mapBuilder();
+//        chunks.forEach((k,v) -> chunksNbt.add(k,NbtOps.INSTANCE.createFloat(v)));
+//        unloadedChunks.forEach((k,v) -> chunksNbt.add(k,NbtOps.INSTANCE.createFloat(v)));
+//        nbt.put("entities", entitiesNbt.build(NbtOps.INSTANCE.empty()).getOrThrow());
+//        nbt.put("chunks", chunksNbt.build(NbtOps.INSTANCE.empty()).getOrThrow());
+//        try {
+//            NbtIo.write(nbt,datafile.toPath());
+//        }
+//        catch (IOException e) {
+//            throw new RuntimeException(e);
+//        }
     }
 
     public void tickRate$addPlayerWithMod(ServerPlayerEntity player) {
-        playersWithMod.add(player);
+        playersWithMod.add(player.getUuid());
     }
 
     public void tickRate$removePlayerWithMod(ServerPlayerEntity player) {
-        playersWithMod.remove(player);
+        playersWithMod.remove(player.getUuid());
     }
 
     public boolean tickRate$hasClientMod(ServerPlayerEntity player) {
-        return playersWithMod.contains(player);
+        return playersWithMod.contains(player.getUuid());
     }
 
-    public void tickRate$sendUpdatePacket() {
-        TickState server1 = tickRate$getServerTickState();
-        Map<String,TickState> entities1 = new HashMap<>();
-        Map<String,TickState> chunks1 = new HashMap<>();
-        this.entities.keySet().forEach(key -> entities1.put(key,getEntityTickState(key)));
-        this.chunks.keySet().forEach(key -> chunks1.put(key,getChunkTickState(key)));
-        this.steps.keySet().forEach(key -> { // for frozen stuff that has no specific rate
-            if(key.contains(":")) chunks1.putIfAbsent(key, getChunkTickState(key)); // only chunk keys have : in them
-            else entities1.putIfAbsent(key, getEntityTickState(key));
-        });
-        this.sprinting.keySet().forEach(key -> { // for sprinting stuff that has no specific rate
-            if(key.contains(":")) chunks1.putIfAbsent(key, getChunkTickState(key)); // only chunk keys have : in them
-            else entities1.putIfAbsent(key, getEntityTickState(key));
-        });
-
-        Map<RegistryKey<World>,TickRateS2CUpdatePayload> worldPayloads = new HashMap<>();
-        server.getWorlds().forEach(serverWorld -> {
-            Map<Integer,TickState> entities2 = new HashMap<>();
-            Map<Long,TickState> chunks2 = new HashMap<>();
-            String worldRegistryId = serverWorld.getRegistryKey().getValue().toString();
-            entities1.forEach((uuid,state) -> {
-                Entity e = serverWorld.getEntity(UUID.fromString(uuid));
-                if(e != null) entities2.put(e.getId(), state);
-            });
-            chunks1.forEach((key,state) -> {
-                String[] arr = key.split("-", 2); // longChunkPos could be -ve itself
-                if(arr[0].equals(worldRegistryId)) chunks2.put(Long.parseLong(arr[1]),state);
-            });
-            worldPayloads.put(serverWorld.getRegistryKey(), new TickRateS2CUpdatePayload(server1, entities2, chunks2));
-        });
-        playersWithMod.forEach(player -> ServerPlayNetworking.send(player, worldPayloads.get(player.getWorld().getRegistryKey())));
-    }
 
     public boolean tickRate$shouldTickEntity(Entity entity) {
+        // check the ticked cache
         String key = entity.getUuidAsString();
-        if(ticked.get(key) != null) return ticked.get(key);
+        Boolean cachedShouldTick = ticked.get(key);
+        if(cachedShouldTick != null) return cachedShouldTick;
+
+        // check server overrides
         if(tickRate$isServerSprint()) return true;
         if(isFrozen()) {
             if(entity instanceof ServerPlayerEntity) return true;
             return isStepping();
         }
 
-        if(sprinting.computeIfPresent(key, (k,v) -> {
-            if(v == 0) return null;
-            return --v;
-        }) != null)
-        {
-            ticked.put(key,true);
-            return true;
+
+        TickState tickState = entity.getAttachedOrElse(TICK_STATE, TickState.DEFAULT);
+        boolean shouldTick;
+
+        if(tickState.sprinting()) {
+            int sprintTicks = entity.getAttached(SPRINT_TICKS);
+            if(sprintTicks == 0) {
+                entity.removeAttached(SPRINT_TICKS);
+                entity.modifyAttached(TICK_STATE, tickState1 -> tickState1.withSprinting(false));
+                numberOfIndividualSprints--;
+                shouldTick = false;
+            }
+            else {
+                entity.modifyAttached(SPRINT_TICKS, sprintTicks1 -> --sprintTicks1);
+                shouldTick = true;
+            }
         }
 
-        if(steps.getOrDefault(key,-1) == 0) return false;
+        else if(tickState.frozen() && !tickState.stepping()) {
+            shouldTick = false;
+        }
 
-        Float tickRate = entities.get(key);
-        boolean shouldTick;
-        if(tickRate != null)
-            shouldTick = internalShouldTick(tickRate);
-        else
-            shouldTick = tickRate$shouldTickChunk(entity.getWorld(),entity.getChunkPos().toLong());
+        else { // stepping OR just regular ticking
+            if(tickState.rate() != -1) shouldTick = internalShouldTick(tickState.rate());
+            else shouldTick = tickRate$shouldTickChunk(entity.getWorld(), entity.getChunkPos());
 
-        steps.computeIfPresent(key,(k,v) -> {
-            if(v > 0 && shouldTick) return --v;
-            return v;
-        });
+            if(shouldTick && tickState.stepping()) {
+                int stepTicks = entity.getAttached(STEP_TICKS);
+                if(stepTicks == 0) {
+                    entity.removeAttached(STEP_TICKS);
+                    entity.modifyAttached(TICK_STATE, tickState1 -> tickState1.withStepping(false));
+                }
+                else {
+                    entity.modifyAttached(STEP_TICKS, stepTicks1 -> --stepTicks1);
+                }
+            }
+        }
 
-        ticked.put(key,shouldTick);
+        ticked.put(key, shouldTick);
         return shouldTick;
     }
 
-    public boolean tickRate$shouldTickChunk(World world, long chunkPos) {
-        String key = world.getRegistryKey().getValue() + "-" + chunkPos;
-        if(ticked.get(key) != null) return ticked.get(key);
+    public boolean tickRate$shouldTickChunk(World world, ChunkPos chunkPos) {
+        // check the ticked cache
+        String key = world.getRegistryKey().getValue() + "-" + chunkPos.toLong();
+        Boolean cachedShouldTick = ticked.get(key);
+        if(cachedShouldTick != null) return cachedShouldTick;
+        else return tickRate$shouldTickChunk((WorldChunk) world.getChunk(chunkPos.x, chunkPos.z, ChunkStatus.FULL, false));
+    }
+
+    public boolean tickRate$shouldTickChunk(WorldChunk chunk) {
+        // check the ticked cache
+        String key = chunk.getWorld().getRegistryKey().getValue() + "-" + chunk.getPos().toLong();
+        Boolean cachedShouldTick = ticked.get(key);
+        if(cachedShouldTick != null) return cachedShouldTick;
+
+        // check server overrides
         if(tickRate$isServerSprint()) return true;
         if(isFrozen()) return isStepping();
 
-        if(sprinting.computeIfPresent(key, (k,v) -> {
-            if(v == 0) return null;
-            return --v;
-        }) != null)
-        {
-            ticked.put(key,true);
-            return true;
+
+        TickState tickState = chunk.getAttachedOrElse(TICK_STATE, TickState.DEFAULT);
+        boolean shouldTick;
+
+        if(tickState.sprinting()) {
+            int sprintTicks = chunk.getAttached(SPRINT_TICKS);
+            if(sprintTicks == 0) {
+                chunk.removeAttached(SPRINT_TICKS);
+                chunk.modifyAttached(TICK_STATE, tickState1 -> tickState1.withSprinting(false));
+                numberOfIndividualSprints--;
+                shouldTick = false;
+            }
+            else {
+                chunk.modifyAttached(SPRINT_TICKS, sprintTicks1 -> --sprintTicks1);
+                shouldTick = true;
+            }
         }
 
-        if(steps.getOrDefault(key,-1) == 0) return false;
+        else if(tickState.frozen() && !tickState.stepping()) {
+            shouldTick = false;
+        }
 
-        Float tickRate = chunks.get(key);
-        boolean shouldTick;
-        if(tickRate == null) // follow nominal rate
-            shouldTick = tickRate$shouldTickServer();
-        else
-            shouldTick = internalShouldTick(tickRate);
+        else { // stepping OR just regular ticking
+            if(tickState.rate() != -1) shouldTick = internalShouldTick(tickState.rate());
+            else shouldTick = tickRate$shouldTickServer();
 
-        steps.computeIfPresent(key,(k,v) -> {
-            if(v > 0 && shouldTick) return --v;
-            return v;
-        });
+            if(shouldTick && tickState.stepping()) {
+                int stepTicks = chunk.getAttached(STEP_TICKS);
+                if(stepTicks == 0) {
+                    chunk.removeAttached(STEP_TICKS);
+                    chunk.modifyAttached(TICK_STATE, tickState1 -> tickState1.withStepping(false));
+                }
+                else {
+                    chunk.modifyAttached(STEP_TICKS, stepTicks1 -> --stepTicks1);
+                }
+            }
+        }
 
-        ticked.put(key,shouldTick);
+        ticked.put(key, shouldTick);
         return shouldTick;
     }
 
     public boolean tickRate$shouldTickServer() {
-        if(tickRate$isServerSprint()) return true;
-        if(isFrozen()) return isStepping();
-        return internalShouldTick(nominalTickRate);
+        Boolean cachedShouldTick = ticked.get("server");
+        if(cachedShouldTick != null) return cachedShouldTick;
+
+        boolean shouldTick;
+        if(tickRate$isServerSprint()) shouldTick = true;
+        else if(isFrozen()) shouldTick = isStepping();
+        else shouldTick = internalShouldTick(tickRate$getServerRate());
+
+        ticked.put("server", shouldTick);
+        return shouldTick;
     }
 
-    public void tickRate$updateChunkLoad(World world, long chunkPos, boolean loaded) {
-        String key = world.getRegistryKey().getValue() + "-" + chunkPos;
+    public void tickRate$updateLoad(AttachmentTarget attachmentTarget, boolean loaded) {
+        TickState tickState = attachmentTarget.getAttachedOrElse(TICK_STATE, TickState.DEFAULT);
         if(loaded) {
-            Float rate = unloadedChunks.get(key);
-            if(rate == null) return;
-            unloadedChunks.remove(key);
-            chunks.put(key,rate);
-            if(rate > tickRate) updateFastestTicker();
+            if(tickState.sprinting()) numberOfIndividualSprints++;
+            updateTickersMap(tickState.rate(), 1);
+            if(tickState.rate() > tickRate) updateFastestTicker();
         }
         else {
-            Float rate = chunks.get(key);
-            sprinting.remove(key); // just remove sprint if it unloads
-            if(rate == null) return;
-            chunks.remove(key);
-            unloadedChunks.put(key,rate);
-            if(rate == tickRate) updateFastestTicker();
+            if(tickState.sprinting()) numberOfIndividualSprints--;
+            updateTickersMap(tickState.rate(), -1);
+            if(tickState.rate() == tickRate) updateFastestTicker();
         }
     }
 
-    public void tickRate$updateEntityLoad(Entity entity, boolean loaded) {
-        String key = entity.getUuidAsString();
-        if(loaded) {
-            Float rate = unloadedEntities.get(key);
-            if(rate == null) return;
-            unloadedEntities.remove(key);
-            entities.put(key,rate);
-            if(rate > tickRate) updateFastestTicker();
-        }
-        else {
-            Float rate = entities.get(key);
-            sprinting.remove(key); // just remove sprint if it unloads
-            if(rate == null) return;
-
-            Entity.RemovalReason reason = entity.getRemovalReason();
-            if(reason != null) {
-                switch (reason) {
-                    case KILLED,DISCARDED -> tickRate$removeEntity(entity,!entity.isPlayer(),true,true);
-                    case UNLOADED_TO_CHUNK,UNLOADED_WITH_PLAYER -> {
-                        tickRate$removeEntity(entity,true,false,true);
-                        unloadedEntities.put(key,rate);
-                    }
-                    case CHANGED_DIMENSION -> {} // NO-OP
-                }
-            }
-            else {
-                tickRate$removeEntity(entity,true,false,true); // removed for no reason?? wtf
-                unloadedEntities.put(key,rate); // just have to save even if that's not the correct thing to do
-            }
-            if(rate == tickRate) updateFastestTicker();
-        }
-    }
-
-    public void tickRate$setServerRate(float rate) {
-        nominalTickRate = rate;
+    public void tickRate$setServerRate(int rate) {
+        server.getOverworld().modifyAttached(TICK_STATE_SERVER, tickState -> {
+            updateTickersMap(tickState.rate(), -1);
+            updateTickersMap(rate, 1);
+            return tickState.withRate(rate);
+        });
         updateFastestTicker();
     }
 
-    public float tickRate$getServerRate() {
-        return nominalTickRate;
+    public int tickRate$getServerRate() {
+        return tickRate$getServerTickState().rate();
     }
 
     public TickState tickRate$getServerTickState() {
-        return new TickState(tickRate$getServerRate(),isFrozen(),isStepping(),tickRate$isServerSprint());
+        return server.getOverworld().getAttached(TICK_STATE_SERVER);
     }
 
     public void tickRate$ticked() {
@@ -318,7 +315,6 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
             if(ticks > sprintAvgTicksPerSecond) {
                 ticks = 1;
                 sprintAvgTicksPerSecond = (int) (TimeHelper.SECOND_IN_NANOS / server.getAverageNanosPerTick());
-                tickRate$sendUpdatePacket();
             }
         }
         else {
@@ -326,162 +322,139 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
             ticks++;
             if(ticks > tickRate) {
                 ticks = 1;
-                tickRate$sendUpdatePacket();
             }
         }
         ticked.clear();
     }
 
     public boolean tickRate$isIndividualSprint() {
-        return !sprinting.isEmpty();
+        return numberOfIndividualSprints > 0;
     }
 
     public boolean tickRate$isServerSprint() {
         return scheduledSprintTicks > 0L;
     }
 
-    public void tickRate$removeEntity(Entity entity, boolean rate, boolean steps, boolean sprint) {
-        String uuid = entity.getUuidAsString();
-        if(rate) entities.remove(uuid);
-        if(steps) this.steps.remove(uuid);
-        if(sprint) sprinting.remove(uuid);
-    }
 
-    public void tickRate$setEntityRate(float rate, Collection<? extends Entity> entities) {
-        if(rate == 0) entities.forEach(e -> this.entities.remove(e.getUuidAsString()));
-        else entities.forEach(e -> this.entities.put(e.getUuidAsString(), rate));
+    // rate == -1 for reset
+    public void tickRate$setRate(int rate, Collection<? extends AttachmentTarget> targets) {
+        targets.forEach(target -> target.modifyAttached(TICK_STATE, tickState -> {
+            tickState = tickState==null ? TickState.DEFAULT : tickState;
+            if(tickState.rate() != -1) updateTickersMap(tickState.rate(), -1);
+            return tickState.withRate(rate);
+        }));
+        updateTickersMap(rate, targets.size());
         updateFastestTicker();
     }
 
-    public float tickRate$getEntityRate(Entity entity) {
-        if(isStepping()) return nominalTickRate; // server step override
-        if(entity.hasVehicle()) return tickRate$getEntityRate(entity.getRootVehicle()); //passengers follow tick rate of root vehicle
-        Float rate = entities.get(entity.getUuidAsString());
-        if(rate != null) return rate;
-        rate = chunks.get(entity.getWorld().getRegistryKey().getValue() + "-" + ChunkPos.toLong(entity.getBlockPos()));
-        if(rate != null) return rate;
-        return nominalTickRate;
+    public void tickRate$setFrozen(boolean frozen, Collection<? extends AttachmentTarget> targets) {
+        targets.forEach(target -> target.modifyAttached(TICK_STATE, tickState -> {
+            tickState = tickState==null ? TickState.DEFAULT : tickState;
+            tickState = tickState.withFrozen(frozen);
+            if(tickState != null && frozen) tickState = tickState.withSprinting(false); // stop any sprints
+            return tickState;
+        }));
     }
 
-    public void tickRate$setEntityFrozen(boolean frozen, Collection<? extends Entity> entities) {
-        if(frozen) {
-            entities.forEach(e -> {
-                steps.put(e.getUuidAsString(),0);
-                sprinting.remove(e.getUuidAsString()); // if sprinting, stop the sprint
+    // steps == 0 for stop
+    public boolean tickRate$step(int steps, Collection<? extends AttachmentTarget> targets) {
+        boolean canStep = targets.stream().allMatch(target -> {
+            TickState tickState = target.getAttachedOrElse(TICK_STATE, TickState.DEFAULT);
+            return tickState.frozen() && !tickState.sprinting(); // must be frozen AND cannot be sprinting
+        });
+
+        if(canStep) {
+            targets.forEach(target -> {
+                target.modifyAttached(TICK_STATE, tickState -> {
+                    tickState = tickState==null ? TickState.DEFAULT : tickState;
+                    return tickState.withStepping(steps > 0);
+                });
+                target.setAttached(STEP_TICKS, steps > 0 ? steps : null);
             });
         }
-        else {
-            entities.forEach(e -> steps.remove(e.getUuidAsString()));
-        }
+
+        return canStep;
     }
 
-    public boolean tickRate$stepEntity(int steps, Collection<? extends Entity> entities) {
-        if(entities.stream().anyMatch(e -> !this.steps.containsKey(e.getUuidAsString()) || this.sprinting.containsKey(e.getUuidAsString()))) {
-            return false; // some are not frozen or are sprinting, error
+    // ticks == 0 for stop
+    public boolean tickRate$sprint(int ticks, Collection<? extends AttachmentTarget> targets) {
+        // cannot be stepping
+        boolean canSprint = targets.stream().noneMatch(target -> target.getAttachedOrElse(TICK_STATE, TickState.DEFAULT).stepping());
+
+        if(canSprint) {
+            targets.forEach(target -> {
+                target.modifyAttached(TICK_STATE, tickState -> {
+                    tickState = tickState==null ? TickState.DEFAULT : tickState;
+                    return tickState.withSprinting(ticks > 0);
+                });
+                target.setAttached(SPRINT_TICKS, ticks > 0 ? ticks : null);
+            });
         }
-        entities.forEach(e -> this.steps.put(e.getUuidAsString(), steps));
-        return true;
+
+        return canSprint;
     }
 
-    public boolean tickRate$sprintEntity(int ticks, Collection<? extends Entity> entities) {
-        if(entities.stream().anyMatch(e -> this.steps.getOrDefault(e.getUuidAsString(),-1) > 0)) {
-            return false; // some are stepping, error
-        }
-        if(ticks == 0) entities.forEach(e -> this.sprinting.remove(e.getUuidAsString()));
-        else entities.forEach(e -> this.sprinting.put(e.getUuidAsString(), ticks));
-        return true;
+    // get tick rates specialised methods
+
+    public int tickRate$getEntityRate(Entity entity) {
+        if(isStepping()) return tickRate$getServerRate(); // server step override
+        if(entity.hasVehicle()) return tickRate$getEntityRate(entity.getRootVehicle()); //passengers follow tick rate of root vehicle
+
+        int rate = entity.getAttachedOrElse(TICK_STATE, TickState.DEFAULT).rate();
+        if(rate != -1) return rate;
+
+        ChunkPos chunkPos = entity.getChunkPos();
+        return tickRate$getChunkRate((WorldChunk) entity.getWorld().getChunk(chunkPos.x, chunkPos.z, ChunkStatus.FULL, false));
     }
+
+    public int tickRate$getChunkRate(WorldChunk chunk) {
+        if(isStepping()) return tickRate$getServerRate(); // server step override
+
+        int rate = chunk.getAttachedOrElse(TICK_STATE, TickState.DEFAULT).rate();
+        if(rate != -1) return rate;
+        return tickRate$getServerRate();
+    }
+
+
+    // get tick state specialised methods
 
     public TickState tickRate$getEntityTickStateShallow(Entity entity) {
-        return getEntityTickState(entity.getUuidAsString());
+        return entity.getAttachedOrElse(TICK_STATE, TickState.DEFAULT);
     }
 
     public TickState tickRate$getEntityTickStateDeep(Entity entity) {
         if(entity.hasVehicle()) return tickRate$getEntityTickStateDeep(entity.getRootVehicle()); // all passengers will follow TPS of the root entity
         TickState state = tickRate$getEntityTickStateShallow(entity);
-        float rate = state.rate();
+        int rate = state.rate();
         TickState serverState = tickRate$getServerTickState();
 
-        if(rate == -1.0f) rate = tickRate$getChunkTickStateDeep(entity.getWorld(), entity.getChunkPos().toLong()).rate();
+        if(rate == -1) rate = tickRate$getChunkTickStateDeep(entity.getWorld(), entity.getChunkPos()).rate();
         if(serverState.frozen() || serverState.sprinting() || serverState.stepping())
-            return new TickState(serverState.stepping() ? serverState.rate() : rate,serverState.frozen(),serverState.stepping(),serverState.sprinting());
-        return new TickState(rate,state.frozen(),state.stepping(),state.sprinting());
+            return serverState.withRate(serverState.stepping() ? serverState.rate() : rate);
+        return state.withRate(rate);
     }
 
-    public void tickRate$setChunkRate(float rate, World world, Collection<ChunkPos> chunks) {
-        if(rate == 0) {
-            chunks.forEach(chunkPos -> {
-                String key = world.getRegistryKey().getValue() + "-" + chunkPos.toLong();
-                this.chunks.remove(key);
-            });
-        }
-        else {
-            chunks.forEach(chunkPos -> this.chunks.put(world.getRegistryKey().getValue() + "-" + chunkPos.toLong(), rate));
-        }
-        updateFastestTicker();
+    public TickState tickRate$getChunkTickStateShallow(World world, ChunkPos chunkPos) {
+        Chunk chunk = world.getChunk(chunkPos.x, chunkPos.z, ChunkStatus.FULL, false);
+        return chunk.getAttachedOrElse(TICK_STATE, TickState.DEFAULT);
     }
 
-    public float tickRate$getChunkRate(World world, long chunkPos) {
-        if(isStepping()) return nominalTickRate; // server step override
-        String key = world.getRegistryKey().getValue() + "-" + chunkPos;
-        Float rate = chunks.get(key);
-        if(rate != null) return rate;
-        return nominalTickRate;
-    }
-
-    public void tickRate$setChunkFrozen(boolean frozen, World world, Collection<ChunkPos> chunks) {
-        if(frozen) {
-            chunks.forEach(chunkPos -> {
-                String key = world.getRegistryKey().getValue() + "-" + chunkPos.toLong();
-                steps.put(key,0);
-                sprinting.remove(key); // if sprinting, stop the sprint
-            });
-        }
-        else {
-            chunks.forEach(chunkPos -> steps.remove(world.getRegistryKey().getValue() + "-" + chunkPos.toLong()));
-        }
-    }
-
-    public boolean tickRate$stepChunk(int steps, World world, Collection<ChunkPos> chunks) {
-        boolean error = chunks.stream().anyMatch(chunkPos -> {
-            String key = world.getRegistryKey().getValue() + "-" + chunkPos.toLong();
-            return !this.steps.containsKey(key) || this.sprinting.containsKey(key);
-        });
-        if(error) return false; // some are not frozen or are sprinting, error
-
-        chunks.forEach(chunkPos -> this.steps.put(world.getRegistryKey().getValue() + "-" + chunkPos.toLong(), steps));
-        return true;
-    }
-
-    public boolean tickRate$sprintChunk(int ticks, World world, Collection<ChunkPos> chunks) {
-        if(chunks.stream().anyMatch(chunkPos -> this.steps.getOrDefault(world.getRegistryKey().getValue() + "-" + chunkPos.toLong(),-1) > 0))
-            return false; // some are stepping, error
-
-        if(ticks == 0) chunks.forEach(chunkPos -> this.sprinting.remove(world.getRegistryKey().getValue() + "-" + chunkPos.toLong()));
-        else chunks.forEach(chunkPos -> this.sprinting.put(world.getRegistryKey().getValue() + "-" + chunkPos.toLong(), ticks));
-        return true;
-    }
-
-    public TickState tickRate$getChunkTickStateShallow(World world, long chunkPos) {
-        return getChunkTickState(world.getRegistryKey().getValue() + "-" + chunkPos);
-    }
-
-    public TickState tickRate$getChunkTickStateDeep(World world, long chunkPos) {
+    public TickState tickRate$getChunkTickStateDeep(World world, ChunkPos chunkPos) {
         TickState state = tickRate$getChunkTickStateShallow(world, chunkPos);
-        float rate = state.rate();
+        int rate = state.rate();
         TickState serverState = tickRate$getServerTickState();
 
-        if(state.rate() == -1.0f) rate = serverState.rate();
+        if(state.rate() == -1) rate = serverState.rate();
         if(serverState.frozen() || serverState.sprinting() || serverState.stepping())
-            return new TickState(serverState.stepping() ? serverState.rate() : rate,serverState.frozen(),serverState.stepping(),serverState.sprinting());
-        return new TickState(rate,state.frozen(),state.stepping(),state.sprinting());
+            return serverState.withRate(serverState.stepping() ? serverState.rate() : rate);
+        return state.withRate(rate);
     }
 
 
     // PRIVATE METHODS
 
     @Unique
-    private boolean internalShouldTick(float tickRate) {
+    private boolean internalShouldTick(int tickRate) {
         // attempt to evenly space out the exact number of ticks
         float fastestTickRate = tickRate$isIndividualSprint() ? sprintAvgTicksPerSecond : this.tickRate;
 
@@ -500,12 +473,8 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     @Unique
     private void updateFastestTicker() {
         if(isStepping()) return;
-        float fastest = 1.0f;
-        fastest = Math.max(fastest, nominalTickRate);
-        for(float rate : entities.values())
-            fastest = Math.max(fastest,rate);
-        for(float rate : chunks.values())
-            fastest = Math.max(fastest,rate);
+
+        int fastest = tickers.firstKey();
         if(fastest != tickRate) {
             setTickRate(fastest);
             ticks = 1; // reset it
@@ -513,21 +482,17 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     }
 
     @Unique
-    private TickState getChunkTickState(String key) {
-        float rate = chunks.getOrDefault(key, -1.0f);
-        boolean frozen = steps.containsKey(key);
-        boolean stepping = frozen && steps.get(key) != 0;
-        boolean sprinting = this.sprinting.containsKey(key);
-        return new TickState(rate,frozen,stepping,sprinting);
-    }
-
-    @Unique
-    private TickState getEntityTickState(String key) {
-        float rate = entities.getOrDefault(key, -1.0f);
-        boolean frozen = steps.containsKey(key);
-        boolean stepping = frozen && steps.get(key) != 0;
-        boolean sprinting = this.sprinting.containsKey(key);
-        return new TickState(rate,frozen,stepping,sprinting);
+    private void updateTickersMap(int rate, int change) {
+        if(change > 0) tickers.merge(rate, change, Integer::sum);
+        else if (change < 0) {
+            tickers.compute(rate, (k,v) -> {
+                if(v == null) throw new IllegalStateException("When removing rate from tickers map, " + rate + " TPS already 0");
+                v += change;
+                if(v < 0) throw new IllegalStateException("When removing rate from tickers map, " + rate + " TPS deducted to below 0 (" + v + ")");
+                return v==0 ? null : v;
+            });
+        }
+        else throw new IllegalArgumentException("change must not be 0");
     }
 
 }

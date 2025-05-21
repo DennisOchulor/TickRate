@@ -48,7 +48,7 @@ public abstract class MinecraftClientMixin {
 	private void render(boolean tick, CallbackInfo ci) {
 		if(!TickRateClientManager.serverHasMod()) return;
 		RenderTickCounter renderTickCounter = getRenderTickCounter();
-		int playerChunkI = TickRateClientManager.getChunkTickDelta(this.player.getChunkPos().toLong()).i();
+		int playerChunkI = TickRateClientManager.getChunkTickDelta(this.player.getChunkPos()).i();
 		for(int i=0; i<10; i++) { // these things need to tick all 10 times
 			renderTickCounter.tickRate$setMovingI(i);
 			this.world.tickEntities();

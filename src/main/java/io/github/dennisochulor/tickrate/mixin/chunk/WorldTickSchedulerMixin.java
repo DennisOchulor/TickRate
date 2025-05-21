@@ -8,6 +8,7 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.objects.ObjectIterator;
 import net.minecraft.server.ServerTickManager;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.tick.ChunkTickScheduler;
 import net.minecraft.world.tick.OrderedTick;
@@ -46,13 +47,13 @@ public class WorldTickSchedulerMixin<T> implements TickRateWorldTickScheduler {
             ChunkTickScheduler<T> chunkTickScheduler = chunkTickSchedulers.get(l);
             ServerTickManager tickManager = (ServerTickManager) world.getTickManager();
             chunkTickScheduler.tickRate$setServerTime(time);
-            TickState tickState = tickManager.tickRate$getChunkTickStateShallow(world,l);
-            if(tickState.rate() == -1.0f && !tickState.frozen() && !tickState.sprinting()) {
+            TickState tickState = tickManager.tickRate$getChunkTickStateShallow(world, new ChunkPos(l));
+            if(tickState.rate() == -1 && !tickState.frozen() && !tickState.sprinting()) {
                 chunkTickScheduler.tickRate$toggleMode(true);
             }
             else {
                 chunkTickScheduler.tickRate$toggleMode(false);
-                if(tickManager.tickRate$shouldTickChunk(world,l)) {
+                if(tickManager.tickRate$shouldTickChunk(world,new ChunkPos(l))) {
                     List<OrderedTick<T>> list = chunkTickScheduler.tickRate$tick();
                     this.tickableTicks.addAll(list);
                 }

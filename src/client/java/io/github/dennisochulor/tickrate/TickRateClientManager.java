@@ -1,9 +1,12 @@
 package io.github.dennisochulor.tickrate;
 
+import static io.github.dennisochulor.tickrate.TickRateAttachments.*;
+
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.tick.TickManager;
 
 import java.util.HashMap;
@@ -14,19 +17,8 @@ public class TickRateClientManager {
     private TickRateClientManager() {}
 
     private static boolean serverHasMod = false;
-    private static TickState serverState;
-    private static final Map<Integer,TickState> entities = new HashMap<>(); // only has entities for current client world
-    private static final Map<Long,TickState> chunks = new HashMap<>(); // only has chunks for current client world
-    private static final Map<Integer,TickDeltaInfo> entityCache = new HashMap<>();
-    private static final Map<Long,TickDeltaInfo> chunkCache = new HashMap<>();
-
-    public static void update(TickRateS2CUpdatePayload payload) {
-        serverState = payload.server();
-        entities.clear();
-        chunks.clear();
-        entities.putAll(payload.entities());
-        chunks.putAll(payload.chunks());
-    }
+    private static final Map<Integer, TickDeltaInfo> entityCache = new HashMap<>();
+    private static final Map<Long, TickDeltaInfo> chunkCache = new HashMap<>();
 
     // called in RenderTickCounterDynamicMixin
     public static void clearCache() {
@@ -36,11 +28,6 @@ public class TickRateClientManager {
 
     public static void setServerHasMod(boolean serverHasMod) {
         TickRateClientManager.serverHasMod = serverHasMod;
-        if(!serverHasMod) {
-            serverState = null;
-            entities.clear();
-            chunks.clear();
-        }
     }
 
     public static boolean serverHasMod() {
@@ -48,7 +35,7 @@ public class TickRateClientManager {
     }
 
     public static float getMillisPerServerTick() {
-        return 1000.0f / serverState.rate();
+        return 1000.0f / getServerState().rate();
     }
 
     public static TickDeltaInfo getEntityTickDelta(Entity entity) {
@@ -56,6 +43,8 @@ public class TickRateClientManager {
         if(info != null) return info;
 
         RenderTickCounter renderTickCounter = MinecraftClient.getInstance().getRenderTickCounter();
+        TickState serverState = getServerState();
+
         if(!serverHasMod) info = TickDeltaInfo.ofServer(false);
         else if(MinecraftClient.getInstance().isPaused()) info = TickDeltaInfo.NO_ANIMATE;
         else if(entity instanceof PlayerEntity && serverState.frozen()) info = TickDeltaInfo.ofServer(true); // tick freeze doesn't affect players
@@ -75,8 +64,8 @@ public class TickRateClientManager {
         return info;
     }
 
-    public static TickDeltaInfo getChunkTickDelta(long chunkPos) {
-        TickDeltaInfo info = chunkCache.get(chunkPos);
+    public static TickDeltaInfo getChunkTickDelta(ChunkPos chunkPos) {
+        TickDeltaInfo info = chunkCache.get(chunkPos.toLong());
         if(info != null) return info;
 
         RenderTickCounter renderTickCounter = MinecraftClient.getInstance().getRenderTickCounter();
@@ -86,46 +75,48 @@ public class TickRateClientManager {
             TickState state = getChunkState(chunkPos);
             if(state.sprinting()) info = renderTickCounter.tickRate$getSpecificTickDeltaInfo(20); // animate at max 20 TPS
             else if(state.frozen() && !state.stepping()) info = TickDeltaInfo.NO_ANIMATE;
-            else info = renderTickCounter.tickRate$getSpecificTickDeltaInfo((int) state.rate());
+            else info = renderTickCounter.tickRate$getSpecificTickDeltaInfo(state.rate());
         }
 
-        chunkCache.put(chunkPos, info);
+        chunkCache.put(chunkPos.toLong(), info);
         return info;
     }
 
     public static TickState getEntityState(Entity entity) {
         if(entity.hasVehicle()) return getEntityState(entity.getRootVehicle()); // all passengers will follow TPS of the root entity
-        TickState state = entities.get(entity.getId());
-        if(state == null) return getChunkState(entity.getChunkPos().toLong());
+        TickState state = entity.getAttached(TICK_STATE);
+        if(state == null) return getChunkState(entity.getChunkPos());
 
-        float rate = state.rate();
-        if(rate == -1.0f) rate = getChunkState(entity.getChunkPos().toLong()).rate();
+        int rate = state.rate();
+        TickState serverState = getServerState();
+        if(rate == -1) rate = getChunkState(entity.getChunkPos()).rate();
         if(serverState.frozen() || serverState.sprinting() || serverState.stepping())
-            return new TickState(serverState.stepping() ? serverState.rate() : rate,serverState.frozen(),serverState.stepping(),serverState.sprinting());
-        return new TickState(rate,state.frozen(),state.stepping(),state.sprinting());
+            return serverState.withRate(serverState.stepping() ? serverState.rate() : rate);
+        return state.withRate(rate);
     }
 
     /**
      * World is assumed to be the {@link MinecraftClient#world}
      */
-    public static TickState getChunkState(long chunkPos) {
+    public static TickState getChunkState(ChunkPos chunkPos) {
         if(!serverHasMod) return getServerState();
-        TickState state = chunks.get(chunkPos);
-        if(state == null) return serverState;
+        TickState state = MinecraftClient.getInstance().world.getChunk(chunkPos.x, chunkPos.z).getAttached(TICK_STATE);
+        if(state == null) return getServerState();
 
-        float rate = state.rate();
-        if(state.rate() == -1.0f) rate = serverState.rate();
+        int rate = state.rate();
+        TickState serverState = getServerState();
+        if(state.rate() == -1) rate = serverState.rate();
         if(serverState.frozen() || serverState.sprinting() || serverState.stepping())
-            return new TickState(serverState.stepping() ? serverState.rate() : rate,serverState.frozen(),serverState.stepping(),serverState.sprinting());
-        return new TickState(rate,state.frozen(),state.stepping(),state.sprinting());
+            return serverState.withRate(serverState.stepping() ? serverState.rate() : rate);
+        return state.withRate(rate);
     }
 
     public static TickState getServerState() {
         if(!serverHasMod) {
             TickManager tickManager = MinecraftClient.getInstance().world.getTickManager();
-            return new TickState(tickManager.getTickRate(),tickManager.isFrozen(),tickManager.isStepping(),false); // Client does not have any sprint info
+            return new TickState((int) tickManager.getTickRate(),tickManager.isFrozen(),tickManager.isStepping(),false); // Client does not have any sprint info
         }
-        return serverState;
+        return MinecraftClient.getInstance().world.getAttached(TICK_STATE_SERVER);
     }
 
 }

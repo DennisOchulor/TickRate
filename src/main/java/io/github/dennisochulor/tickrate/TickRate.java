@@ -5,6 +5,7 @@ import io.github.dennisochulor.tickrate.test.Test;
 import net.fabricmc.api.ModInitializer;
 
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
@@ -14,6 +15,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.command.argument.EntityArgumentType;
 import net.minecraft.server.ServerTickManager;
 import net.minecraft.server.command.CommandManager;
+import net.minecraft.server.world.ChunkLevelType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,29 +30,25 @@ public class TickRate implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		LOGGER.info("Initializing tickrate!");
+		TickRateAttachments.init();
 		PayloadTypeRegistry.playS2C().register(TickRateHelloPayload.ID, TickRateHelloPayload.CODEC);
 		PayloadTypeRegistry.playC2S().register(TickRateHelloPayload.ID, TickRateHelloPayload.CODEC);
-		PayloadTypeRegistry.playS2C().register(TickRateS2CUpdatePayload.ID, TickRateS2CUpdatePayload.CODEC);
 
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-			LOGGER.debug("send tickrate Hello");
 			sender.sendPacket(new TickRateHelloPayload());
 		});
 
 		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
-			LOGGER.debug("disconnect tickrate");
 			server.getTickManager().tickRate$removePlayerWithMod(handler.getPlayer());
 		});
 
 		ServerPlayNetworking.registerGlobalReceiver(TickRateHelloPayload.ID, ((payload, context) -> {
-			LOGGER.debug("received TickRate Hello");
 			ServerTickManager tickManager = context.server().getTickManager();
 			tickManager.tickRate$addPlayerWithMod(context.player());
-			tickManager.tickRate$sendUpdatePacket();
 		}));
 
 		ServerLifecycleEvents.SERVER_STARTING.register(server -> {
-			server.getTickManager().tickRate$serverStarted();
+			server.getTickManager().tickRate$serverStarting();
 			TickRateAPIImpl.init(server);
 		});
 
@@ -63,13 +61,20 @@ public class TickRate implements ModInitializer {
 		// called when entity's chunk level becomes ACCESSIBLE (at least FULL) if it was previously INACCESSIBLE
 		ServerEntityEvents.ENTITY_LOAD.register((entity,serverWorld) -> {
 			ServerTickManager tickManager = (ServerTickManager) serverWorld.getTickManager();
-			tickManager.tickRate$updateEntityLoad(entity,true);
+			tickManager.tickRate$updateLoad(entity, true);
 		});
 
 		// called when entity's chunk level becomes INACCESSIBLE
 		ServerEntityEvents.ENTITY_UNLOAD.register((entity,serverWorld) -> {
 			ServerTickManager tickManager = (ServerTickManager) serverWorld.getTickManager();
-			tickManager.tickRate$updateEntityLoad(entity,false);
+			tickManager.tickRate$updateLoad(entity, false);
+		});
+
+		ServerChunkEvents.CHUNK_LEVEL_TYPE_CHANGE.register((serverWorld, worldChunk, oldLevelType, newLevelType) -> {
+			ServerTickManager tickManager = (ServerTickManager) serverWorld.getTickManager();
+			// consider chunk LOADED if FULL, BLOCK_TICKING, ENTITY_TICKING
+			// consider chunk UNLOADED if INACCESSIBLE
+			tickManager.tickRate$updateLoad(worldChunk, newLevelType.isAfter(ChunkLevelType.FULL));
 		});
 
 		// TickRate testing command

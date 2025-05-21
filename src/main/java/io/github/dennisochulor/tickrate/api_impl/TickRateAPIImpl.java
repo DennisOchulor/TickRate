@@ -12,6 +12,7 @@ import net.minecraft.world.World;
 import net.minecraft.world.chunk.ChunkStatus;
 import net.minecraft.world.chunk.WorldChunk;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -55,14 +56,19 @@ public final class TickRateAPIImpl implements TickRateAPI {
         });
     }
 
-    private void chunkCheck(World world, Collection<ChunkPos> chunks) throws IllegalArgumentException {
+    private List<WorldChunk> chunkCheck(World world, Collection<ChunkPos> chunks) throws IllegalArgumentException {
+        List<WorldChunk> worldChunks = new ArrayList<>();
+
         Objects.requireNonNull(world, "world cannot be null!");
         Objects.requireNonNull(chunks, "chunks cannot be null!");
         chunks.forEach(chunkPos -> {
             WorldChunk worldChunk = (WorldChunk) world.getChunk(chunkPos.x,chunkPos.z,ChunkStatus.FULL,false);
             if(worldChunk==null || worldChunk.getLevelType() == ChunkLevelType.INACCESSIBLE)
                 throw new IllegalArgumentException("Some of the specified chunks are not loaded!");
+            worldChunks.add(worldChunk);
         });
+
+        return worldChunks;
     }
 
 
@@ -78,7 +84,6 @@ public final class TickRateAPIImpl implements TickRateAPI {
         if(rate < 1) throw new IllegalArgumentException("rate must be >= 1");
         int roundRate = Math.round(rate);
         tickManager.tickRate$setServerRate(roundRate);
-        tickManager.tickRate$sendUpdatePacket();
         TickRateEvents.SERVER_RATE.invoker().onServerRate(server, roundRate);
     }
 
@@ -89,7 +94,6 @@ public final class TickRateAPIImpl implements TickRateAPI {
             if(tickManager.isStepping()) tickManager.stopStepping();
         }
         tickManager.setFrozen(freeze);
-        tickManager.tickRate$sendUpdatePacket();
         TickRateEvents.SERVER_FREEZE.invoker().onServerFreeze(server, freeze);
     }
 
@@ -102,8 +106,6 @@ public final class TickRateAPIImpl implements TickRateAPI {
             if(!tickManager.step(stepTicks)) throw new IllegalStateException("server must be frozen to step!");
             TickRateEvents.SERVER_STEP.invoker().onServerStep(server, stepTicks);
         }
-
-        tickManager.tickRate$sendUpdatePacket();
     }
 
     @Override
@@ -115,8 +117,6 @@ public final class TickRateAPIImpl implements TickRateAPI {
             tickManager.startSprint(sprintTicks);
             TickRateEvents.SERVER_SPRINT.invoker().onServerSprint(server, sprintTicks);
         }
-
-        tickManager.tickRate$sendUpdatePacket();
     }
 
 
@@ -133,8 +133,7 @@ public final class TickRateAPIImpl implements TickRateAPI {
         entityCheck(entities);
 
         int roundRate = Math.round(rate);
-        tickManager.tickRate$setEntityRate(roundRate, entities);
-        tickManager.tickRate$sendUpdatePacket();
+        tickManager.tickRate$setRate(roundRate==0 ? -1 : roundRate, entities);
         entities.forEach(entity -> TickRateEvents.ENTITY_RATE.invoker().onEntityRate(entity, roundRate));
     }
 
@@ -147,8 +146,7 @@ public final class TickRateAPIImpl implements TickRateAPI {
     public void freezeEntity(Collection<? extends Entity> entities, boolean freeze) {
         entityCheck(entities);
 
-        tickManager.tickRate$setEntityFrozen(freeze, entities);
-        tickManager.tickRate$sendUpdatePacket();
+        tickManager.tickRate$setFrozen(freeze, entities);
         entities.forEach(entity -> TickRateEvents.ENTITY_FREEZE.invoker().onEntityFreeze(entity, freeze));
     }
 
@@ -162,8 +160,7 @@ public final class TickRateAPIImpl implements TickRateAPI {
         if(stepTicks < 0) throw new IllegalArgumentException("stepTicks must be >= 0");
         entityCheck(entities);
 
-        if(tickManager.tickRate$stepEntity(stepTicks, entities)) {
-            tickManager.tickRate$sendUpdatePacket();
+        if(tickManager.tickRate$step(stepTicks, entities)) {
             if(stepTicks != 0) entities.forEach(entity -> TickRateEvents.ENTITY_STEP.invoker().onEntityStep(entity, stepTicks));
         }
         else throw new IllegalArgumentException("All of the specified entities must be frozen first and cannot be sprinting!");
@@ -179,8 +176,7 @@ public final class TickRateAPIImpl implements TickRateAPI {
         if(sprintTicks < 0) throw new IllegalArgumentException("sprintTicks must be >= 0");
         entityCheck(entities);
 
-        if(tickManager.tickRate$sprintEntity(sprintTicks, entities)) {
-            tickManager.tickRate$sendUpdatePacket();
+        if(tickManager.tickRate$sprint(sprintTicks, entities)) {
             if(sprintTicks != 0) entities.forEach(entity -> TickRateEvents.ENTITY_SPRINT.invoker().onEntitySprint(entity, sprintTicks));
         }
         else throw new IllegalArgumentException("All of the specified entities must not be stepping!");
@@ -194,19 +190,17 @@ public final class TickRateAPIImpl implements TickRateAPI {
 
 
     @Override
-    public float queryChunk(World world, ChunkPos chunk) {
-        chunkCheck(world, List.of(chunk));
-        return tickManager.tickRate$getChunkRate(world, chunk.toLong());
+    public float queryChunk(World world, ChunkPos chunkPos) {
+        return tickManager.tickRate$getChunkRate(chunkCheck(world, List.of(chunkPos)).getFirst());
     }
 
     @Override
     public void rateChunk(World world, Collection<ChunkPos> chunks, float rate) {
         if(rate < 1.0f && rate != 0.0f) throw new IllegalArgumentException("rate must be >= 1 or exactly 0");
-        chunkCheck(world, chunks);
+        List<WorldChunk> worldChunks = chunkCheck(world, chunks);
 
         int roundRate = Math.round(rate);
-        tickManager.tickRate$setChunkRate(rate, world, chunks);
-        tickManager.tickRate$sendUpdatePacket();
+        tickManager.tickRate$setRate(roundRate==0 ? -1 : roundRate, worldChunks);
         chunks.forEach(chunkPos -> TickRateEvents.CHUNK_RATE.invoker().onChunkRate(world, chunkPos, roundRate));
     }
 
@@ -217,10 +211,9 @@ public final class TickRateAPIImpl implements TickRateAPI {
 
     @Override
     public void freezeChunk(World world, Collection<ChunkPos> chunks, boolean freeze) {
-        chunkCheck(world, chunks);
+        List<WorldChunk> worldChunks =  chunkCheck(world, chunks);
 
-        tickManager.tickRate$setChunkFrozen(freeze, world, chunks);
-        tickManager.tickRate$sendUpdatePacket();
+        tickManager.tickRate$setFrozen(freeze, worldChunks);
         chunks.forEach(chunkPos -> TickRateEvents.CHUNK_FREEZE.invoker().onChunkFreeze(world, chunkPos, freeze));
     }
 
@@ -232,10 +225,9 @@ public final class TickRateAPIImpl implements TickRateAPI {
     @Override
     public void stepChunk(World world, Collection<ChunkPos> chunks, int stepTicks) {
         if(stepTicks < 0) throw new IllegalArgumentException("stepTicks must be >= 0");
-        chunkCheck(world, chunks);
+        List<WorldChunk> worldChunks =  chunkCheck(world, chunks);
 
-        if(tickManager.tickRate$stepChunk(stepTicks, world, chunks)) {
-            tickManager.tickRate$sendUpdatePacket();
+        if(tickManager.tickRate$step(stepTicks, worldChunks)) {
             if(stepTicks != 0) chunks.forEach(chunkPos -> TickRateEvents.CHUNK_STEP.invoker().onChunkStep(world, chunkPos, stepTicks));
         }
         else throw new IllegalArgumentException("All of the specified chunks must be frozen first and cannot be sprinting!");
@@ -249,10 +241,9 @@ public final class TickRateAPIImpl implements TickRateAPI {
     @Override
     public void sprintChunk(World world, Collection<ChunkPos> chunks, int sprintTicks) {
         if(sprintTicks < 0) throw new IllegalArgumentException("sprintTicks must be >= 0");
-        chunkCheck(world, chunks);
+        List<WorldChunk> worldChunks = chunkCheck(world, chunks);
 
-        if(tickManager.tickRate$sprintChunk(sprintTicks, world, chunks)) {
-            tickManager.tickRate$sendUpdatePacket();
+        if(tickManager.tickRate$sprint(sprintTicks, worldChunks)) {
             if(sprintTicks != 0) chunks.forEach(chunkPos -> TickRateEvents.CHUNK_SPRINT.invoker().onChunkSprint(world, chunkPos, sprintTicks));
         }
         else throw new IllegalArgumentException("All of the specified chunks must not be stepping!");

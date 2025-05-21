@@ -20,7 +20,7 @@ public class ParticleManagerMixin {
     private void tickParticle(Particle particle) {
         if(TickRateClientManager.serverHasMod()) {
             RenderTickCounter renderTickCounter = MinecraftClient.getInstance().getRenderTickCounter();
-            if(renderTickCounter.tickRate$getMovingI() < TickRateClientManager.getChunkTickDelta(ChunkPos.toLong(particle.tickRate$getBlockPos())).i()) {
+            if(renderTickCounter.tickRate$getMovingI() < TickRateClientManager.getChunkTickDelta(new ChunkPos(particle.tickRate$getBlockPos())).i()) {
                 particle.tick();
             }
         }
@@ -31,7 +31,7 @@ public class ParticleManagerMixin {
     public void tick$emitters(EmitterParticle particle) {
         if(TickRateClientManager.serverHasMod()) {
             RenderTickCounter renderTickCounter = MinecraftClient.getInstance().getRenderTickCounter();
-            if(renderTickCounter.tickRate$getMovingI() < TickRateClientManager.getChunkTickDelta(ChunkPos.toLong(particle.tickRate$getBlockPos())).i()) {
+            if(renderTickCounter.tickRate$getMovingI() < TickRateClientManager.getChunkTickDelta(new ChunkPos(particle.tickRate$getBlockPos())).i()) {
                 particle.tick();
             }
         }
@@ -40,7 +40,7 @@ public class ParticleManagerMixin {
 
     @Redirect(method = "renderParticles", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/particle/Particle;buildGeometry(Lnet/minecraft/client/render/VertexConsumer;Lnet/minecraft/client/render/Camera;F)V"))
     private void renderParticles(Particle particle, VertexConsumer vertexConsumer, Camera camera, float tickDelta) {
-        particle.buildGeometry(vertexConsumer, camera, TickRateClientManager.getChunkTickDelta(ChunkPos.toLong(particle.tickRate$getBlockPos())).tickDelta());
+        particle.buildGeometry(vertexConsumer, camera, TickRateClientManager.getChunkTickDelta(new ChunkPos(particle.tickRate$getBlockPos())).tickDelta());
     }
 
 }
