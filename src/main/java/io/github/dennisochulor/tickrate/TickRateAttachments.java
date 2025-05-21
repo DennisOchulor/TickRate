@@ -22,6 +22,7 @@ public class TickRateAttachments {
             builder ->
                     builder.persistent(TickState.CODEC)
                             .syncWith(TickState.PACKET_CODEC, AttachmentSyncPredicate.all())
+                            .initializer(() -> TickState.ofRate(20))
     );
 
     public static final AttachmentType<Integer> STEP_TICKS = AttachmentRegistry.create(Identifier.of(TickRate.MOD_ID, "step_ticks"),

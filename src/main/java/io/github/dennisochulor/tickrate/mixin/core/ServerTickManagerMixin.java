@@ -90,11 +90,8 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     }
 
     public void tickRate$serverStarting() {
-        server.getOverworld().modifyAttached(TICK_STATE_SERVER, tickState -> {
-            tickState = tickState==null ? TickState.DEFAULT : tickState;
-            updateTickersMap(tickState.rate(), 1);
-            return tickState;
-        });
+        TickState serverState = server.getOverworld().getAttachedOrCreate(TICK_STATE_SERVER);
+        updateTickersMap(serverState.rate(), 1);
 //        datafile = server.getSavePath(WorldSavePath.ROOT).resolve("data/TickRateData.nbt").toFile();
 //        if(datafile.exists()) {
 //            try {
@@ -385,6 +382,10 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
             targets.forEach(target -> {
                 target.modifyAttached(TICK_STATE, tickState -> {
                     tickState = tickState==null ? TickState.DEFAULT : tickState;
+
+                    if(tickState.sprinting() && ticks == 0) numberOfIndividualSprints--;
+                    else if(!tickState.sprinting() && ticks > 0) numberOfIndividualSprints++;
+
                     return tickState.withSprinting(ticks > 0);
                 });
                 target.setAttached(SPRINT_TICKS, ticks > 0 ? ticks : null);
