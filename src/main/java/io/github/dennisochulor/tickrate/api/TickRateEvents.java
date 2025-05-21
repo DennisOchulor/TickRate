@@ -4,8 +4,6 @@ import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.EventFactory;
 import net.minecraft.entity.Entity;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.world.World;
 import net.minecraft.world.chunk.WorldChunk;
 
 
