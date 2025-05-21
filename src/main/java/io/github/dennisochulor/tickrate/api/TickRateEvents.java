@@ -6,6 +6,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
+import net.minecraft.world.chunk.WorldChunk;
 
 
 /**
@@ -99,36 +100,36 @@ public interface TickRateEvents {
      * Called when the tick rate of a chunk is modified. <p>
      * If the chunk's rate has been reset, <code>rate</code> will be 0.
      */
-    Event<ChunkRate> CHUNK_RATE = EventFactory.createArrayBacked(ChunkRate.class, callbacks -> ((world, chunkPos, rate) -> {
+    Event<ChunkRate> CHUNK_RATE = EventFactory.createArrayBacked(ChunkRate.class, callbacks -> ((chunk, rate) -> {
         for (ChunkRate callback : callbacks) {
-            callback.onChunkRate(world, chunkPos, rate);
+            callback.onChunkRate(chunk, rate);
         }
     }));
 
     /**
      * Called when a chunk is frozen or unfrozen.
      */
-    Event<ChunkFreeze> CHUNK_FREEZE = EventFactory.createArrayBacked(ChunkFreeze.class, callbacks -> ((world, chunkPos, freeze) -> {
+    Event<ChunkFreeze> CHUNK_FREEZE = EventFactory.createArrayBacked(ChunkFreeze.class, callbacks -> ((chunk, freeze) -> {
         for (ChunkFreeze callback : callbacks) {
-            callback.onChunkFreeze(world, chunkPos, freeze);
+            callback.onChunkFreeze(chunk, freeze);
         }
     }));
 
     /**
      * Called when a chunk starts stepping.
      */
-    Event<ChunkStep> CHUNK_STEP = EventFactory.createArrayBacked(ChunkStep.class, callbacks -> ((world, chunkPos, stepTicks) -> {
+    Event<ChunkStep> CHUNK_STEP = EventFactory.createArrayBacked(ChunkStep.class, callbacks -> ((chunk, stepTicks) -> {
         for (ChunkStep callback : callbacks) {
-            callback.onChunkStep(world, chunkPos, stepTicks);
+            callback.onChunkStep(chunk, stepTicks);
         }
     }));
 
     /**
      * Called when a chunk starts sprinting.
      */
-    Event<ChunkSprint> CHUNK_SPRINT = EventFactory.createArrayBacked(ChunkSprint.class, callbacks -> ((world, chunkPos, sprintTicks) -> {
+    Event<ChunkSprint> CHUNK_SPRINT = EventFactory.createArrayBacked(ChunkSprint.class, callbacks -> ((chunk, sprintTicks) -> {
         for (ChunkSprint callback : callbacks) {
-            callback.onChunkSprint(world, chunkPos, sprintTicks);
+            callback.onChunkSprint(chunk, sprintTicks);
         }
     }));
 
@@ -182,22 +183,22 @@ public interface TickRateEvents {
         /**
          * If the chunk's rate has been reset, <code>rate</code> will be 0.
          */
-        void onChunkRate(World world, ChunkPos chunkPos, float rate);
+        void onChunkRate(WorldChunk chunk, float rate);
     }
 
     @FunctionalInterface
     interface ChunkFreeze {
-        void onChunkFreeze(World world, ChunkPos chunkPos, boolean freeze);
+        void onChunkFreeze(WorldChunk chunk, boolean freeze);
     }
 
     @FunctionalInterface
     interface ChunkStep {
-        void onChunkStep(World world, ChunkPos chunkPos, int stepTicks);
+        void onChunkStep(WorldChunk chunk, int stepTicks);
     }
 
     @FunctionalInterface
     interface ChunkSprint {
-        void onChunkSprint(World world, ChunkPos chunkPos, int sprintTicks);
+        void onChunkSprint(WorldChunk chunk, int sprintTicks);
     }
 
 }

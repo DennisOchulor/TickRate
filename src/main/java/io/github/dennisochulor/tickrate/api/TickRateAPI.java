@@ -9,7 +9,7 @@ import net.minecraft.world.World;
 import java.util.Collection;
 
 /**
- * API v2 for TickRate v0.4.1 <p>
+ * API v3 for TickRate v0.5.0 <p>
  * This class represents the sole entrypoint for TickRate's API. This API should only be used on the logical server.
  *
  * @see TickRateEvents
