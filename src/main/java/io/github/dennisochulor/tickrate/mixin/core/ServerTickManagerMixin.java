@@ -439,13 +439,17 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     public TickState tickRate$getEntityTickStateDeep(Entity entity) {
         if(entity.hasVehicle()) return tickRate$getEntityTickStateDeep(entity.getRootVehicle()); // all passengers will follow TPS of the root entity
         TickState state = tickRate$getEntityTickStateShallow(entity);
-        int rate = state.rate();
         TickState serverState = tickRate$getServerTickState();
 
-        if(rate == -1) rate = tickRate$getChunkTickStateDeep(entity.getWorld(), entity.getChunkPos()).rate();
+        if(state.rate() == -1) {
+            TickState chunkState = tickRate$getChunkTickStateDeep(entity.getWorld(), entity.getChunkPos());;
+            if(state.equals(TickState.DEFAULT)) state = chunkState;
+            else state = state.withRate(chunkState.rate());
+        }
         if(serverState.frozen() || serverState.sprinting() || serverState.stepping())
-            return serverState.withRate(serverState.stepping() ? serverState.rate() : rate);
-        return state.withRate(rate);
+            state = serverState.withRate(serverState.stepping() ? serverState.rate() : state.rate());
+
+        return state;
     }
 
     public TickState tickRate$getChunkTickStateShallow(World world, ChunkPos chunkPos) {
