@@ -48,7 +48,10 @@ public class TickRate implements ModInitializer {
 			tickManager.tickRate$addPlayerWithMod(context.player());
 		}));
 
-		ServerLifecycleEvents.SERVER_STARTING.register(TickRateAPIImpl::init);
+		ServerLifecycleEvents.SERVER_STARTING.register(server -> {
+			server.getTickManager().tickRate$serverStarting();
+			TickRateAPIImpl.init(server);
+		});
 
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
 			server.getTickManager().tickRate$serverStarted();
