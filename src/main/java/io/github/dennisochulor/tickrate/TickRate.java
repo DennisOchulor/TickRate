@@ -5,6 +5,7 @@ import io.github.dennisochulor.tickrate.test.Test;
 import net.fabricmc.api.ModInitializer;
 
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -63,6 +64,14 @@ public class TickRate implements ModInitializer {
 		ServerEntityEvents.ENTITY_LOAD.register((entity,serverWorld) -> {
 			ServerTickManager tickManager = (ServerTickManager) serverWorld.getTickManager();
 			tickManager.tickRate$updateLoad(entity, true);
+		});
+
+		/* During player repsawns, attachments are only transferred when AFTER_RESPAWN is called.
+		 *  ENTITY_LOAD is called before AFTER_RESPAWN, so attachment data is not up to date.
+		 */
+		ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {
+			ServerTickManager tickManager = (ServerTickManager) oldPlayer.getWorld().getTickManager();
+			tickManager.tickRate$updateLoad(oldPlayer, true); // use the oldPlayer cause it is not guaranteed the attachment transfer has already happened.
 		});
 
 		// called when entity's chunk level becomes INACCESSIBLE
