@@ -442,7 +442,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         TickState serverState = tickRate$getServerTickState();
 
         if(state.rate() == -1) {
-            TickState chunkState = tickRate$getChunkTickStateDeep(entity.getWorld(), entity.getChunkPos());;
+            TickState chunkState = tickRate$getChunkTickStateDeep(entity.getWorld(), entity.getChunkPos());
             if(state.equals(TickState.DEFAULT)) state = chunkState;
             else state = state.withRate(chunkState.rate());
         }
