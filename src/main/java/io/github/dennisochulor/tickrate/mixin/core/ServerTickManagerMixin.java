@@ -44,13 +44,16 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     @Inject(method = "step", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickManager;sendStepPacket()V"))
     public void serverTickManager$step(int ticks, CallbackInfoReturnable<Boolean> cir) { // for server step start
         this.stepTicks++; // for some reason, the first tick is always skipped. so artificially add one :P
-        setTickRate(server.getOverworld().getAttached(TICK_STATE_SERVER).rate());
-        server.getOverworld().modifyAttached(TICK_STATE_SERVER, tickState -> tickState.withStepping(true));
+        TickState state = server.getOverworld().getAttached(TICK_STATE_SERVER);
+        setTickRate(state.rate());
+        TickState newState = state.withStepping(true);
+        server.getWorlds().forEach(serverWorld -> serverWorld.setAttached(TICK_STATE_SERVER, newState));
     }
 
     @Inject(method = "stopStepping", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickManager;sendStepPacket()V"))
     public void stopStepping(CallbackInfoReturnable<Boolean> cir) { // for server step manual stop
-        server.getOverworld().modifyAttached(TICK_STATE_SERVER, tickState -> tickState.withStepping(false));
+        TickState newState = server.getOverworld().getAttached(TICK_STATE_SERVER).withStepping(false);
+        server.getWorlds().forEach(serverWorld -> serverWorld.setAttached(TICK_STATE_SERVER, newState));
         updateFastestTicker();
     }
 
@@ -61,24 +64,27 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
             this.stepTicks--;
             if(this.stepTicks == 0) { // for natural server step end
                 updateFastestTicker();
-                server.getOverworld().modifyAttached(TICK_STATE_SERVER, tickState -> tickState.withStepping(false)); // tell client to stop stepping
-            }
+                TickState newState = server.getOverworld().getAttached(TICK_STATE_SERVER).withStepping(false);
+                server.getWorlds().forEach(serverWorld -> serverWorld.setAttached(TICK_STATE_SERVER, newState));            }
         }
     }
 
     @Inject(method = "startSprint", at = @At("TAIL"))
     public void startSprint(int ticks, CallbackInfoReturnable<Boolean> cir) { // for server sprint start
-        server.getOverworld().modifyAttached(TICK_STATE_SERVER, tickState -> tickState.withSprinting(true));
+        TickState newState = server.getOverworld().getAttached(TICK_STATE_SERVER).withSprinting(true);
+        server.getWorlds().forEach(serverWorld -> serverWorld.setAttached(TICK_STATE_SERVER, newState));
     }
 
     @Inject(method = "finishSprinting", at = @At("TAIL"))
     public void finishSprinting(CallbackInfo ci) { // for server sprint both manual/natural stop
-        server.getOverworld().modifyAttached(TICK_STATE_SERVER, tickState -> tickState.withSprinting(false));
+        TickState newState = server.getOverworld().getAttached(TICK_STATE_SERVER).withSprinting(false);
+        server.getWorlds().forEach(serverWorld -> serverWorld.setAttached(TICK_STATE_SERVER, newState));
     }
 
     @Inject(method = "setFrozen", at = @At("TAIL"))
     public void setFrozen(CallbackInfo ci, @Local(argsOnly = true) boolean frozen) { // for server (un)freeze
-        server.getOverworld().modifyAttached(TICK_STATE_SERVER, tickState -> tickState.withFrozen(frozen));
+        TickState newState = server.getOverworld().getAttached(TICK_STATE_SERVER).withFrozen(frozen);
+        server.getWorlds().forEach(serverWorld -> serverWorld.setAttached(TICK_STATE_SERVER, newState));
     }
 
     /**
@@ -115,7 +121,9 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     }
 
     public void tickRate$serverStarted() {
+        // Have to attach TICK_STATE_SERVER to ALL worlds so client can sync it regardless of what world they are in :>
         TickState serverState = server.getOverworld().getAttachedOrCreate(TICK_STATE_SERVER);
+        server.getWorlds().forEach(serverWorld -> serverWorld.setAttached(TICK_STATE_SERVER, serverState));
         updateTickersMap(serverState.rate(), 1);
     }
 
@@ -303,11 +311,11 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     }
 
     public void tickRate$setServerRate(int rate) {
-        server.getOverworld().modifyAttached(TICK_STATE_SERVER, tickState -> {
-            updateTickersMap(tickState.rate(), -1);
-            updateTickersMap(rate, 1);
-            return tickState.withRate(rate);
-        });
+        TickState prevState = server.getOverworld().getAttached(TICK_STATE_SERVER);
+        TickState newState = prevState.withRate(rate);
+        server.getWorlds().forEach(serverWorld -> serverWorld.setAttached(TICK_STATE_SERVER, newState));
+        updateTickersMap(prevState.rate(), -1);
+        updateTickersMap(rate, 1);
         updateFastestTicker();
     }
 
