@@ -8,10 +8,14 @@ import io.github.dennisochulor.tickrate.injected_interface.TickRateTickManager;
 import io.github.dennisochulor.tickrate.TickState;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentTarget;
 import net.minecraft.entity.Entity;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.ServerTickManager;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.TimeHelper;
+import net.minecraft.util.WorldSavePath;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
@@ -24,6 +28,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 @Mixin(ServerTickManager.class)
@@ -35,7 +41,11 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     @Unique private final Set<UUID> playersWithMod = new HashSet<>(); // stores players that have this mod client-side
     @Unique private int sprintAvgTicksPerSecond = -1;
     @Unique private int numberOfIndividualSprints = 0;
-    //@Unique private File datafile;
+
+    // migration stuff
+    @Unique private File datafile;
+    @Unique private final Map<String,Float> migrationData = new HashMap<>();
+    @Unique private float nominalTickRateMigration = -1.0f;
 
     @Shadow public abstract void setTickRate(float tickRate);
     @Shadow @Final private MinecraftServer server;
@@ -97,53 +107,56 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     }
 
     public void tickRate$serverStarting() {
-//        datafile = server.getSavePath(WorldSavePath.ROOT).resolve("data/TickRateData.nbt").toFile();
-//        if(datafile.exists()) {
-//            try {
-//                NbtCompound nbt = NbtIo.read(datafile.toPath());
-//                nominalTickRate = nbt.getFloat("nominalTickRate").orElse(20.0f);
-//                NbtOps.INSTANCE.getMap(nbt.get("entities")).getOrThrow().entries().forEach(pair -> {
-//                    String key = NbtOps.INSTANCE.getStringValue(pair.getFirst()).getOrThrow();
-//                    float value = NbtOps.INSTANCE.getNumberValue(pair.getSecond()).getOrThrow().floatValue();
-//                    unloadedEntities.put(key,value);
-//                });
-//                NbtOps.INSTANCE.getMap(nbt.get("chunks")).getOrThrow().entries().forEach(pair -> {
-//                    String key = NbtOps.INSTANCE.getStringValue(pair.getFirst()).getOrThrow();
-//                    float value = NbtOps.INSTANCE.getNumberValue(pair.getSecond()).getOrThrow().floatValue();
-//                    unloadedChunks.put(key,value);
-//                });
-//                updateFastestTicker();
-//            }
-//            catch (IOException e) {
-//                throw new RuntimeException(e);
-//            }
-//        }
+        datafile = server.getSavePath(WorldSavePath.ROOT).resolve("data/TickRateData.nbt").toFile();
+        if(datafile.exists()) {
+            try {
+                NbtCompound nbt = NbtIo.read(datafile.toPath());
+                nominalTickRateMigration = nbt.getFloat("nominalTickRate").orElse(-1.0f);
+                NbtOps.INSTANCE.getMap(nbt.get("entities")).getOrThrow().entries().forEach(pair -> {
+                    String key = NbtOps.INSTANCE.getStringValue(pair.getFirst()).getOrThrow();
+                    float value = NbtOps.INSTANCE.getNumberValue(pair.getSecond()).getOrThrow().floatValue();
+                    migrationData.put(key,value);
+                });
+                NbtOps.INSTANCE.getMap(nbt.get("chunks")).ifSuccess(nbtElementMapLike -> {
+                    nbtElementMapLike.entries().forEach(pair -> {
+                        String key = NbtOps.INSTANCE.getStringValue(pair.getFirst()).getOrThrow();
+                        float value = NbtOps.INSTANCE.getNumberValue(pair.getSecond()).getOrThrow().floatValue();
+                        migrationData.put(key,value);
+                    });
+                });
+            }
+            catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     public void tickRate$serverStarted() {
         // Have to attach TICK_STATE_SERVER to ALL worlds so client can sync it regardless of what world they are in :>
         TickState serverState = server.getOverworld().getAttachedOrCreate(TICK_STATE_SERVER);
-        server.getWorlds().forEach(serverWorld -> serverWorld.setAttached(TICK_STATE_SERVER, serverState));
-        updateTickersMap(serverState.rate(), 1);
+        if(nominalTickRateMigration != -1.0f) serverState = serverState.withRate((int) nominalTickRateMigration);
+
+        final TickState finalServerState = serverState;
+        server.getWorlds().forEach(serverWorld -> serverWorld.setAttached(TICK_STATE_SERVER, finalServerState));
+        updateTickersMap(finalServerState.rate(), 1);
     }
 
-        public void tickRate$saveData() {
-//        NbtCompound nbt = new NbtCompound();
-//        nbt.putFloat("nominalTickRate",nominalTickRate);
-//        var entitiesNbt = NbtOps.INSTANCE.mapBuilder();
-//        entities.forEach((k,v) -> entitiesNbt.add(k,NbtOps.INSTANCE.createFloat(v)));
-//        unloadedEntities.forEach((k,v) -> entitiesNbt.add(k,NbtOps.INSTANCE.createFloat(v)));
-//        var chunksNbt = NbtOps.INSTANCE.mapBuilder();
-//        chunks.forEach((k,v) -> chunksNbt.add(k,NbtOps.INSTANCE.createFloat(v)));
-//        unloadedChunks.forEach((k,v) -> chunksNbt.add(k,NbtOps.INSTANCE.createFloat(v)));
-//        nbt.put("entities", entitiesNbt.build(NbtOps.INSTANCE.empty()).getOrThrow());
-//        nbt.put("chunks", chunksNbt.build(NbtOps.INSTANCE.empty()).getOrThrow());
-//        try {
-//            NbtIo.write(nbt,datafile.toPath());
-//        }
-//        catch (IOException e) {
-//            throw new RuntimeException(e);
-//        }
+    public void tickRate$saveData() {
+        if(!migrationData.isEmpty()) {
+            NbtCompound nbt = new NbtCompound();
+            var entitiesNbt = NbtOps.INSTANCE.mapBuilder();
+            migrationData.forEach((k,v) -> entitiesNbt.add(k, NbtOps.INSTANCE.createFloat(v)));
+            nbt.put("entities", entitiesNbt.build(NbtOps.INSTANCE.empty()).getOrThrow()); // chunks go in here too
+            try {
+                NbtIo.write(nbt,datafile.toPath());
+            }
+            catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        else {
+            if(datafile.exists()) datafile.delete();
+        }
     }
 
     public void tickRate$addPlayerWithMod(ServerPlayerEntity player) {
@@ -295,6 +308,8 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     }
 
     public void tickRate$updateLoad(AttachmentTarget attachmentTarget, boolean loaded) {
+        migrate(attachmentTarget);
+
         TickState tickState = attachmentTarget.getAttached(TICK_STATE);
         if(tickState == null) return;
 
@@ -521,6 +536,20 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
             });
         }
         else throw new IllegalArgumentException("change must not be 0");
+    }
+
+    @Unique
+    private void migrate(AttachmentTarget target) {
+        if(migrationData.isEmpty()) return;
+
+        String key = switch (target) {
+            case Entity e -> e.getUuidAsString();
+            case WorldChunk worldChunk -> worldChunk.getWorld().getRegistryKey().getValue() + "-" + worldChunk.getPos().toLong();
+            default -> "";
+        };
+
+        Float tickRate = migrationData.remove(key);
+        if(tickRate != null) target.setAttached(TICK_STATE, TickState.ofRate(tickRate.intValue()));
     }
 
 }
