@@ -181,7 +181,7 @@ public class TickCommandMixin {
         }
 
         source.sendFeedback(() -> Text.literal("Server's target tick rate: " + serverTickManager.tickRate$getServerRate() + " per second (" + format((long)((double) TimeHelper.SECOND_IN_NANOS / (double)serverTickManager.tickRate$getServerRate())) + " mspt)"), false);
-        source.sendFeedback(() -> Text.literal("Mainloop's target tick rate: " + serverTickManager.getTickRate() + " per second (" + format((long)((double) TimeHelper.SECOND_IN_NANOS / (double)serverTickManager.getTickRate())) + " mspt)"), false);
+        source.sendFeedback(() -> Text.literal("Mainloop's target tick rate: " + Math.round(serverTickManager.getTickRate()) + " per second (" + format((long)((double) TimeHelper.SECOND_IN_NANOS / (double)serverTickManager.getTickRate())) + " mspt)"), false);
 
         long[] ls = Arrays.copyOf(source.getServer().getTickTimes(), source.getServer().getTickTimes().length);
         Arrays.sort(ls);
@@ -221,11 +221,11 @@ public class TickCommandMixin {
         switch(targets.getFirst()) {
             case Entity ignored -> {
                 targetType = "entities";
-                targets.forEach(target -> TickRateEvents.ENTITY_RATE.invoker().onEntityRate((Entity) target, roundRate));
+                targets.forEach(target -> TickRateEvents.ENTITY_RATE.invoker().onEntityRate((Entity) target, roundRate==-1 ? 0 : roundRate));
             }
             case WorldChunk ignored -> {
                 targetType = "chunks";
-                targets.forEach(target -> TickRateEvents.CHUNK_RATE.invoker().onChunkRate((WorldChunk) target, roundRate));
+                targets.forEach(target -> TickRateEvents.CHUNK_RATE.invoker().onChunkRate((WorldChunk) target, roundRate==-1 ? 0 : roundRate));
             }
             default -> throw new IllegalArgumentException("Unknown target type: " + targets.getFirst());
         }
@@ -254,7 +254,7 @@ public class TickCommandMixin {
                 firstRate = tickManager.tickRate$getEntityRate(first);
                 targets.forEach(e -> {
                     Entity entity = (Entity) e;
-                    sb.append(entity.getType().getName()).append(" ").append(entity.getNameForScoreboard()).append(" - ").append(tickManager.tickRate$getEntityRate(entity)).append(" TPS").append("\n");
+                    sb.append(entity.getType().getName().getString()).append(" ").append(entity.getNameForScoreboard()).append(" - ").append(tickManager.tickRate$getEntityRate(entity)).append(" TPS").append("\n");
                 });
             }
             case WorldChunk first -> {
