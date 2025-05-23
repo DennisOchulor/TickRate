@@ -502,7 +502,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         if(isStepping()) return;
 
         int fastest = tickers.firstKey();
-        TickRate.LOGGER.warn("fastest:{}, tickRate:{}", fastest, tickRate);
+        //TickRate.LOGGER.warn("fastest:{}, tickRate:{}", fastest, tickRate);
         if(fastest != tickRate) {
             setTickRate(fastest);
             ticks = 1; // reset it

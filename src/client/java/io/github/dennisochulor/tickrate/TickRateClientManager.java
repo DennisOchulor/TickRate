@@ -116,7 +116,7 @@ public class TickRateClientManager {
             TickManager tickManager = MinecraftClient.getInstance().world.getTickManager();
             return new TickState((int) tickManager.getTickRate(),tickManager.isFrozen(),tickManager.isStepping(),false); // Client does not have any sprint info
         }
-        return MinecraftClient.getInstance().world.getAttached(TICK_STATE_SERVER);
+        return MinecraftClient.getInstance().world.getAttachedOrElse(TICK_STATE_SERVER, TickState.ofRate(20)); // FAPI bug!!! TODO
     }
 
 }
