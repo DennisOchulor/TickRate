@@ -3,7 +3,6 @@ package io.github.dennisochulor.tickrate.mixin.core;
 import static io.github.dennisochulor.tickrate.TickRateAttachments.*;
 
 import com.llamalad7.mixinextras.sugar.Local;
-import io.github.dennisochulor.tickrate.TickRate;
 import io.github.dennisochulor.tickrate.injected_interface.TickRateTickManager;
 import io.github.dennisochulor.tickrate.TickState;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentTarget;
