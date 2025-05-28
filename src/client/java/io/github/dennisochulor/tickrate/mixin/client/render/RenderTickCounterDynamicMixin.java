@@ -1,5 +1,6 @@
 package io.github.dennisochulor.tickrate.mixin.client.render;
 
+import com.llamalad7.mixinextras.sugar.Local;
 import io.github.dennisochulor.tickrate.TickDeltaInfo;
 import io.github.dennisochulor.tickrate.TickRateClientManager;
 import io.github.dennisochulor.tickrate.injected_interface.TickRateRenderTickCounter;
@@ -11,7 +12,6 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -44,8 +44,8 @@ public class RenderTickCounterDynamicMixin implements TickRateRenderTickCounter 
         clientPlayerUpdated = false;
     }
 
-    @Inject(method = "beginRenderTick(J)I", at = @At("TAIL"), locals = LocalCapture.CAPTURE_FAILHARD)
-    private void beginRenderTick(long timeMillis, CallbackInfoReturnable<Integer> cir, int i) {
+    @Inject(method = "beginRenderTick(J)I", at = @At("TAIL"))
+    private void beginRenderTick(long timeMillis, CallbackInfoReturnable<Integer> cir, @Local int i) {
         this.i = i;
         TickRateClientManager.clearCache();
     }
