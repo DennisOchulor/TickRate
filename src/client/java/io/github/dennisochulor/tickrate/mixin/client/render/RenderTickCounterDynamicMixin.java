@@ -1,5 +1,6 @@
 package io.github.dennisochulor.tickrate.mixin.client.render;
 
+import com.llamalad7.mixinextras.sugar.Local;
 import io.github.dennisochulor.tickrate.TickProgressInfo;
 import io.github.dennisochulor.tickrate.TickRateClientManager;
 import io.github.dennisochulor.tickrate.injected_interface.TickRateRenderTickCounter;
@@ -11,7 +12,6 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -44,8 +44,8 @@ public class RenderTickCounterDynamicMixin implements TickRateRenderTickCounter 
         clientPlayerUpdated = false;
     }
 
-    @Inject(method = "beginRenderTick(J)I", at = @At("TAIL"), locals = LocalCapture.CAPTURE_FAILHARD)
-    private void beginRenderTick(long timeMillis, CallbackInfoReturnable<Integer> cir, int i) {
+    @Inject(method = "beginRenderTick(J)I", at = @At("TAIL"))
+    private void beginRenderTick(long timeMillis, CallbackInfoReturnable<Integer> cir, @Local int i) {
         this.i = i;
         TickRateClientManager.clearCache();
     }
@@ -55,12 +55,12 @@ public class RenderTickCounterDynamicMixin implements TickRateRenderTickCounter 
         float millisPerTick = 1000.0f / tps;
         if(isUpdated.contains(tps)) return prevTickProgress.get(tps);
         float dynamicDeltaTicks = (float)(lastTimeMillis - lastLastTimeMillis) / Math.max(millisPerTick, tickTime);
-        float specificTickProgress = prevTickProgress.getOrDefault(tps,new TickProgressInfo(lastTickProgress,0,0)).tickProgress() + dynamicDeltaTicks;
+        float specificTickProgress = prevTickProgress.getOrDefault(tps, new TickProgressInfo(lastTickProgress,0,0)).tickProgress() + dynamicDeltaTicks;
         int i = (int) specificTickProgress;
         specificTickProgress -= (float) i;
-        TickProgressInfo info = new TickProgressInfo(specificTickProgress,i, dynamicDeltaTicks);
+        TickProgressInfo info = new TickProgressInfo(specificTickProgress, i, dynamicDeltaTicks);
         isUpdated.add(tps);
-        prevTickProgress.put(tps,info);
+        prevTickProgress.put(tps, info);
         return info;
     }
 
@@ -73,7 +73,7 @@ public class RenderTickCounterDynamicMixin implements TickRateRenderTickCounter 
         float specificTickProgress = clientPlayerTickProgressInfo.tickProgress() + dynamicDeltaTicks;
         int i = (int) specificTickProgress;
         specificTickProgress -= (float) i;
-        clientPlayerTickProgressInfo = new TickProgressInfo(specificTickProgress,i, dynamicDeltaTicks);
+        clientPlayerTickProgressInfo = new TickProgressInfo(specificTickProgress, i, dynamicDeltaTicks);
         clientPlayerUpdated = true;
         return clientPlayerTickProgressInfo;
     }
