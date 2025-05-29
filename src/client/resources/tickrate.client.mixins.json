@@ -4,7 +4,6 @@
   "compatibilityLevel": "JAVA_21",
   "client": [
     "misc.EnchantmentScreenMixin",
-    "misc.InventoryScreenMixin",
     "misc.ParticleManagerMixin",
     "misc.ParticleMixin",
     "render.BlockEntityRenderDispatcherMixin",

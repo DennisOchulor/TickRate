@@ -31,9 +31,8 @@ import net.minecraft.world.chunk.ChunkStatus;
 import net.minecraft.world.chunk.WorldChunk;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Constant;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyConstant;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.*;
@@ -44,9 +43,9 @@ public class TickCommandMixin {
     @Shadow @Final private static String DEFAULT_TICK_RATE_STRING;
     @Shadow private static String format(long nanos) { return ""; }
 
-    // the requires lambda
-    @ModifyConstant(method = "method_54709", constant = @Constant(intValue = 3))
-    private static int modifyPermissionLevel(int permissionLevel) {
+    // requires method
+    @ModifyArg(method = "register", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/command/CommandManager;requirePermissionLevel(I)Lnet/minecraft/command/PermissionLevelPredicate;"))
+    private static int modifyPermissionLevel(int requiredLevel) {
         return 2;
     }
 

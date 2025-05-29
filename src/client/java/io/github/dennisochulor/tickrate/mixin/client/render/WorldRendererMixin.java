@@ -35,22 +35,34 @@ public class WorldRendererMixin {
     }
 
 
+
     /*
      IRIS COMPATIBILITY - fixes player hand/held item stutter issue
      Iris uses the server's RTC to render player hand, so give Iris the player's RTC instead
-     See https://github.com/IrisShaders/Iris/blob/1.21.4/common/src/main/java/net/irisshaders/iris/mixin/MixinLevelRenderer.java
+     See https://github.com/IrisShaders/Iris/blob/1.21.6/common/src/main/java/net/irisshaders/iris/mixin/MixinLevelRenderer.java
      */
 
-    @ModifyVariable(method = "render", at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/systems/RenderSystem;setShaderFog(Lnet/minecraft/client/render/Fog;)V"), order = 100, argsOnly = true)
-    public RenderTickCounter renderEnd$iris(RenderTickCounter renderTickCounter) {
+    @ModifyVariable(method = "render", at = @At(value = "INVOKE", target = "Ljava/util/List;clear()V"), order = 100, argsOnly = true)
+    public RenderTickCounter renderEndSwapIn$iris(RenderTickCounter renderTickCounter) {
         if(isIrisLoaded) return playerRenderTickCounter;
         else return renderTickCounter;
     }
 
-    @ModifyVariable(method = "renderMain", at = @At("HEAD"), argsOnly = true)
-    public RenderTickCounter renderMain$iris(RenderTickCounter renderTickCounter) {
+    @ModifyVariable(method = "render", at = @At(value = "INVOKE", target = "Ljava/util/List;clear()V"), order = 1100, argsOnly = true)
+    public RenderTickCounter renderEndSwapBack$iris(RenderTickCounter renderTickCounter) {
+        return MinecraftClient.getInstance().getRenderTickCounter();
+    }
+
+
+    @ModifyVariable(method = "method_62214", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/VertexConsumerProvider$Immediate;draw()V", ordinal = 1), order = 100, argsOnly = true)
+    public RenderTickCounter renderMainSwapIn$iris(RenderTickCounter renderTickCounter) {
         if(isIrisLoaded) return playerRenderTickCounter;
         else return renderTickCounter;
+    }
+
+    @ModifyVariable(method = "method_62214", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/VertexConsumerProvider$Immediate;draw()V", ordinal = 1), order = 1100, argsOnly = true)
+    public RenderTickCounter renderMainSwapBack$iris(RenderTickCounter renderTickCounter) {
+        return MinecraftClient.getInstance().getRenderTickCounter();
     }
 
 }
