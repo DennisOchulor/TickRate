@@ -56,8 +56,8 @@ public class TickRateClientManager {
             if(state.sprinting()) // animate at max 20 TPS but for client player we don't know the TPS, so just say 100 :P
                 info = cappedAt20TPS ? renderTickCounter.tickRate$getSpecificTickDeltaInfo(20) : renderTickCounter.tickRate$getClientPlayerTickDeltaInfo(100);
             else if(state.frozen() && !state.stepping()) info = TickDeltaInfo.NO_ANIMATE;
-            else if(!cappedAt20TPS) info = renderTickCounter.tickRate$getClientPlayerTickDeltaInfo((int) state.rate());
-            else info = renderTickCounter.tickRate$getSpecificTickDeltaInfo((int) state.rate());
+            else if(!cappedAt20TPS) info = renderTickCounter.tickRate$getClientPlayerTickDeltaInfo(state.rate());
+            else info = renderTickCounter.tickRate$getSpecificTickDeltaInfo(state.rate());
         }
 
         entityCache.put(entity.getId(), info);

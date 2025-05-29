@@ -110,7 +110,8 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         if(datafile.exists()) {
             try {
                 NbtCompound nbt = NbtIo.read(datafile.toPath());
-                nominalTickRateMigration = nbt.getFloat("nominalTickRate").orElse(-1.0f);
+                nominalTickRateMigration = nbt.getFloat("nominalTickRate");
+                if(nominalTickRateMigration == 0.0f) nominalTickRateMigration = -1.0f;
                 NbtOps.INSTANCE.getMap(nbt.get("entities")).getOrThrow().entries().forEach(pair -> {
                     String key = NbtOps.INSTANCE.getStringValue(pair.getFirst()).getOrThrow();
                     float value = NbtOps.INSTANCE.getNumberValue(pair.getSecond()).getOrThrow().floatValue();
