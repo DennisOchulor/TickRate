@@ -28,7 +28,7 @@ public class ClientWorldMixin {
     @ModifyVariable(method = "playSound(DDDLnet/minecraft/sound/SoundEvent;Lnet/minecraft/sound/SoundCategory;FFZJ)V", at = @At("HEAD"), argsOnly = true, ordinal = 1)
     public float playSound(float pitch, @Local(argsOnly = true, ordinal = 0) double x, @Local(argsOnly = true, ordinal = 1) double y, @Local(argsOnly = true, ordinal = 2) double z, @Local(argsOnly = true) SoundCategory category) {
         return switch(category) {
-            case MASTER,MUSIC,RECORDS,VOICE,NEUTRAL,HOSTILE -> pitch;
+            case MASTER,MUSIC,UI,RECORDS,VOICE,NEUTRAL,HOSTILE -> pitch;
             case PLAYERS -> {
                 TickState state = TickRateClientManager.getEntityState(client.player);
                 if(state.sprinting()) yield TickRate.MAX_SOUND_PITCH;
@@ -54,7 +54,7 @@ public class ClientWorldMixin {
     @ModifyVariable(method = "playSoundClient(Lnet/minecraft/sound/SoundEvent;Lnet/minecraft/sound/SoundCategory;FF)V", at = @At("HEAD"), argsOnly = true, ordinal = 1)
     public float playSoundClient(float pitch, @Local(argsOnly = true) SoundCategory category) {
         return switch(category) {
-            case MASTER,MUSIC,RECORDS,VOICE,NEUTRAL,HOSTILE -> pitch;
+            case MASTER,MUSIC,UI,RECORDS,VOICE,NEUTRAL,HOSTILE -> pitch;
             case PLAYERS -> {
                 TickState state = TickRateClientManager.getEntityState(client.player);
                 if(state.sprinting()) yield TickRate.MAX_SOUND_PITCH;

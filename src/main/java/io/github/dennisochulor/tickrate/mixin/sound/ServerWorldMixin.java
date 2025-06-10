@@ -30,7 +30,7 @@ public class ServerWorldMixin {
     public float playSound(float pitch, @Local(argsOnly = true) Entity entity, @Local(argsOnly = true, ordinal = 0) double x, @Local(argsOnly = true, ordinal = 1) double y, @Local(argsOnly = true, ordinal = 2) double z, @Local(argsOnly = true) SoundCategory category) {
         ServerTickManager tickManager = server.getTickManager();
         return switch(category) {
-            case MASTER,MUSIC,RECORDS,VOICE,NEUTRAL,HOSTILE -> pitch;
+            case MASTER,MUSIC,UI,RECORDS,VOICE,NEUTRAL,HOSTILE -> pitch;
             case PLAYERS -> {
                 TickState state;
                 if(entity != null) // possibly handles player sounds
