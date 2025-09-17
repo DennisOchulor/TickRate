@@ -6,6 +6,7 @@
     "misc.EnchantmentScreenMixin",
     "particle.BillboardParticleRendererMixin",
     "particle.ElderGuardianParticleRendererMixin",
+    "particle.ItemPickupParticleRendererMixin",
     "particle.ParticleManagerMixin",
     "particle.ParticleMixin",
     "particle.ParticleRendererMixin",
@@ -23,7 +24,6 @@
     "defaultRequire": 1
   },
   "mixins": [
-    "misc.StatusEffectUtilMixin",
-    "particle.ItemPickupParticleRendererMixin"
+    "misc.StatusEffectUtilMixin"
   ]
 }

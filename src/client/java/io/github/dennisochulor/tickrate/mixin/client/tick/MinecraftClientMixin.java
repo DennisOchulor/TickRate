@@ -54,6 +54,7 @@ public abstract class MinecraftClientMixin {
 		for(int i=0; i<10; i++) { // these things need to tick all 10 times
 			renderTickCounter.tickRate$setMovingI(i);
 			this.world.tickEntities();
+			this.world.tickBlockEntities();
 			this.particleManager.tick();
 
 			if(this.shouldTick() && i < playerChunkI) { // animate according to the player's chunk (not the player themself)
@@ -62,6 +63,7 @@ public abstract class MinecraftClientMixin {
 			}
 
 			if(!this.paused && i < renderTickCounter.tickRate$getI()) { // tick according to server, not the player
+				this.world.getTickManager().step();
 				if(this.world.getTickManager().shouldTick()) this.worldRenderer.tick(this.gameRenderer.getCamera());
 				this.world.tick(() -> true);
 			}
@@ -82,6 +84,12 @@ public abstract class MinecraftClientMixin {
 	@Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/world/ClientWorld;tickEntities()V"))
 	public void tick$tickEntities(ClientWorld instance) {
 		if(!TickRateClientManager.serverHasMod()) instance.tickEntities();
+		// otherwise NO-OP
+	}
+
+	@Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/world/ClientWorld;tickBlockEntities()V"))
+	public void tick$tickBlockEntities(ClientWorld instance) {
+		if(!TickRateClientManager.serverHasMod()) instance.tickBlockEntities();
 		// otherwise NO-OP
 	}
 
