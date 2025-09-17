@@ -13,7 +13,7 @@ public class ServerPlayNetworkHandlerMixin {
     @Inject(method = "tick", at = @At("HEAD"), cancellable = true)
     public void tick(CallbackInfo ci) {
         ServerPlayNetworkHandler handler = (ServerPlayNetworkHandler) (Object) this;
-        ServerTickManager tickManager = handler.getPlayer().getServer().getTickManager();
+        ServerTickManager tickManager = handler.getPlayer().getEntityWorld().getServer().getTickManager();
         if(!tickManager.tickRate$shouldTickEntity(handler.getPlayer())) ci.cancel();
     }
 

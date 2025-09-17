@@ -1,8 +1,10 @@
 package io.github.dennisochulor.tickrate.mixin.client.tick;
 
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import io.github.dennisochulor.tickrate.TickIndicator;
 import io.github.dennisochulor.tickrate.TickRateClientManager;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.hud.ChatHud;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.option.GameOptions;
 import net.minecraft.client.particle.ParticleManager;
@@ -17,7 +19,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
@@ -31,12 +32,13 @@ public abstract class MinecraftClientMixin {
 	@Shadow public ClientPlayerEntity player;
 	@Shadow @Final public ParticleManager particleManager;
 	@Shadow @Final public GameOptions options;
-	@Shadow protected abstract void openChatScreen(String text);
 	@Shadow protected abstract boolean shouldTick();
+	@Shadow public abstract void openChatScreen(ChatHud.ChatMethod method);
 	@Shadow @Final private TextureManager textureManager;
 	@Shadow private volatile boolean paused;
 	@Shadow @Final public WorldRenderer worldRenderer;
 	@Shadow @Final public GameRenderer gameRenderer;
+
 
 	@Redirect(method = "getTargetMillisPerTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/tick/TickManager;getMillisPerTick()F"))
 	private float getMillisPerTick(TickManager instance) {
@@ -44,7 +46,7 @@ public abstract class MinecraftClientMixin {
 		else return instance.getMillisPerTick();
 	}
 
-	@Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/profiler/Profiler;pop()V", ordinal = 1, shift = At.Shift.BEFORE))
+	@Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/profiler/Profiler;pop()V", ordinal = 0))
 	private void render(boolean tick, CallbackInfo ci) {
 		if(!TickRateClientManager.serverHasMod()) return;
 		RenderTickCounter renderTickCounter = getRenderTickCounter();
@@ -60,21 +62,19 @@ public abstract class MinecraftClientMixin {
 			}
 
 			if(!this.paused && i < renderTickCounter.tickRate$getI()) { // tick according to server, not the player
-				this.world.getTickManager().step();
-				if(this.world.getTickManager().shouldTick()) this.worldRenderer.addWeatherParticlesAndSound(this.gameRenderer.getCamera());
+				if(this.world.getTickManager().shouldTick()) this.worldRenderer.tick(this.gameRenderer.getCamera());
 				this.world.tick(() -> true);
-				this.worldRenderer.tick();
 			}
 		}
 
 		while (this.options.chatKey.wasPressed()) { // to allow player to chat even when FROZEN
-			this.openChatScreen("");
+			this.openChatScreen(ChatHud.ChatMethod.MESSAGE);
 		}
 		TickIndicator.tick();
 	}
 
-	@ModifyVariable(method = "render", at = @At(value = "STORE"), ordinal = 0)
-	private int render(int i) { // make the clientTick follow the player's tick rate (which may differ from the server)
+	@ModifyExpressionValue(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/RenderTickCounter$Dynamic;beginRenderTick(JZ)I"))
+	private int modifyPlayerI(int i) { // make the clientTick follow the player's tick rate (which may differ from the server)
 		if(!TickRateClientManager.serverHasMod()) return i;
 		return TickRateClientManager.getEntityTickProgress(this.player).i();
 	}
@@ -93,12 +93,6 @@ public abstract class MinecraftClientMixin {
 
 	@Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/texture/TextureManager;tick()V"))
 	public void tick$tickTextures(TextureManager instance) {
-		if(!TickRateClientManager.serverHasMod()) instance.tick();
-		// otherwise NO-OP
-	}
-
-	@Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/WorldRenderer;tick()V"))
-	public void tick$tickWorldRenderer(WorldRenderer instance) {
 		if(!TickRateClientManager.serverHasMod()) instance.tick();
 		// otherwise NO-OP
 	}

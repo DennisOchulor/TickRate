@@ -18,14 +18,14 @@ public class GameRendererMixin {
     @Unique private static final PlayerRenderTickCounter playerRenderTickCounter = new PlayerRenderTickCounter();
 
     @ModifyVariable(method = "render", at = @At(value = "HEAD"), argsOnly = true, ordinal = 0)
-    public RenderTickCounter render(RenderTickCounter renderTickCounter) {
+    private RenderTickCounter render(RenderTickCounter renderTickCounter) {
         if(TickRateClientManager.serverHasMod()) return playerRenderTickCounter;
         else return renderTickCounter;
     }
 
-    @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/WorldRenderer;addWeatherParticlesAndSound(Lnet/minecraft/client/render/Camera;)V"))
-    public void tick$WeatherParticlesAndSound(WorldRenderer instance, Camera camera) {
-        if(!TickRateClientManager.serverHasMod()) instance.addWeatherParticlesAndSound(camera);
+    @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/WorldRenderer;tick(Lnet/minecraft/client/render/Camera;)V"))
+    private void tick(WorldRenderer instance, Camera camera) { // worldRenderer follows server tick
+        if(!TickRateClientManager.serverHasMod()) instance.tick(camera);
         // otherwise NO-OP
     }
 

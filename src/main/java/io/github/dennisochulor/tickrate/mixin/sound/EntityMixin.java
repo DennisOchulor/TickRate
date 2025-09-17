@@ -20,7 +20,7 @@ public class EntityMixin {
         if(world.isClient()) return pitch;
 
         Entity entity = (Entity) (Object) this;
-        ServerTickManager tickManager = entity.getServer().getTickManager();
+        ServerTickManager tickManager = entity.getEntityWorld().getServer().getTickManager();
         TickState state = tickManager.tickRate$getEntityTickStateDeep(entity);
         if(state.sprinting()) return TickRate.MAX_SOUND_PITCH;
         else return pitch * (state.rate() / 20.0F);

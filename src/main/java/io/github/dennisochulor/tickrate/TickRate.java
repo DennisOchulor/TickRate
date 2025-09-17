@@ -73,7 +73,7 @@ public class TickRate implements ModInitializer {
 		 *  ENTITY_LOAD is called before AFTER_RESPAWN, so attachment data is not up to date.
 		 */
 		ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {
-			ServerTickManager tickManager = (ServerTickManager) oldPlayer.getWorld().getTickManager();
+			ServerTickManager tickManager = (ServerTickManager) oldPlayer.getEntityWorld().getTickManager();
 			tickManager.tickRate$updateLoad(oldPlayer, true); // use the oldPlayer cause it is not guaranteed the attachment transfer has already happened.
 		});
 

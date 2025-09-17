@@ -4,10 +4,11 @@
   "compatibilityLevel": "JAVA_21",
   "client": [
     "misc.EnchantmentScreenMixin",
-    "misc.ParticleManagerMixin",
-    "misc.ParticleMixin",
-    "render.BlockEntityRenderDispatcherMixin",
-    "render.EntityRenderDispatcherMixin",
+    "particle.BillboardParticleRendererMixin",
+    "particle.ElderGuardianParticleRendererMixin",
+    "particle.ParticleManagerMixin",
+    "particle.ParticleMixin",
+    "particle.ParticleRendererMixin",
     "render.GameRendererMixin",
     "render.RenderTickCounterDynamicMixin",
     "render.RenderTickCounterMixin",
@@ -22,6 +23,7 @@
     "defaultRequire": 1
   },
   "mixins": [
-    "misc.StatusEffectUtilMixin"
+    "misc.StatusEffectUtilMixin",
+    "particle.ItemPickupParticleRendererMixin"
   ]
 }

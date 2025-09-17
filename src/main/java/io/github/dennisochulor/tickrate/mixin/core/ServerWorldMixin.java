@@ -80,7 +80,7 @@ public abstract class ServerWorldMixin {
 
     // tickSpawners doesn't differentiate between chunks, so use server TPS i guess...
     @Inject(method = "tickSpawners", at = @At("HEAD"), cancellable = true)
-    private void tickSpawners(boolean spawnMonsters, boolean spawnAnimals, CallbackInfo ci) {
+    private void tickSpawners(boolean spawnMonsters, CallbackInfo ci) {
         ServerTickManager tickManager = (ServerTickManager) getTickManager();
         if(!tickManager.tickRate$shouldTickServer())
             ci.cancel();

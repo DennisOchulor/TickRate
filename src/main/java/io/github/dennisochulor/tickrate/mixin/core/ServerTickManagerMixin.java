@@ -208,7 +208,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
 
         else { // stepping OR just regular ticking
             if(tickState.rate() != -1) shouldTick = internalShouldTick(tickState.rate());
-            else shouldTick = tickRate$shouldTickChunk(entity.getWorld(), entity.getChunkPos());
+            else shouldTick = tickRate$shouldTickChunk(entity.getEntityWorld(), entity.getChunkPos());
 
             if(shouldTick && tickState.stepping()) {
                 int stepTicks = entity.getAttached(STEP_TICKS);
@@ -440,7 +440,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         if(rate != -1) return rate;
 
         ChunkPos chunkPos = entity.getChunkPos();
-        return tickRate$getChunkRate((WorldChunk) entity.getWorld().getChunk(chunkPos.x, chunkPos.z, ChunkStatus.FULL, false));
+        return tickRate$getChunkRate((WorldChunk) entity.getEntityWorld().getChunk(chunkPos.x, chunkPos.z, ChunkStatus.FULL, false));
     }
 
     public int tickRate$getChunkRate(WorldChunk chunk) {
@@ -464,7 +464,7 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
         TickState serverState = tickRate$getServerTickState();
 
         if(state.rate() == -1) {
-            TickState chunkState = tickRate$getChunkTickStateDeep(entity.getWorld(), entity.getChunkPos());
+            TickState chunkState = tickRate$getChunkTickStateDeep(entity.getEntityWorld(), entity.getChunkPos());
             if(state.equals(TickState.DEFAULT)) state = chunkState;
             else state = state.withRate(chunkState.rate());
         }

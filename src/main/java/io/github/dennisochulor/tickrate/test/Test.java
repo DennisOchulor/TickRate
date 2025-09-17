@@ -93,9 +93,9 @@ public final class Test {
         Thread.ofVirtual().name("TickRateTest Thread").start(() -> {
             TickRateAPI api = TickRateAPI.getInstance();
             String uuid = testEntity.getUuidAsString();
-            ServerCommandSource src = testEntity.getServer().getCommandSource();
-            CommandManager commander = testEntity.getServer().getCommandManager();
-            World world = testEntity.getWorld();
+            World world = testEntity.getEntityWorld();
+            ServerCommandSource src = world.getServer().getCommandSource();
+            CommandManager commander = world.getServer().getCommandManager();
             ChunkPos chunkPos = testEntity.getChunkPos();
             String strChunkPos = chunkPos.getCenterX() + " " + chunkPos.getCenterZ();
 
