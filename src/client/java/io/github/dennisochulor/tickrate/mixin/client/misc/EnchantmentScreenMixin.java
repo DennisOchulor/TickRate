@@ -1,5 +1,6 @@
 package io.github.dennisochulor.tickrate.mixin.client.misc;
 
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import io.github.dennisochulor.tickrate.TickRateClientManager;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.ingame.EnchantmentScreen;
@@ -15,4 +16,10 @@ public class EnchantmentScreenMixin {
     public float render(RenderTickCounter instance, boolean ignoreFreeze) {
         return TickRateClientManager.getEntityTickProgress(MinecraftClient.getInstance().player).tickProgress();
     }
+
+    @ModifyExpressionValue(method = "drawBook", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/RenderTickCounter;getTickProgress(Z)F"))
+    private float drawBook(float original) {
+        return TickRateClientManager.getEntityTickProgress(MinecraftClient.getInstance().player).tickProgress();
+    }
+
 }
