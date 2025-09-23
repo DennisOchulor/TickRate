@@ -46,13 +46,13 @@ public class WorldRendererMixin {
      See https://github.com/IrisShaders/Iris/blob/1.21.9/common/src/main/java/net/irisshaders/iris/mixin/MixinLevelRenderer.java
      */
 
-    @ModifyVariable(method = "render", at = @At(value = "INVOKE", target = "Lorg/joml/Matrix4fStack;popMatrix()Lorg/joml/Matrix4fStack;"), order = 100, argsOnly = true)
+    @ModifyVariable(method = "render", at = @At(value = "INVOKE", target = "Lorg/joml/Matrix4fStack;popMatrix()Lorg/joml/Matrix4fStack;"), order = 100, argsOnly = true, remap = false)
     public RenderTickCounter renderEndSwapIn$iris(RenderTickCounter renderTickCounter) {
         if(isIrisLoaded) return playerRenderTickCounter;
         else return renderTickCounter;
     }
 
-    @ModifyVariable(method = "render", at = @At(value = "INVOKE", target = "Lorg/joml/Matrix4fStack;popMatrix()Lorg/joml/Matrix4fStack;"), order = 1100, argsOnly = true)
+    @ModifyVariable(method = "render", at = @At(value = "INVOKE", target = "Lorg/joml/Matrix4fStack;popMatrix()Lorg/joml/Matrix4fStack;"), order = 1100, argsOnly = true, remap = false)
     public RenderTickCounter renderEndSwapBack$iris(RenderTickCounter renderTickCounter) {
         return MinecraftClient.getInstance().getRenderTickCounter();
     }

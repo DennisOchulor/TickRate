@@ -10,6 +10,7 @@ import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.util.math.ChunkPos;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
 @Mixin(ParticleManager.class)
 public class ParticleManagerMixin {
@@ -23,6 +24,12 @@ public class ParticleManagerMixin {
             }
         }
         else original.call(particle);
+    }
+
+    @ModifyVariable(method = "addToBatch", at = @At("HEAD"), argsOnly = true)
+    private float addToBatch$modifyTickProgress(float tickProgress) {
+        // Modded particle types can't really be accounted for, so just give em player's chunk tick progress
+        return TickRateClientManager.getChunkTickProgress(MinecraftClient.getInstance().player.getChunkPos()).tickProgress();
     }
 
 }
