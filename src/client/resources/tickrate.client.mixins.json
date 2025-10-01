@@ -10,6 +10,8 @@
     "particle.ParticleManagerMixin",
     "particle.ParticleMixin",
     "particle.ParticleRendererMixin",
+    "render.BlockEntityRenderManagerMixin",
+    "render.EntityRenderManagerMixin",
     "render.GameRendererMixin",
     "render.RenderTickCounterDynamicMixin",
     "render.RenderTickCounterMixin",

@@ -1,20 +1,13 @@
 package io.github.dennisochulor.tickrate.mixin.client.render;
 
-import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import com.llamalad7.mixinextras.sugar.Local;
 import io.github.dennisochulor.tickrate.PlayerRenderTickCounter;
-import io.github.dennisochulor.tickrate.TickRateClientManager;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.client.render.WorldRenderer;
-import net.minecraft.entity.Entity;
-import net.minecraft.util.math.ChunkPos;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
 @Mixin(WorldRenderer.class)
@@ -28,17 +21,8 @@ public class WorldRendererMixin {
         return MinecraftClient.getInstance().getRenderTickCounter(); //replace player's RTC with server's RTC
     }
 
-    @ModifyExpressionValue(method = "fillEntityRenderStates", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/RenderTickCounter;getTickProgress(Z)F"))
-    private float fillEntityRenderStates(float original, @Local Entity entity) { // modify entity tickProgress
-        return TickRateClientManager.getEntityTickProgress(entity).tickProgress();
-    }
-
-    @ModifyArg(method = "fillBlockEntityRenderStates", index = 1, at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/block/entity/BlockEntityRenderManager;getRenderState(Lnet/minecraft/block/entity/BlockEntity;FLnet/minecraft/client/render/command/ModelCommandRenderer$CrumblingOverlayCommand;)Lnet/minecraft/client/render/block/entity/state/BlockEntityRenderState;"))
-    private float fillBlockEntityRenderStates(float tickProgress, @Local BlockEntity blockEntity) { // modify block entity tickProgess
-        return TickRateClientManager.getChunkTickProgress(new ChunkPos(blockEntity.getPos())).tickProgress();
-    }
-
-
+    // NOTE: Since 1.21.9, (Block) Entity tickProgress is modified in (Block)EntityRenderManagerMixin respectively
+    // Mainly to maintain compat with Sodium that overrides fillBlockEntityRenderStates() bleh...
 
     /*
      IRIS COMPATIBILITY - fixes player hand/held item stutter issue
