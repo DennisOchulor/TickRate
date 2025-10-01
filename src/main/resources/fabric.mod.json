@@ -28,6 +28,10 @@
 		{
 			"config": "tickrate.client.mixins.json",
 			"environment": "client"
+		},
+		{
+			"config": "tickrate.client.mixins.compat.json",
+			"environment": "client"
 		}
 	],
 	"depends": {
