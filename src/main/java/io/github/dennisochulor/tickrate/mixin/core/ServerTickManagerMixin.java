@@ -37,7 +37,6 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     @Unique private int ticks = 0;
     @Unique private final Map<String,Boolean> ticked = new HashMap<>(); // someIdentifierString -> cachedShouldTick, needed to ensure TickState is only updated ONCE per mainloop tick
     @Unique private final SortedMap<Integer,Integer> tickers = new TreeMap<>(Comparator.reverseOrder()); // tickRate -> numberOfTickers, for fastest ticker tracking
-    @Unique private final Set<UUID> playersWithMod = new HashSet<>(); // stores players that have this mod client-side
     @Unique private int sprintAvgTicksPerSecond = -1;
     @Unique private int numberOfIndividualSprints = 0;
 
@@ -54,9 +53,9 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
     public void serverTickManager$step(int ticks, CallbackInfoReturnable<Boolean> cir) { // for server step start
         this.stepTicks++; // for some reason, the first tick is always skipped. so artificially add one :P
         TickState state = server.getOverworld().getAttached(TICK_STATE_SERVER);
-        setTickRate(state.rate());
         TickState newState = state.withStepping(true);
         server.getWorlds().forEach(serverWorld -> serverWorld.setAttached(TICK_STATE_SERVER, newState));
+        setTickRate(state.rate());
     }
 
     @Inject(method = "stopStepping", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickManager;sendStepPacket()V"))
@@ -158,19 +157,6 @@ public abstract class ServerTickManagerMixin extends TickManager implements Tick
             if(datafile.exists()) datafile.delete();
         }
     }
-
-    public void tickRate$addPlayerWithMod(ServerPlayerEntity player) {
-        playersWithMod.add(player.getUuid());
-    }
-
-    public void tickRate$removePlayerWithMod(ServerPlayerEntity player) {
-        playersWithMod.remove(player.getUuid());
-    }
-
-    public boolean tickRate$hasClientMod(ServerPlayerEntity player) {
-        return playersWithMod.contains(player.getUuid());
-    }
-
 
     public boolean tickRate$shouldTickEntity(Entity entity) {
         // check the ticked cache
