@@ -5,7 +5,6 @@ import io.github.dennisochulor.tickrate.api.TickRateEvents;
 import net.minecraft.entity.Entity;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.ServerTickManager;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ChunkLevelType;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
@@ -50,8 +49,6 @@ public final class TickRateAPIImpl implements TickRateAPI {
     private void entityCheck(Collection<? extends Entity> entities) throws IllegalArgumentException {
         Objects.requireNonNull(entities, "entities cannot be null!");
         entities.forEach(entity -> {
-            if(entity instanceof ServerPlayerEntity player && !tickManager.tickRate$hasClientMod(player))
-                throw new IllegalArgumentException("Some of the specified entities are players that do not have TickRate mod installed on their client, so their tick rate cannot be manipulated.");
             if(entity.isRemoved()) throw new IllegalArgumentException("Entity must not be removed!");
         });
     }

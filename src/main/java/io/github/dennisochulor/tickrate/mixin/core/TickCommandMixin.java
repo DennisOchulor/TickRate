@@ -19,7 +19,6 @@ import net.minecraft.server.ServerTickManager;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.command.TickCommand;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ChunkLevelType;
 import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
@@ -358,15 +357,6 @@ public class TickCommandMixin {
     @Unique
     // returns NULL if any of the entities cannot be the command's target
     private static List<? extends Entity> entityCheck(Collection<? extends Entity> entities, ServerCommandSource source) {
-        ServerTickManager tickManager = source.getServer().getTickManager();
-        boolean match = entities.stream().anyMatch(e -> {
-            if(e instanceof ServerPlayerEntity player) return !tickManager.tickRate$hasClientMod(player);
-            else return false;
-        });
-        if(match) {
-            source.sendFeedback(() -> Text.literal("Some of the specified entities are players that do not have TickRate mod installed on their client, so their tick rate cannot be manipulated.").withColor(Colors.LIGHT_RED), false);
-            return null;
-        }
         return (List<? extends Entity>) entities;
     }
 

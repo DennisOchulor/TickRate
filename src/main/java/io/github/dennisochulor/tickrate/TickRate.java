@@ -39,13 +39,8 @@ public class TickRate implements ModInitializer {
 			sender.sendPacket(new TickRateHelloPayload());
 		});
 
-		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
-			server.getTickManager().tickRate$removePlayerWithMod(handler.getPlayer());
-		});
-
 		ServerPlayNetworking.registerGlobalReceiver(TickRateHelloPayload.ID, ((payload, context) -> {
-			ServerTickManager tickManager = context.server().getTickManager();
-			tickManager.tickRate$addPlayerWithMod(context.player());
+			// No-op for now until there is a use case for it.
 		}));
 
 		ServerLifecycleEvents.SERVER_STARTING.register(server -> {
@@ -110,6 +105,4 @@ public class TickRate implements ModInitializer {
 		}
 
 	}
-
-
 }

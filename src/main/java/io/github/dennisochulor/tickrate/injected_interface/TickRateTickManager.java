@@ -3,7 +3,6 @@ package io.github.dennisochulor.tickrate.injected_interface;
 import io.github.dennisochulor.tickrate.TickState;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentTarget;
 import net.minecraft.entity.Entity;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.WorldChunk;
@@ -15,9 +14,6 @@ public interface TickRateTickManager {
     default void tickRate$serverStarting() {}
     default void tickRate$serverStarted() {}
     default void tickRate$saveData() {}
-    default void tickRate$addPlayerWithMod(ServerPlayerEntity player) {}
-    default void tickRate$removePlayerWithMod(ServerPlayerEntity player) {}
-    default boolean tickRate$hasClientMod(ServerPlayerEntity player) {return false;}
 
     default boolean tickRate$shouldTickEntity(Entity entity) {return false;}
     default boolean tickRate$shouldTickChunk(World world, ChunkPos chunkPos) {return false;}
