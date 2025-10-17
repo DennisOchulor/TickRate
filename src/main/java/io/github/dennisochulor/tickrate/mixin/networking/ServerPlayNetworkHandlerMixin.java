@@ -1,7 +1,5 @@
 package io.github.dennisochulor.tickrate.mixin.networking;
 
-import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import io.github.dennisochulor.tickrate.TickRateHelloPayload;
 import io.github.dennisochulor.tickrate.TickState;
 import io.github.dennisochulor.tickrate.injected_interface.TickRateServerPlayNetworkHandler;
@@ -46,9 +44,10 @@ public abstract class ServerPlayNetworkHandlerMixin implements TickRateServerPla
         hasClientMod = ServerPlayNetworking.canSend((ServerPlayNetworkHandler) (Object) this, TickRateHelloPayload.ID);
     }
 
-    @WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/network/ServerPlayNetworkHandler;tickMovement()Z"))
-    private boolean tick(ServerPlayNetworkHandler handler, Operation<Boolean> original) {
+    @Inject(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/network/ServerPlayNetworkHandler;syncWithPlayerPosition()V"), cancellable = true)
+    private void tick(CallbackInfo ci) {
         ServerTickManager tickManager = player.getEntityWorld().getServer().getTickManager();
+        ServerPlayNetworkHandler handler = (ServerPlayNetworkHandler) (Object) this;
 
         // For players without the mod client-side, allow some degree of TPS control
         // Regardless of whether this player should tick or not, send update packet if applicable
@@ -69,10 +68,9 @@ public abstract class ServerPlayNetworkHandlerMixin implements TickRateServerPla
         }
 
 
-        // call tickMovement() according to player's TPS
-        // the rest of the handler should still tick even if shouldTickEntity is false
-        if (tickManager.tickRate$shouldTickEntity(player)) return original.call(handler);
-        else return false;
+        // call tickMovement() according to player's TPS, tickMovement() starts at syncWithPlayerPosition() and ends before baseTick()
+        // the rest of the handler should still tick even if shouldTickEntity is false, though only the sequencing stuff is being acccounted for now.
+        if (!tickManager.tickRate$shouldTickEntity(player)) ci.cancel();
     }
 
 
