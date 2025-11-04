@@ -1,19 +1,19 @@
 package io.github.dennisochulor.tickrate;
 
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.network.RegistryByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.codec.PacketCodecs;
-import net.minecraft.network.packet.CustomPayload;
-import net.minecraft.util.Identifier;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
 
-public record TickRateHelloPayload(String version) implements CustomPayload {
+public record TickRateHelloPayload(String version) implements CustomPacketPayload {
 
-    public static final CustomPayload.Id<TickRateHelloPayload> ID = new CustomPayload.Id<>(Identifier.of(TickRate.MOD_ID,"hello"));
-    public static final PacketCodec<RegistryByteBuf, TickRateHelloPayload> CODEC = PacketCodec.tuple(PacketCodecs.STRING, TickRateHelloPayload::version, TickRateHelloPayload::new);
+    public static final CustomPacketPayload.Type<TickRateHelloPayload> ID = new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath(TickRate.MOD_ID,"hello"));
+    public static final StreamCodec<RegistryFriendlyByteBuf, TickRateHelloPayload> CODEC = StreamCodec.composite(ByteBufCodecs.STRING_UTF8, TickRateHelloPayload::version, TickRateHelloPayload::new);
 
     @Override
-    public Id<? extends CustomPayload> getId() {
+    public Type<? extends CustomPacketPayload> type() {
         return ID;
     }
 

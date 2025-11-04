@@ -2,25 +2,24 @@ package io.github.dennisochulor.tickrate;
 
 import static io.github.dennisochulor.tickrate.TickRateAttachments.*;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.RenderTickCounter;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.world.tick.TickManager;
-
 import java.util.HashMap;
 import java.util.Map;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.Minecraft;
+import net.minecraft.world.TickRateManager;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.ChunkPos;
 
 public class TickRateClientManager {
 
     private TickRateClientManager() {}
 
     private static boolean serverHasMod = false;
-    private static final Map<Integer, TickProgressInfo> entityCache = new HashMap<>();
-    private static final Map<Long, TickProgressInfo> chunkCache = new HashMap<>();
+    private static final Map<Integer, DeltaTrackerInfo> entityCache = new HashMap<>();
+    private static final Map<Long, DeltaTrackerInfo> chunkCache = new HashMap<>();
 
-    // called in RenderTickCounterDynamicMixin
+    // called in DeltaTracker$TimerMixin
     public static void clearCache() {
         entityCache.clear();
         chunkCache.clear();
@@ -38,44 +37,44 @@ public class TickRateClientManager {
         return 1000.0f / getServerState().rate();
     }
 
-    public static TickProgressInfo getEntityTickProgress(Entity entity) {
-        TickProgressInfo info = entityCache.get(entity.getId());
+    public static DeltaTrackerInfo getEntityDeltaTrackerInfo(Entity entity) {
+        DeltaTrackerInfo info = entityCache.get(entity.getId());
         if(info != null) return info;
 
-        RenderTickCounter renderTickCounter = MinecraftClient.getInstance().getRenderTickCounter();
+        DeltaTracker deltaTracker = Minecraft.getInstance().getDeltaTracker();
         TickState serverState = getServerState();
 
-        if(!serverHasMod) info = TickProgressInfo.ofServer(false);
-        else if(MinecraftClient.getInstance().isPaused()) info = TickProgressInfo.NO_ANIMATE;
-        else if(entity instanceof PlayerEntity && serverState.frozen()) info = TickProgressInfo.ofServer(true); // tick freeze doesn't affect players
-        else if(entity.hasVehicle()) info = getEntityTickProgress(entity.getRootVehicle());
+        if(!serverHasMod) info = DeltaTrackerInfo.ofServer(false);
+        else if(Minecraft.getInstance().isPaused()) info = DeltaTrackerInfo.NO_ANIMATE;
+        else if(entity instanceof Player && serverState.frozen()) info = DeltaTrackerInfo.ofServer(true); // tick freeze doesn't affect players
+        else if(entity.isPassenger()) info = getEntityDeltaTrackerInfo(entity.getRootVehicle());
         else {
             // client's own player OR entities where client player is a passenger can go above 20TPS limit
-            boolean cappedAt20TPS = !(entity==MinecraftClient.getInstance().player) && !entity.hasPassenger(MinecraftClient.getInstance().player);
+            boolean cappedAt20TPS = !(entity==Minecraft.getInstance().player) && !entity.hasPassenger(Minecraft.getInstance().player);
             TickState state = getEntityState(entity); // this also handles passenger entities
             if(state.sprinting()) // animate at max 20 TPS but for client player we don't know the TPS, so just say 100 :P
-                info = cappedAt20TPS ? renderTickCounter.tickRate$getSpecificTickProgressInfo(20) : renderTickCounter.tickRate$getClientPlayerTickProgressInfo(100);
-            else if(state.frozen() && !state.stepping()) info = TickProgressInfo.NO_ANIMATE;
-            else if(!cappedAt20TPS) info = renderTickCounter.tickRate$getClientPlayerTickProgressInfo(state.rate());
-            else info = renderTickCounter.tickRate$getSpecificTickProgressInfo(state.rate());
+                info = cappedAt20TPS ? deltaTracker.tickRate$getDeltaTrackerInfo(20) : deltaTracker.tickRate$getClientPlayerDeltaTrackerInfo(100);
+            else if(state.frozen() && !state.stepping()) info = DeltaTrackerInfo.NO_ANIMATE;
+            else if(!cappedAt20TPS) info = deltaTracker.tickRate$getClientPlayerDeltaTrackerInfo(state.rate());
+            else info = deltaTracker.tickRate$getDeltaTrackerInfo(state.rate());
         }
 
         entityCache.put(entity.getId(), info);
         return info;
     }
 
-    public static TickProgressInfo getChunkTickProgress(ChunkPos chunkPos) {
-        TickProgressInfo info = chunkCache.get(chunkPos.toLong());
+    public static DeltaTrackerInfo getChunkDeltaTrackerInfo(ChunkPos chunkPos) {
+        DeltaTrackerInfo info = chunkCache.get(chunkPos.toLong());
         if(info != null) return info;
 
-        RenderTickCounter renderTickCounter = MinecraftClient.getInstance().getRenderTickCounter();
-        if(!serverHasMod) info = TickProgressInfo.ofServer(false);
-        else if(MinecraftClient.getInstance().isPaused()) info = TickProgressInfo.NO_ANIMATE;
+        DeltaTracker deltaTracker = Minecraft.getInstance().getDeltaTracker();
+        if(!serverHasMod) info = DeltaTrackerInfo.ofServer(false);
+        else if(Minecraft.getInstance().isPaused()) info = DeltaTrackerInfo.NO_ANIMATE;
         else {
             TickState state = getChunkState(chunkPos);
-            if(state.sprinting()) info = renderTickCounter.tickRate$getSpecificTickProgressInfo(20); // animate at max 20 TPS
-            else if(state.frozen() && !state.stepping()) info = TickProgressInfo.NO_ANIMATE;
-            else info = renderTickCounter.tickRate$getSpecificTickProgressInfo(state.rate());
+            if(state.sprinting()) info = deltaTracker.tickRate$getDeltaTrackerInfo(20); // animate at max 20 TPS
+            else if(state.frozen() && !state.stepping()) info = DeltaTrackerInfo.NO_ANIMATE;
+            else info = deltaTracker.tickRate$getDeltaTrackerInfo(state.rate());
         }
 
         chunkCache.put(chunkPos.toLong(), info);
@@ -83,24 +82,24 @@ public class TickRateClientManager {
     }
 
     public static TickState getEntityState(Entity entity) {
-        if(entity.hasVehicle()) return getEntityState(entity.getRootVehicle()); // all passengers will follow TPS of the root entity
+        if(entity.isPassenger()) return getEntityState(entity.getRootVehicle()); // all passengers will follow TPS of the root entity
         TickState state = entity.getAttached(TICK_STATE);
-        if(state == null) return getChunkState(entity.getChunkPos());
+        if(state == null) return getChunkState(entity.chunkPosition());
 
         int rate = state.rate();
         TickState serverState = getServerState();
-        if(rate == -1) rate = getChunkState(entity.getChunkPos()).rate();
+        if(rate == -1) rate = getChunkState(entity.chunkPosition()).rate();
         if(serverState.frozen() || serverState.sprinting() || serverState.stepping())
             return serverState.withRate(serverState.stepping() ? serverState.rate() : rate);
         return state.withRate(rate);
     }
 
     /**
-     * World is assumed to be the {@link MinecraftClient#world}
+     * Level is assumed to be the {@link Minecraft#level}
      */
     public static TickState getChunkState(ChunkPos chunkPos) {
         if(!serverHasMod) return getServerState();
-        TickState state = MinecraftClient.getInstance().world.getChunk(chunkPos.x, chunkPos.z).getAttached(TICK_STATE);
+        TickState state = Minecraft.getInstance().level.getChunk(chunkPos.x, chunkPos.z).getAttached(TICK_STATE);
         if(state == null) return getServerState();
 
         int rate = state.rate();
@@ -113,10 +112,10 @@ public class TickRateClientManager {
 
     public static TickState getServerState() {
         if(!serverHasMod) {
-            TickManager tickManager = MinecraftClient.getInstance().world.getTickManager();
-            return new TickState((int) tickManager.getTickRate(),tickManager.isFrozen(),tickManager.isStepping(),false); // Client does not have any sprint info
+            TickRateManager tickManager = Minecraft.getInstance().level.tickRateManager();
+            return new TickState((int) tickManager.tickrate(),tickManager.isFrozen(),tickManager.isSteppingForward(),false); // Client does not have any sprint info
         }
-        return MinecraftClient.getInstance().world.getAttached(TICK_STATE_SERVER);
+        return Minecraft.getInstance().level.getAttached(TICK_STATE_SERVER);
     }
 
 }

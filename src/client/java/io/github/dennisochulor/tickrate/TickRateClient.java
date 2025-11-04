@@ -5,7 +5,7 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 
 public class TickRateClient implements ClientModInitializer {
 	@Override
@@ -23,8 +23,8 @@ public class TickRateClient implements ClientModInitializer {
 
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> dispatcher.register(ClientCommandManager.literal("tick_indicator")
 				.executes(context -> {
-					if(TickIndicator.toggle()) context.getSource().sendFeedback(Text.literal("Tick indicator toggled on."));
-					else context.getSource().sendFeedback(Text.literal("Tick indicator toggled off."));
+					if(TickIndicator.toggle()) context.getSource().sendFeedback(Component.literal("Tick indicator toggled on."));
+					else context.getSource().sendFeedback(Component.literal("Tick indicator toggled off."));
 					return 0;
 				})
 		));

@@ -3,8 +3,8 @@ package io.github.dennisochulor.tickrate;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.codec.PacketCodecs;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -14,11 +14,11 @@ public record TickState(int rate, boolean frozen, boolean stepping, boolean spri
 
     public static final TickState DEFAULT = new TickState(-1, false, false, false);
 
-    public static final PacketCodec<ByteBuf,TickState> PACKET_CODEC = PacketCodec.tuple(
-            PacketCodecs.INTEGER, TickState::rate,
-            PacketCodecs.BOOLEAN, TickState::frozen,
-            PacketCodecs.BOOLEAN, TickState::stepping,
-            PacketCodecs.BOOLEAN, TickState::sprinting,
+    public static final StreamCodec<ByteBuf,TickState> PACKET_CODEC = StreamCodec.composite(
+            ByteBufCodecs.INT, TickState::rate,
+            ByteBufCodecs.BOOL, TickState::frozen,
+            ByteBufCodecs.BOOL, TickState::stepping,
+            ByteBufCodecs.BOOL, TickState::sprinting,
             TickState::new
     );
 

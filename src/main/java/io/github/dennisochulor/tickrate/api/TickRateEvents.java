@@ -2,9 +2,9 @@ package io.github.dennisochulor.tickrate.api;
 
 import net.fabricmc.fabric.api.event.Event;
 import net.fabricmc.fabric.api.event.EventFactory;
-import net.minecraft.entity.Entity;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.chunk.WorldChunk;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.chunk.LevelChunk;
 
 
 /**
@@ -181,22 +181,22 @@ public interface TickRateEvents {
         /**
          * If the chunk's rate has been reset, <code>rate</code> will be 0.
          */
-        void onChunkRate(WorldChunk chunk, float rate);
+        void onChunkRate(LevelChunk chunk, float rate);
     }
 
     @FunctionalInterface
     interface ChunkFreeze {
-        void onChunkFreeze(WorldChunk chunk, boolean freeze);
+        void onChunkFreeze(LevelChunk chunk, boolean freeze);
     }
 
     @FunctionalInterface
     interface ChunkStep {
-        void onChunkStep(WorldChunk chunk, int stepTicks);
+        void onChunkStep(LevelChunk chunk, int stepTicks);
     }
 
     @FunctionalInterface
     interface ChunkSprint {
-        void onChunkSprint(WorldChunk chunk, int sprintTicks);
+        void onChunkSprint(LevelChunk chunk, int sprintTicks);
     }
 
 }

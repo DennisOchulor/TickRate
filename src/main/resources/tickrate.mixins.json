@@ -3,18 +3,18 @@
   "package": "io.github.dennisochulor.tickrate.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "chunk.ChunkTickSchedulerMixin",
-    "chunk.EntityTrackerEntryMixin",
-    "chunk.ServerChunkLoadingManagerMixin",
-    "chunk.WorldTickSchedulerMixin",
+    "chunk.LevelChunkTicksMixin",
+    "chunk.ServerEntityMixin",
+    "chunk.ChunkMapMixin",
+    "chunk.LevelTicksMixin",
     "core.MinecraftServerMixin",
-    "core.ServerTickManagerMixin",
-    "core.ServerWorldMixin",
+    "core.ServerTickRateManagerMixin",
+    "core.ServerLevelMixin",
     "core.TickCommandMixin",
-    "networking.ServerLoginNetworkHandlerMixin",
-    "networking.ServerPlayNetworkHandlerMixin",
+    "networking.ServerLoginPacketListenerImplMixin",
+    "networking.ServerGamePacketListenerImplMixin",
     "sound.EntityMixin",
-    "sound.ServerWorldMixin"
+    "sound.ServerLevelMixin"
   ],
   "injectors": {
     "defaultRequire": 1

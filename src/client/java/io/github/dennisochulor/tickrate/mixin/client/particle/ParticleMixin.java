@@ -1,11 +1,11 @@
 package io.github.dennisochulor.tickrate.mixin.client.particle;
 
 import io.github.dennisochulor.tickrate.injected_interface.TickRateParticle;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.Particle;
-import net.minecraft.client.world.ClientWorld;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.Mth;
+import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -16,15 +16,15 @@ public class ParticleMixin implements TickRateParticle {
     @Shadow protected double x;
     @Shadow protected double y;
     @Shadow protected double z;
-    @Shadow @Final protected ClientWorld world;
+    @Shadow @Final protected ClientLevel level;
 
     @Override
     public BlockPos tickRate$getBlockPos() {
-        return new BlockPos(MathHelper.floor(x), MathHelper.floor(y), MathHelper.floor(z));
+        return new BlockPos(Mth.floor(x), Mth.floor(y), Mth.floor(z));
     }
 
     @Override
-    public World tickRate$getWorld() {
-        return world;
+    public Level tickRate$getLevel() {
+        return level;
     }
 }

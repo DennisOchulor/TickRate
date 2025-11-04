@@ -13,10 +13,10 @@ import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.command.argument.EntityArgumentType;
-import net.minecraft.server.ServerTickManager;
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.world.ChunkLevelType;
+import net.minecraft.commands.Commands;
+import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.server.ServerTickRateManager;
+import net.minecraft.server.level.FullChunkStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,23 +44,23 @@ public class TickRate implements ModInitializer {
 		}));
 
 		ServerLifecycleEvents.SERVER_STARTING.register(server -> {
-			server.getTickManager().tickRate$serverStarting();
+			server.tickRateManager().tickRate$serverStarting();
 			TickRateAPIImpl.init(server);
 		});
 
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-			server.getTickManager().tickRate$serverStarted();
+			server.tickRateManager().tickRate$serverStarted();
 		});
 
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> TickRateAPIImpl.uninit());
 
 		ServerLifecycleEvents.AFTER_SAVE.register((server, flush, force) -> { // for autosaves and when server stops
-			server.getTickManager().tickRate$saveData();
+			server.tickRateManager().tickRate$saveData();
 		});
 
 		// called when entity's chunk level becomes ACCESSIBLE (at least FULL) if it was previously INACCESSIBLE
 		ServerEntityEvents.ENTITY_LOAD.register((entity,serverWorld) -> {
-			ServerTickManager tickManager = (ServerTickManager) serverWorld.getTickManager();
+			ServerTickRateManager tickManager = (ServerTickRateManager) serverWorld.tickRateManager();
 			tickManager.tickRate$updateLoad(entity, true);
 		});
 
@@ -68,24 +68,24 @@ public class TickRate implements ModInitializer {
 		 *  ENTITY_LOAD is called before AFTER_RESPAWN, so attachment data is not up to date.
 		 */
 		ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {
-			ServerTickManager tickManager = (ServerTickManager) oldPlayer.getEntityWorld().getTickManager();
+			ServerTickRateManager tickManager = (ServerTickRateManager) oldPlayer.level().tickRateManager();
 			tickManager.tickRate$updateLoad(oldPlayer, true); // use the oldPlayer cause it is not guaranteed the attachment transfer has already happened.
 		});
 
 		// called when entity's chunk level becomes INACCESSIBLE
 		ServerEntityEvents.ENTITY_UNLOAD.register((entity,serverWorld) -> {
-			ServerTickManager tickManager = (ServerTickManager) serverWorld.getTickManager();
+			ServerTickRateManager tickManager = (ServerTickRateManager) serverWorld.tickRateManager();
 			tickManager.tickRate$updateLoad(entity, false);
 		});
 
 		ServerChunkEvents.CHUNK_LEVEL_TYPE_CHANGE.register((serverWorld, worldChunk, oldLevelType, newLevelType) -> {
-			ServerTickManager tickManager = (ServerTickManager) serverWorld.getTickManager();
+			ServerTickRateManager tickManager = (ServerTickRateManager) serverWorld.tickRateManager();
 			// consider chunk LOADED if FULL, BLOCK_TICKING, ENTITY_TICKING
 			// consider chunk UNLOADED if INACCESSIBLE
-			if(oldLevelType == ChunkLevelType.INACCESSIBLE && newLevelType.isAfter(ChunkLevelType.FULL)) {
+			if(oldLevelType == FullChunkStatus.INACCESSIBLE && newLevelType.isOrAfter(FullChunkStatus.FULL)) {
 				tickManager.tickRate$updateLoad(worldChunk, true);
 			}
-			else if(newLevelType == ChunkLevelType.INACCESSIBLE) {
+			else if(newLevelType == FullChunkStatus.INACCESSIBLE) {
 				tickManager.tickRate$updateLoad(worldChunk, false);
 			}
 		});
@@ -93,11 +93,11 @@ public class TickRate implements ModInitializer {
 		// TickRate testing command
 		if(FabricLoader.getInstance().isDevelopmentEnvironment()) {
 			CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-				dispatcher.register(CommandManager.literal("tickratetest").then(CommandManager.argument("entity", EntityArgumentType.entity()).executes(context -> {
-					Test.test(EntityArgumentType.getEntity(context, "entity"));
+				dispatcher.register(Commands.literal("tickratetest").then(Commands.argument("entity", EntityArgument.entity()).executes(context -> {
+					Test.test(EntityArgument.getEntity(context, "entity"));
 					return 1;
 				}))
-				.then(CommandManager.literal("server").executes(context -> {
+				.then(Commands.literal("server").executes(context -> {
 					Test.test(context.getSource().getServer());
 					return 1;
 				})));

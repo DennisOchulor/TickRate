@@ -1,12 +1,11 @@
 package io.github.dennisochulor.tickrate.api;
 
 import io.github.dennisochulor.tickrate.api_impl.TickRateAPIImpl;
-import net.minecraft.entity.Entity;
-import net.minecraft.server.world.ChunkLevelType;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.world.World;
-
 import java.util.Collection;
+import net.minecraft.server.level.FullChunkStatus;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
 
 /**
  * API v3 for TickRate v0.5.0 <p>
@@ -167,41 +166,41 @@ public interface TickRateAPI {
      * <p>
      * If the server is stepping, the server's tick rate is returned.
      *
-     * @throws IllegalArgumentException if the chunk is {@link ChunkLevelType#INACCESSIBLE INACCESSIBLE} (not loaded).
+     * @throws IllegalArgumentException if the chunk is {@link FullChunkStatus#INACCESSIBLE INACCESSIBLE} (not loaded).
      */
-    float queryChunk(World world, ChunkPos chunk);
+    float queryChunk(Level level, ChunkPos chunk);
 
     /**
      * Sets the tick rate of the specified chunks. <code>rate</code> is rounded using {@link Math#round(float)} <p>
      * If <code>rate</code> is exactly <code>0.0f</code>, then the chunks' tick rate will be reset.
      *
-     * @throws IllegalArgumentException if any of the chunks are {@link ChunkLevelType#INACCESSIBLE INACCESSIBLE} (not loaded) OR if <code>rate</code> is less than 1 and not 0.
+     * @throws IllegalArgumentException if any of the chunks are {@link FullChunkStatus#INACCESSIBLE INACCESSIBLE} (not loaded) OR if <code>rate</code> is less than 1 and not 0.
      */
-    void rateChunk(World world, Collection<ChunkPos> chunks, float rate);
+    void rateChunk(Level level, Collection<ChunkPos> chunks, float rate);
 
     /**
      * Sets the tick rate of the specified chunk. <code>rate</code> is rounded using {@link Math#round(float)} <p>
      * If <code>rate</code> is exactly <code>0.0f</code>, then the chunk's tick rate will be reset.
      *
-     * @throws IllegalArgumentException if the chunk is {@link ChunkLevelType#INACCESSIBLE INACCESSIBLE} (not loaded) OR if <code>rate</code> is less than 1 and not 0.
+     * @throws IllegalArgumentException if the chunk is {@link FullChunkStatus#INACCESSIBLE INACCESSIBLE} (not loaded) OR if <code>rate</code> is less than 1 and not 0.
      */
-    void rateChunk(World world, ChunkPos chunk, float rate);
+    void rateChunk(Level level, ChunkPos chunk, float rate);
 
     /**
      * Freezes or unfreezes the specified chunks depending on <code>freeze</code>.
      *
      * @param freeze <code>true</code> to freeze, <code>false</code> to unfreeze
-     * @throws IllegalArgumentException if any of the chunks are {@link ChunkLevelType#INACCESSIBLE INACCESSIBLE} (not loaded).
+     * @throws IllegalArgumentException if any of the chunks are {@link FullChunkStatus#INACCESSIBLE INACCESSIBLE} (not loaded).
      */
-    void freezeChunk(World world, Collection<ChunkPos> chunks, boolean freeze);
+    void freezeChunk(Level level, Collection<ChunkPos> chunks, boolean freeze);
 
     /**
      * Freezes or unfreezes the specified chunk depending on <code>freeze</code>.
      *
      * @param freeze <code>true</code> to freeze, <code>false</code> to unfreeze
-     * @throws IllegalArgumentException if the chunk is {@link ChunkLevelType#INACCESSIBLE INACCESSIBLE} (not loaded).
+     * @throws IllegalArgumentException if the chunk is {@link FullChunkStatus#INACCESSIBLE INACCESSIBLE} (not loaded).
      */
-    void freezeChunk(World world, ChunkPos chunk, boolean freeze);
+    void freezeChunk(Level level, ChunkPos chunk, boolean freeze);
 
     /**
      * Steps the specified chunks for <code>stepTicks</code> ticks. The chunks will step according to their current TPS. <p>
@@ -209,12 +208,12 @@ public interface TickRateAPI {
      *
      * @throws IllegalArgumentException if any of the following conditions are met: <p>
      * <ul>
-     *          <li> Any of the chunks are {@link ChunkLevelType#INACCESSIBLE INACCESSIBLE} (not loaded).
+     *          <li> Any of the chunks are {@link FullChunkStatus#INACCESSIBLE INACCESSIBLE} (not loaded).
      *          <li> Any of the specified chunks are currently NOT frozen or ARE sprinting.
      *          <li> <code>stepTicks</code> is less than 0.
      * </ul>
      */
-    void stepChunk(World world, Collection<ChunkPos> chunks, int stepTicks);
+    void stepChunk(Level level, Collection<ChunkPos> chunks, int stepTicks);
 
     /**
      * Steps the specified chunk for <code>stepTicks</code> ticks. The chunk will step according to its current TPS. <p>
@@ -222,12 +221,12 @@ public interface TickRateAPI {
      *
      * @throws IllegalArgumentException if any of the following conditions are met: <p>
      * <ul>
-     *          <li> The chunk is {@link ChunkLevelType#INACCESSIBLE INACCESSIBLE} (not loaded).
+     *          <li> The chunk is {@link FullChunkStatus#INACCESSIBLE INACCESSIBLE} (not loaded).
      *          <li> The specified chunk is currently NOT frozen or IS sprinting.
      *          <li> <code>stepTicks</code> is less than 0.
      * </ul>
      */
-    void stepChunk(World world, ChunkPos chunk, int stepTicks);
+    void stepChunk(Level level, ChunkPos chunk, int stepTicks);
 
     /**
      * Sprints the specified chunks for <code>sprintTicks</code> ticks. <p>
@@ -235,12 +234,12 @@ public interface TickRateAPI {
      *
      * @throws IllegalArgumentException if any of the following conditions are met: <p>
      * <ul>
-     *          <li> Any of the chunks are {@link ChunkLevelType#INACCESSIBLE INACCESSIBLE} (not loaded).
+     *          <li> Any of the chunks are {@link FullChunkStatus#INACCESSIBLE INACCESSIBLE} (not loaded).
      *          <li> Any of the specified chunks are currently stepping.
      *          <li> <code>sprintTicks</code> is less than 0.
      * </ul>
      */
-    void sprintChunk(World world, Collection<ChunkPos> chunks, int sprintTicks);
+    void sprintChunk(Level level, Collection<ChunkPos> chunks, int sprintTicks);
 
     /**
      * Sprints the specified chunk for <code>sprintTicks</code> ticks. <p>
@@ -248,11 +247,11 @@ public interface TickRateAPI {
      *
      * @throws IllegalArgumentException if any of the following conditions are met: <p>
      * <ul>
-     *          <li> The chunk is {@link ChunkLevelType#INACCESSIBLE INACCESSIBLE} (not loaded).
+     *          <li> The chunk is {@link FullChunkStatus#INACCESSIBLE INACCESSIBLE} (not loaded).
      *          <li> The specified chunk is currently stepping.
      *          <li> <code>sprintTicks</code> is less than 0.
      * </ul>
      */
-    void sprintChunk(World world, ChunkPos chunk, int sprintTicks);
+    void sprintChunk(Level level, ChunkPos chunk, int sprintTicks);
 
 }

@@ -2,12 +2,12 @@ package io.github.dennisochulor.tickrate.test;
 
 import io.github.dennisochulor.tickrate.api.TickRateAPI;
 import io.github.dennisochulor.tickrate.api.TickRateEvents;
-import net.minecraft.entity.Entity;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.world.World;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
 
 import static io.github.dennisochulor.tickrate.TickRate.LOGGER;
 
@@ -28,8 +28,8 @@ public final class Test {
 
         Thread.ofVirtual().name("TickRateTest Thread").start(() -> {
             TickRateAPI api = TickRateAPI.getInstance();
-            ServerCommandSource src = server.getCommandSource();
-            CommandManager commander = server.getCommandManager();
+            CommandSourceStack src = server.createCommandSourceStack();
+            Commands commander = server.getCommands();
 
             LOGGER.info("STARTING TICKRATE **API** SERVER TEST");
             sleep(5);
@@ -62,26 +62,26 @@ public final class Test {
             LOGGER.info("STARTING TICKRATE **COMMAND** SERVER TEST");
             sleep(5);
 
-            commander.executeWithPrefix(src, "tick rate 10");
-            commander.executeWithPrefix(src, "tick query");
+            commander.performPrefixedCommand(src, "tick rate 10");
+            commander.performPrefixedCommand(src, "tick query");
             sleep(2);
-            commander.executeWithPrefix(src, "tick freeze");
+            commander.performPrefixedCommand(src, "tick freeze");
             sleep(2);
 
-            commander.executeWithPrefix(src, "tick step 50");
+            commander.performPrefixedCommand(src, "tick step 50");
             sleep(7);
-            commander.executeWithPrefix(src, "tick step 10000");
+            commander.performPrefixedCommand(src, "tick step 10000");
             sleep(2);
-            commander.executeWithPrefix(src, "tick step stop");
+            commander.performPrefixedCommand(src, "tick step stop");
             sleep(2);
 
-            commander.executeWithPrefix(src, "tick sprint 1000000");
+            commander.performPrefixedCommand(src, "tick sprint 1000000");
             sleep(5);
-            commander.executeWithPrefix(src, "tick sprint stop");
+            commander.performPrefixedCommand(src, "tick sprint stop");
             sleep(2);
-            commander.executeWithPrefix(src, "tick unfreeze");
+            commander.performPrefixedCommand(src, "tick unfreeze");
             sleep(2);
-            commander.executeWithPrefix(src, "tick rate 20");
+            commander.performPrefixedCommand(src, "tick rate 20");
             sleep(2);
             LOGGER.info("FINISH TICKRATE **COMMAND** SERVER TEST");
         });
@@ -92,12 +92,12 @@ public final class Test {
 
         Thread.ofVirtual().name("TickRateTest Thread").start(() -> {
             TickRateAPI api = TickRateAPI.getInstance();
-            String uuid = testEntity.getUuidAsString();
-            World world = testEntity.getEntityWorld();
-            ServerCommandSource src = world.getServer().getCommandSource();
-            CommandManager commander = world.getServer().getCommandManager();
-            ChunkPos chunkPos = testEntity.getChunkPos();
-            String strChunkPos = chunkPos.getCenterX() + " " + chunkPos.getCenterZ();
+            String uuid = testEntity.getStringUUID();
+            Level level = testEntity.level();
+            CommandSourceStack src = level.getServer().createCommandSourceStack();
+            Commands commander = level.getServer().getCommands();
+            ChunkPos chunkPos = testEntity.chunkPosition();
+            String strChunkPos = chunkPos.getMiddleBlockX() + " " + chunkPos.getMiddleBlockZ();
 
             LOGGER.info("STARTING TICKRATE **API** TEST");
             sleep(5);
@@ -126,26 +126,26 @@ public final class Test {
             sleep(5);
 
             LOGGER.info("CHUNK TESTS");
-            api.rateChunk(world, chunkPos, 50);
-            LOGGER.info("{} TPS", api.queryChunk(world, chunkPos));
+            api.rateChunk(level, chunkPos, 50);
+            LOGGER.info("{} TPS", api.queryChunk(level, chunkPos));
             sleep(2);
-            api.freezeChunk(world, chunkPos, true);
+            api.freezeChunk(level, chunkPos, true);
             sleep(2);
 
-            api.stepChunk(world, chunkPos, 250);
+            api.stepChunk(level, chunkPos, 250);
             sleep(7);
-            api.stepChunk(world, chunkPos, 10000);
+            api.stepChunk(level, chunkPos, 10000);
             sleep(2);
-            api.stepChunk(world, chunkPos, 0);
+            api.stepChunk(level, chunkPos, 0);
             sleep(2);
 
-            api.sprintChunk(world, chunkPos, 1000000);
+            api.sprintChunk(level, chunkPos, 1000000);
             sleep(5);
-            api.sprintChunk(world, chunkPos, 0);
+            api.sprintChunk(level, chunkPos, 0);
             sleep(2);
-            api.freezeChunk(world, chunkPos, false);
+            api.freezeChunk(level, chunkPos, false);
             sleep(2);
-            api.rateChunk(world, chunkPos, 0.0f);
+            api.rateChunk(level, chunkPos, 0.0f);
             sleep(2);
             LOGGER.info("FINISH TICKRATE **API** TEST");
 
@@ -155,49 +155,49 @@ public final class Test {
             sleep(5);
 
             LOGGER.info("ENTITY TEST");
-            commander.executeWithPrefix(src, "tick entity " + uuid + " rate 10");
-            commander.executeWithPrefix(src, "tick entity " + uuid + " query");
+            commander.performPrefixedCommand(src, "tick entity " + uuid + " rate 10");
+            commander.performPrefixedCommand(src, "tick entity " + uuid + " query");
             sleep(2);
-            commander.executeWithPrefix(src, "tick entity " + uuid + " freeze");
+            commander.performPrefixedCommand(src, "tick entity " + uuid + " freeze");
             sleep(2);
 
-            commander.executeWithPrefix(src, "tick entity " + uuid + " step 50");
+            commander.performPrefixedCommand(src, "tick entity " + uuid + " step 50");
             sleep(7);
-            commander.executeWithPrefix(src, "tick entity " + uuid + " step 10000");
+            commander.performPrefixedCommand(src, "tick entity " + uuid + " step 10000");
             sleep(2);
-            commander.executeWithPrefix(src, "tick entity " + uuid + " step stop");
+            commander.performPrefixedCommand(src, "tick entity " + uuid + " step stop");
             sleep(2);
 
-            commander.executeWithPrefix(src, "tick entity " + uuid + " sprint 1000000");
+            commander.performPrefixedCommand(src, "tick entity " + uuid + " sprint 1000000");
             sleep(5);
-            commander.executeWithPrefix(src, "tick entity " + uuid + " sprint stop");
+            commander.performPrefixedCommand(src, "tick entity " + uuid + " sprint stop");
             sleep(2);
-            commander.executeWithPrefix(src, "tick entity " + uuid + " unfreeze");
+            commander.performPrefixedCommand(src, "tick entity " + uuid + " unfreeze");
             sleep(2);
-            commander.executeWithPrefix(src, "tick entity " + uuid + " rate reset");
+            commander.performPrefixedCommand(src, "tick entity " + uuid + " rate reset");
             sleep(5);
 
             LOGGER.info("CHUNK TESTS");
-            commander.executeWithPrefix(src, "tick chunk " + strChunkPos + " rate 50");
-            commander.executeWithPrefix(src, "tick chunk " + strChunkPos + " query");
+            commander.performPrefixedCommand(src, "tick chunk " + strChunkPos + " rate 50");
+            commander.performPrefixedCommand(src, "tick chunk " + strChunkPos + " query");
             sleep(2);
-            commander.executeWithPrefix(src, "tick chunk " + strChunkPos + " freeze");
+            commander.performPrefixedCommand(src, "tick chunk " + strChunkPos + " freeze");
             sleep(2);
 
-            commander.executeWithPrefix(src, "tick chunk " + strChunkPos + " step 250");
+            commander.performPrefixedCommand(src, "tick chunk " + strChunkPos + " step 250");
             sleep(7);
-            commander.executeWithPrefix(src, "tick chunk " + strChunkPos + " step 10000");
+            commander.performPrefixedCommand(src, "tick chunk " + strChunkPos + " step 10000");
             sleep(2);
-            commander.executeWithPrefix(src, "tick chunk " + strChunkPos + " step stop");
+            commander.performPrefixedCommand(src, "tick chunk " + strChunkPos + " step stop");
             sleep(2);
 
-            commander.executeWithPrefix(src, "tick chunk " + strChunkPos + " sprint 1000000");
+            commander.performPrefixedCommand(src, "tick chunk " + strChunkPos + " sprint 1000000");
             sleep(5);
-            commander.executeWithPrefix(src, "tick chunk " + strChunkPos + " sprint stop");
+            commander.performPrefixedCommand(src, "tick chunk " + strChunkPos + " sprint stop");
             sleep(2);
-            commander.executeWithPrefix(src, "tick chunk " + strChunkPos + " unfreeze");
+            commander.performPrefixedCommand(src, "tick chunk " + strChunkPos + " unfreeze");
             sleep(2);
-            commander.executeWithPrefix(src, "tick chunk " + strChunkPos + " rate reset");
+            commander.performPrefixedCommand(src, "tick chunk " + strChunkPos + " rate reset");
             sleep(2);
             LOGGER.info("FINISH TICKRATE **COMMAND** TEST");
         });
@@ -219,15 +219,15 @@ public final class Test {
             TickRateEvents.SERVER_STEP.register((server, stepTicks) -> LOGGER.info("server step {}", stepTicks));
             TickRateEvents.SERVER_SPRINT.register((server, sprintTicks) -> LOGGER.info("server sprint {}", sprintTicks));
 
-            TickRateEvents.ENTITY_RATE.register((entity, rate) -> LOGGER.info("{} rate {}", entity.getUuidAsString(), rate));
-            TickRateEvents.ENTITY_FREEZE.register((entity, freeze) -> LOGGER.info("{} freeze {}", entity.getUuidAsString(), freeze));
-            TickRateEvents.ENTITY_STEP.register((entity, stepTicks) -> LOGGER.info("{} step {}", entity.getUuidAsString(), stepTicks));
-            TickRateEvents.ENTITY_SPRINT.register((entity, sprintTicks) -> LOGGER.info("{} sprint {}", entity.getUuidAsString(), sprintTicks));
+            TickRateEvents.ENTITY_RATE.register((entity, rate) -> LOGGER.info("{} rate {}", entity.getStringUUID(), rate));
+            TickRateEvents.ENTITY_FREEZE.register((entity, freeze) -> LOGGER.info("{} freeze {}", entity.getStringUUID(), freeze));
+            TickRateEvents.ENTITY_STEP.register((entity, stepTicks) -> LOGGER.info("{} step {}", entity.getStringUUID(), stepTicks));
+            TickRateEvents.ENTITY_SPRINT.register((entity, sprintTicks) -> LOGGER.info("{} sprint {}", entity.getStringUUID(), sprintTicks));
 
-            TickRateEvents.CHUNK_RATE.register((chunk, rate) -> LOGGER.info("{} {} rate {}", chunk.getWorld().getRegistryKey().getValue(), chunk.getPos(), rate));
-            TickRateEvents.CHUNK_FREEZE.register((chunk, freeze) -> LOGGER.info("{} {} freeze {}", chunk.getWorld().getRegistryKey().getValue(), chunk.getPos(), freeze));
-            TickRateEvents.CHUNK_STEP.register((chunk, stepTicks) -> LOGGER.info("{} {} step {}", chunk.getWorld().getRegistryKey().getValue(), chunk.getPos(), stepTicks));
-            TickRateEvents.CHUNK_SPRINT.register((chunk, sprintTicks) -> LOGGER.info("{} {} sprint {}", chunk.getWorld().getRegistryKey().getValue(), chunk.getPos(), sprintTicks));
+            TickRateEvents.CHUNK_RATE.register((chunk, rate) -> LOGGER.info("{} {} rate {}", chunk.getLevel().dimension().location(), chunk.getPos(), rate));
+            TickRateEvents.CHUNK_FREEZE.register((chunk, freeze) -> LOGGER.info("{} {} freeze {}", chunk.getLevel().dimension().location(), chunk.getPos(), freeze));
+            TickRateEvents.CHUNK_STEP.register((chunk, stepTicks) -> LOGGER.info("{} {} step {}", chunk.getLevel().dimension().location(), chunk.getPos(), stepTicks));
+            TickRateEvents.CHUNK_SPRINT.register((chunk, sprintTicks) -> LOGGER.info("{} {} sprint {}", chunk.getLevel().dimension().location(), chunk.getPos(), sprintTicks));
             registered = true;
         }
     }

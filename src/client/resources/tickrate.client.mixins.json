@@ -4,28 +4,28 @@
   "compatibilityLevel": "JAVA_21",
   "client": [
     "misc.EnchantmentScreenMixin",
-    "particle.BillboardParticleRendererMixin",
-    "particle.ElderGuardianParticleRendererMixin",
-    "particle.ItemPickupParticleRendererMixin",
-    "particle.ParticleManagerMixin",
+    "particle.QuadParticleGroupMixin",
+    "particle.ElderGuardianParticleRenderStateMixin",
+    "particle.ItemPickupParticleGroupMixin",
+    "particle.ParticleEngineMixin",
     "particle.ParticleMixin",
-    "particle.ParticleRendererMixin",
-    "render.BlockEntityRenderManagerMixin",
-    "render.EntityRenderManagerMixin",
+    "particle.ParticleGroupMixin",
+    "render.BlockEntityRenderDispatcherMixin",
+    "render.EntityRenderDispatcherMixin",
     "render.GameRendererMixin",
-    "render.RenderTickCounterDynamicMixin",
-    "render.RenderTickCounterMixin",
-    "render.WorldRendererMixin",
-    "sound.ClientWorldMixin",
+    "render.DeltaTracker$TimerMixin",
+    "render.DeltaTrackerMixin",
+    "render.LevelRendererMixin",
+    "sound.ClientLevelMixin",
     "sound.SoundSystemMixin",
-    "tick.ClientWorldMixin",
-    "tick.MinecraftClientMixin",
-    "tick.WorldMixin"
+    "tick.ClientLevelMixin",
+    "tick.MinecraftMixin",
+    "tick.LevelMixin"
   ],
   "injectors": {
     "defaultRequire": 1
   },
   "mixins": [
-    "misc.StatusEffectUtilMixin"
+    "misc.MobEffectUtilMixin"
   ]
 }
