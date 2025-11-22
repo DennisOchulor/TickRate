@@ -3,7 +3,6 @@ package io.github.dennisochulor.tickrate;
 import io.github.dennisochulor.tickrate.api_impl.TickRateAPIImpl;
 import io.github.dennisochulor.tickrate.test.Test;
 import net.fabricmc.api.ModInitializer;
-
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
@@ -19,6 +18,7 @@ import net.minecraft.server.ServerTickRateManager;
 import net.minecraft.server.level.FullChunkStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.spongepowered.asm.mixin.MixinEnvironment;
 
 public class TickRate implements ModInitializer {
 
@@ -90,8 +90,9 @@ public class TickRate implements ModInitializer {
 			}
 		});
 
-		// TickRate testing command
+		// TickRate dev-only stuff
 		if(FabricLoader.getInstance().isDevelopmentEnvironment()) {
+			// Testing command
 			CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
 				dispatcher.register(Commands.literal("tickratetest").then(Commands.argument("entity", EntityArgument.entity()).executes(context -> {
 					Test.test(EntityArgument.getEntity(context, "entity"));
@@ -102,6 +103,8 @@ public class TickRate implements ModInitializer {
 					return 1;
 				})));
 			});
+
+			MixinEnvironment.getCurrentEnvironment().audit(); // also audit the mixins!
 		}
 
 	}

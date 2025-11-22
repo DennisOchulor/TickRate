@@ -27,5 +27,8 @@
   },
   "mixins": [
     "misc.MobEffectUtilMixin"
-  ]
+  ],
+  "mixinextras": {
+    "minVersion": "0.5.0"
+  }
 }

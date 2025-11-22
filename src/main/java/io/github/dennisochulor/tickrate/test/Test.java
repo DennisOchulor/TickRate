@@ -224,10 +224,10 @@ public final class Test {
             TickRateEvents.ENTITY_STEP.register((entity, stepTicks) -> LOGGER.info("{} step {}", entity.getStringUUID(), stepTicks));
             TickRateEvents.ENTITY_SPRINT.register((entity, sprintTicks) -> LOGGER.info("{} sprint {}", entity.getStringUUID(), sprintTicks));
 
-            TickRateEvents.CHUNK_RATE.register((chunk, rate) -> LOGGER.info("{} {} rate {}", chunk.getLevel().dimension().location(), chunk.getPos(), rate));
-            TickRateEvents.CHUNK_FREEZE.register((chunk, freeze) -> LOGGER.info("{} {} freeze {}", chunk.getLevel().dimension().location(), chunk.getPos(), freeze));
-            TickRateEvents.CHUNK_STEP.register((chunk, stepTicks) -> LOGGER.info("{} {} step {}", chunk.getLevel().dimension().location(), chunk.getPos(), stepTicks));
-            TickRateEvents.CHUNK_SPRINT.register((chunk, sprintTicks) -> LOGGER.info("{} {} sprint {}", chunk.getLevel().dimension().location(), chunk.getPos(), sprintTicks));
+            TickRateEvents.CHUNK_RATE.register((chunk, rate) -> LOGGER.info("{} {} rate {}", chunk.getLevel().dimension().identifier(), chunk.getPos(), rate));
+            TickRateEvents.CHUNK_FREEZE.register((chunk, freeze) -> LOGGER.info("{} {} freeze {}", chunk.getLevel().dimension().identifier(), chunk.getPos(), freeze));
+            TickRateEvents.CHUNK_STEP.register((chunk, stepTicks) -> LOGGER.info("{} {} step {}", chunk.getLevel().dimension().identifier(), chunk.getPos(), stepTicks));
+            TickRateEvents.CHUNK_SPRINT.register((chunk, sprintTicks) -> LOGGER.info("{} {} sprint {}", chunk.getLevel().dimension().identifier(), chunk.getPos(), sprintTicks));
             registered = true;
         }
     }

@@ -18,5 +18,5 @@ Following Player TPS:
 - Own player
 - Entities the player is riding
 - GameRenderer
-- MinecraftClient#tick
+- Minecraft#tick
 

@@ -22,6 +22,7 @@ import net.minecraft.server.ServerTickRateManager;
 import net.minecraft.server.commands.TickCommand;
 import net.minecraft.server.level.ColumnPos;
 import net.minecraft.server.level.FullChunkStatus;
+import net.minecraft.server.permissions.PermissionCheck;
 import net.minecraft.util.CommonColors;
 import net.minecraft.util.TimeUtil;
 import net.minecraft.world.entity.Entity;
@@ -42,10 +43,10 @@ public class TickCommandMixin {
     @Shadow @Final private static String DEFAULT_TICKRATE;
     @Shadow private static String nanosToMilisString(long nanos) { return ""; }
 
-    // requires method
-    @ModifyArg(method = "register", at = @At(value = "INVOKE", target = "Lnet/minecraft/commands/Commands;hasPermission(I)Lnet/minecraft/server/commands/PermissionCheck;"))
-    private static int modifyPermissionLevel(int requiredLevel) {
-        return 2;
+
+    @ModifyArg(method = "register", at = @At(value = "INVOKE", target = "Lnet/minecraft/commands/Commands;hasPermission(Lnet/minecraft/server/permissions/PermissionCheck;)Lnet/minecraft/server/permissions/PermissionProviderCheck;"))
+    private static PermissionCheck modifyPermissionLevel(PermissionCheck permissionCheck) {
+        return Commands.LEVEL_GAMEMASTERS; // allow for use in command blocks
     }
 
     // register the subcommands by modifying literal("tick") return value
@@ -260,7 +261,7 @@ public class TickCommandMixin {
                 firstRate = tickManager.tickRate$getChunkRate(first);
                 targets.forEach(chunk -> {
                     LevelChunk levelChunk = (LevelChunk) chunk;
-                    sb.append("Chunk ").append(levelChunk.getPos().toString()).append(" - ").append(tickManager.tickRate$getChunkRate(levelChunk)).append(" TPS").append("\n");
+                    sb.append("Chunk ").append(levelChunk.getPos()).append(" - ").append(tickManager.tickRate$getChunkRate(levelChunk)).append(" TPS").append("\n");
                 });
             }
             default -> throw new IllegalArgumentException("Unknown target type: " + targets.getFirst());

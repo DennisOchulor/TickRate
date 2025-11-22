@@ -214,7 +214,7 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
 
     public boolean tickRate$shouldTickChunk(Level level, ChunkPos chunkPos) {
         // check the ticked cache
-        String key = level.dimension().location() + "-" + chunkPos.toLong();
+        String key = level.dimension().identifier() + "-" + chunkPos.toLong();
         Boolean cachedShouldTick = ticked.get(key);
         if(cachedShouldTick != null) return cachedShouldTick;
         else {
@@ -229,7 +229,7 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
 
     public boolean tickRate$shouldTickChunk(LevelChunk chunk) {
         // check the ticked cache
-        String key = chunk.getLevel().dimension().location() + "-" + chunk.getPos().toLong();
+        String key = chunk.getLevel().dimension().identifier() + "-" + chunk.getPos().toLong();
         Boolean cachedShouldTick = ticked.get(key);
         if(cachedShouldTick != null) return cachedShouldTick;
 
@@ -529,7 +529,7 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
 
         String key = switch (target) {
             case Entity e -> e.getStringUUID();
-            case LevelChunk levelChunk -> levelChunk.getLevel().dimension().location() + "-" + levelChunk.getPos().toLong();
+            case LevelChunk levelChunk -> levelChunk.getLevel().dimension().identifier() + "-" + levelChunk.getPos().toLong();
             default -> "";
         };
 

@@ -1,17 +1,11 @@
 package io.github.dennisochulor.tickrate.mixin.client.tick;
 
+import com.llamalad7.mixinextras.expression.Definition;
+import com.llamalad7.mixinextras.expression.Expression;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.llamalad7.mixinextras.sugar.Local;
 import io.github.dennisochulor.tickrate.TickIndicator;
 import io.github.dennisochulor.tickrate.TickRateClientManager;
-import org.spongepowered.asm.mixin.Final;
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
-import java.util.function.BooleanSupplier;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
@@ -21,8 +15,16 @@ import net.minecraft.client.particle.ParticleEngine;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
-import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.world.TickRateManager;
+import org.spongepowered.asm.mixin.Final;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+import java.util.function.BooleanSupplier;
 
 @Mixin(Minecraft.class)
 public abstract class MinecraftMixin {
@@ -34,7 +36,6 @@ public abstract class MinecraftMixin {
 	@Shadow @Final public Options options;
 	@Shadow protected abstract boolean isLevelRunningNormally();
 	@Shadow public abstract void openChatScreen(ChatComponent.ChatMethod method);
-	@Shadow @Final private TextureManager textureManager;
 	@Shadow private volatile boolean pause;
 	@Shadow @Final public LevelRenderer levelRenderer;
 	@Shadow @Final public GameRenderer gameRenderer;
@@ -58,7 +59,6 @@ public abstract class MinecraftMixin {
 			this.particleEngine.tick();
 
 			if(this.isLevelRunningNormally() && i < playerChunkI) { // animate according to the player's chunk (not the player themself)
-				this.textureManager.tick();
 				this.level.animateTick(this.player.getBlockX(), this.player.getBlockY(), this.player.getBlockZ());
 			}
 
@@ -81,6 +81,14 @@ public abstract class MinecraftMixin {
 		return TickRateClientManager.getEntityDeltaTrackerInfo(this.player).i();
 	}
 
+	@Definition(id = "i", local = @Local(type = int.class))
+	@Expression("i > 0")
+	@ModifyExpressionValue(method = "runTick", at = @At("MIXINEXTRAS:EXPRESSION"))
+	private boolean tickTexturesFollowingPlayerChunkI(boolean original) {
+		if (this.player == null) return original;
+		else return TickRateClientManager.getChunkDeltaTrackerInfo(this.player.chunkPosition()).i() > 0;
+	}
+
 	@Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientLevel;tickEntities()V"))
 	public void tick$tickEntities(ClientLevel instance) {
 		if(!TickRateClientManager.serverHasMod()) instance.tickEntities();
@@ -95,12 +103,6 @@ public abstract class MinecraftMixin {
 
 	@Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/particle/ParticleEngine;tick()V"))
 	public void tick$tickParticles(ParticleEngine instance) {
-		if(!TickRateClientManager.serverHasMod()) instance.tick();
-		// otherwise NO-OP
-	}
-
-	@Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/texture/TextureManager;tick()V"))
-	public void tick$tickTextures(TextureManager instance) {
 		if(!TickRateClientManager.serverHasMod()) instance.tick();
 		// otherwise NO-OP
 	}
