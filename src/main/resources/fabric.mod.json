@@ -34,6 +34,7 @@
 			"environment": "client"
 		}
 	],
+	"accessWidener" : "tickrate.classtweaker",
 	"depends": {
 		"fabricloader": ">=${loader_version}",
 		"minecraft": "*",
@@ -41,15 +42,6 @@
 		"fabric-api": ">=${fabric_version}"
 	},
 	"custom": {
-		"loom:injected_interfaces": {
-			"net/minecraft/client/particle/Particle": ["io/github/dennisochulor/tickrate/injected_interface/TickRateParticle"],
-			"net/minecraft/client/DeltaTracker": ["io/github/dennisochulor/tickrate/injected_interface/TickRateDeltaTracker"],
-			"net/minecraft/world/ticks/LevelChunkTicks": ["io/github/dennisochulor/tickrate/injected_interface/TickRateLevelChunkTicks"],
-			"net/minecraft/server/ServerTickRateManager": ["io/github/dennisochulor/tickrate/injected_interface/TickRateTickManager"],
-			"net/minecraft/world/ticks/LevelTicks": ["io/github/dennisochulor/tickrate/injected_interface/TickRateLevelTicks"],
-			"net/minecraft/server/level/ServerEntity": ["io/github/dennisochulor/tickrate/injected_interface/TickRateServerEntity"],
-			"net/minecraft/server/network/ServerGamePacketListenerImpl": ["io/github/dennisochulor/tickrate/injected_interface/TickRateServerGamePacketListenerImpl"]
-		},
 		"lithium:options": {
 			"mixin.world.tick_scheduler": false
 		}
