@@ -1,11 +1,11 @@
 package io.github.dennisochulor.tickrate.mixin.chunk;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
 import java.util.List;
@@ -23,28 +23,20 @@ public class ChunkMapMixin {
 
     @Shadow @Final ServerLevel level;
 
-    @Unique private boolean bl;
-
-    @ModifyVariable(method = "tick()V", at = @At("STORE"))
-    boolean tick$getBl(boolean bl) {
-        this.bl = bl;
-        return bl;
-    }
-
     /**
      * This relates to MC-76973
      * Logically, this should apply uniformly to all entities, but for some unknown reason only projectiles/items
      * work properly with this. Other entities will become noticeably less smooth at low TPS. Hence the
      * distinction below is required. Sigh.
      */
-    @Redirect(method = "tick()V", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerEntity;sendChanges()V"))
-    void tick$tickServerEntity(ServerEntity serverEntity) {
+    @WrapOperation(method = "tick()V", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerEntity;sendChanges()V"))
+    void tick$tickServerEntity(ServerEntity serverEntity, Operation<Void> original) {
         Entity entity = serverEntity.tickRate$getEntity();
         if(entity instanceof Projectile || entity instanceof ItemEntity) {
             ServerTickRateManager tickManager = (ServerTickRateManager) level.tickRateManager();
-            if(this.bl || tickManager.tickRate$shouldTickEntity(entity)) serverEntity.sendChanges();
+            if(tickManager.tickRate$shouldTickEntity(entity)) original.call(serverEntity);
         }
-        else serverEntity.sendChanges();
+        else original.call(serverEntity);
     }
 
     @Redirect(method = "collectSpawningChunks", at = @At(value = "INVOKE", target = "Ljava/util/List;add(Ljava/lang/Object;)Z"))
