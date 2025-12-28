@@ -5,7 +5,6 @@ import com.llamalad7.mixinextras.sugar.ref.LocalBooleanRef;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.ServerTickRateManager;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.TickRateManager;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ChunkPos;
@@ -18,9 +17,12 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+import java.util.function.Consumer;
 
 @Mixin(ServerLevel.class)
 public abstract class ServerLevelMixin {
@@ -36,13 +38,13 @@ public abstract class ServerLevelMixin {
         this.fluidTicks.tickRate$setLevel((ServerLevel) (Object)this);
     }
 
-    @ModifyVariable(method = "tick(Ljava/util/function/BooleanSupplier;)V", at = @At("STORE"), ordinal = 0)
+    @ModifyVariable(method = "tick", at = @At("STORE"), ordinal = 0)
     private boolean tick$shouldTick(boolean value) {
         ServerTickRateManager tickManager = (ServerTickRateManager) tickRateManager();
         return tickManager.tickRate$shouldTickServer();
     }
 
-    @Inject(method = "tick(Ljava/util/function/BooleanSupplier;)V",  at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiling/ProfilerFiller;push(Ljava/lang/String;)V", args = "ldc=tickPending"))
+    @Inject(method = "tick",  at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiling/ProfilerFiller;push(Ljava/lang/String;)V", args = "ldc=tickPending"))
     private void tick$modifyBl(CallbackInfo ci, @Local LocalBooleanRef bl) {
         ServerTickRateManager serverTickManager = (ServerTickRateManager) tickRateManager();
         if(serverTickManager.tickRate$isServerSprint()) bl.set(true);
@@ -50,13 +52,13 @@ public abstract class ServerLevelMixin {
         else bl.set(true);
     }
 
-    @Inject(method = "tick(Ljava/util/function/BooleanSupplier;)V",  at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiling/ProfilerFiller;popPush(Ljava/lang/String;)V", args = "ldc=raid"))
+    @Inject(method = "tick",  at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiling/ProfilerFiller;popPush(Ljava/lang/String;)V", args = "ldc=raid"))
     private void tick$modifyBl2(CallbackInfo ci, @Local LocalBooleanRef bl) {
         ServerTickRateManager tickManager = (ServerTickRateManager) tickRateManager();
         bl.set(tickManager.tickRate$shouldTickServer());
     }
 
-    @Inject(method = "tick(Ljava/util/function/BooleanSupplier;)V",  at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiling/ProfilerFiller;popPush(Ljava/lang/String;)V", args = "ldc=blockEvents"))
+    @Inject(method = "tick",  at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiling/ProfilerFiller;popPush(Ljava/lang/String;)V", args = "ldc=blockEvents"))
     private void tick$modifyBl3(CallbackInfo ci, @Local LocalBooleanRef bl) {
         ServerTickRateManager serverTickManager = (ServerTickRateManager) tickRateManager();
         if(serverTickManager.tickRate$isServerSprint()) bl.set(true);
@@ -64,10 +66,13 @@ public abstract class ServerLevelMixin {
         else bl.set(true);
     }
 
-    @Inject(method = "method_31420",  at = @At(value = "HEAD"), cancellable = true)
-    private void tick$entity(TickRateManager tickManager, ProfilerFiller profiler, Entity entity, CallbackInfo ci) {
-        ServerTickRateManager tickManager1 = (ServerTickRateManager) tickManager;
-        if(!tickManager1.tickRate$shouldTickEntity(entity)) ci.cancel();
+    // head of entity tick lambda
+    @ModifyArg(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/entity/EntityTickList;forEach(Ljava/util/function/Consumer;)V"))
+    private Consumer<Entity> tick$entity(Consumer<Entity> output) {
+        ServerTickRateManager serverTickManager = (ServerTickRateManager) tickRateManager();
+        return entity -> {
+            if(serverTickManager.tickRate$shouldTickEntity(entity)) output.accept(entity);
+        };
     }
 
     // for random ticks

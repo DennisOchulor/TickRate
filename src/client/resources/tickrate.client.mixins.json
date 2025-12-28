@@ -1,7 +1,7 @@
 {
   "required": true,
   "package": "io.github.dennisochulor.tickrate.mixin.client",
-  "compatibilityLevel": "JAVA_21",
+  "compatibilityLevel": "JAVA_25",
   "client": [
     "misc.EnchantmentScreenMixin",
     "particle.QuadParticleGroupMixin",

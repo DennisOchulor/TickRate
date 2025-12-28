@@ -116,6 +116,7 @@ public class TickRateClientManager {
             return new TickState((int) tickManager.tickrate(),tickManager.isFrozen(),tickManager.isSteppingForward(),false); // Client does not have any sprint info
         }
         return Minecraft.getInstance().level.getAttached(TICK_STATE_SERVER);
+        //return Minecraft.getInstance().level.getAttachedOrElse(TICK_STATE_SERVER, TickState.ofRate(20)); todo
     }
 
 }

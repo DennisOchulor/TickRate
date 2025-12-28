@@ -1,9 +1,9 @@
 {
   "required": false,
   "package": "io.github.dennisochulor.tickrate.mixin.client.compat",
-  "compatibilityLevel": "JAVA_21",
+  "compatibilityLevel": "JAVA_25",
   "client": [
-    "IrisHandRendererMixin"
+    //"IrisHandRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 0

@@ -12,16 +12,16 @@ public class TickRateClient implements ClientModInitializer {
 	public void onInitializeClient() {
 		TickRate.LOGGER.info("Initializing tickrate client!");
 
-		ClientPlayNetworking.registerGlobalReceiver(TickRateHelloPayload.ID, (payload, context) -> {
+		ClientPlayNetworking.registerGlobalReceiver(TickRateHelloPayload.ID, (_, context) -> {
 			context.responseSender().sendPacket(new TickRateHelloPayload());
 			TickRateClientManager.setServerHasMod(true);
 		});
 
-		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+		ClientPlayConnectionEvents.DISCONNECT.register((_, _) -> {
 			TickRateClientManager.setServerHasMod(false);
 		});
 
-		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> dispatcher.register(ClientCommandManager.literal("tick_indicator")
+		ClientCommandRegistrationCallback.EVENT.register((dispatcher, _) -> dispatcher.register(ClientCommandManager.literal("tick_indicator")
 				.executes(context -> {
 					if(TickIndicator.toggle()) context.getSource().sendFeedback(Component.literal("Tick indicator toggled on."));
 					else context.getSource().sendFeedback(Component.literal("Tick indicator toggled off."));

@@ -1,5 +1,5 @@
 plugins {
-	id 'fabric-loom' version "${loom_version}"
+	id 'net.fabricmc.fabric-loom' version "${loom_version}"
 	id 'maven-publish'
 }
 
@@ -51,14 +51,13 @@ fabricApi {
 dependencies {
 	// To change the versions see the gradle.properties file
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	mappings loom.officialMojangMappings()
-	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
-	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-	// Iris compatibility
-	modClientCompileOnly "maven.modrinth:iris:${project.iris_version}"
+	// Iris compatibility todo
+	//clientCompileOnly "maven.modrinth:iris:${project.iris_version}"
 }
 
 processResources {
@@ -66,18 +65,23 @@ processResources {
 	inputs.property "minecraft_version", project.minecraft_version
 	inputs.property "loader_version", project.loader_version
 	inputs.property "fabric_version", project.fabric_version
-	filteringCharset "UTF-8"
+
+	// Normalise the minecraft_version to follow semver, as Loader needs that.
+	def semver_minecraft_version = String.valueOf(project.minecraft_version)
+			.replace("snapshot-", "alpha.")
+			.replace("pre-", "pre.")
+			.replace("rc-", "rc.")
 
 	filesMatching("fabric.mod.json") {
 		expand "version": project.version,
-				"minecraft_version": project.minecraft_version,
+				"minecraft_version": semver_minecraft_version,
 				"loader_version": project.loader_version,
 				"fabric_version": project.fabric_version
 	}
 }
 
 tasks.withType(JavaCompile).configureEach {
-	it.options.release = 21
+	it.options.release = 25
 }
 
 java {
@@ -87,8 +91,8 @@ java {
 	withSourcesJar()
 	withJavadocJar()
 
-	sourceCompatibility = JavaVersion.VERSION_21
-	targetCompatibility = JavaVersion.VERSION_21
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
 }
 
 jar {
