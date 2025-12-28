@@ -35,8 +35,9 @@ public class TickRate implements ModInitializer {
 		PayloadTypeRegistry.playS2C().register(TickRateHelloPayload.ID, TickRateHelloPayload.CODEC);
 		PayloadTypeRegistry.playC2S().register(TickRateHelloPayload.ID, TickRateHelloPayload.CODEC);
 
-		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-			sender.sendPacket(new TickRateHelloPayload());
+		// Don't use ServerPlayConnectionEvents.JOIN, see https://github.com/FabricMC/fabric-api/pull/4921
+		ServerPlayerEvents.JOIN.register(player -> {
+			ServerPlayNetworking.send(player, new TickRateHelloPayload());
 		});
 
 		ServerPlayNetworking.registerGlobalReceiver(TickRateHelloPayload.ID, ((payload, context) -> {
