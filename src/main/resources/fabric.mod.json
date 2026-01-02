@@ -20,7 +20,7 @@
 			"io.github.dennisochulor.tickrate.TickRate"
 		],
 		"client": [
-			"io.github.dennisochulor.tickrate.TickRateClient"
+			"io.github.dennisochulor.tickrate.client.TickRateClient"
 		]
 	},
 	"mixins": [
