@@ -127,3 +127,5 @@ javadoc {
 		options.addStringOption('Xdoclint:none', '-quiet')
 	}
 }
+
+apply from: rootProject.file('gradle/package-info.gradle')

@@ -1,0 +1,72 @@
+import java.nio.file.Files
+
+for (def sourceSet in [
+        sourceSets.main,
+        sourceSets.client
+]) {
+    // https://github.com/FabricMC/fabric-api/blob/26.1/gradle/package-info.gradle
+    // We have to capture the source set name for the lazy string literals,
+    // otherwise it'll just be whatever the last source set is in the list.
+    def sourceSetName = sourceSet.name
+    def taskName = sourceSet.getTaskName('generate', 'PackageInfos')
+    def task = tasks.register(taskName, GeneratePackageInfos) {
+        description = "Generates package-info files for $sourceSetName packages."
+        sourceRoot = file("src/$sourceSetName/java")
+    }
+    sourceSet.java.srcDir task
+}
+
+abstract class GeneratePackageInfos extends DefaultTask {
+    @Input
+    abstract Property<String> getProjectName()
+
+    @SkipWhenEmpty
+    @InputDirectory
+    final DirectoryProperty sourceRoot = project.objects.directoryProperty()
+
+    GeneratePackageInfos() {
+        projectName.set(project.name)
+    }
+
+    @TaskAction
+    def run() {
+        def root = sourceRoot.get().asFile.toPath()
+        def output = root
+
+        root.eachDirRecurse {
+            def containsJava = Files.list(it).any {
+                Files.isRegularFile(it) && it.fileName.toString().endsWith('.java')
+            }
+
+            if (!containsJava) {
+                return
+            }
+
+            // Check existing package-info.java to ensure it has @NullMarked
+            def existingPackageInfo = it.resolve('package-info.java')
+            if (Files.exists(existingPackageInfo)) {
+                if (!existingPackageInfo.text.contains("@NullMarked")) {
+                    throw new RuntimeException("package-info.java ${existingPackageInfo} is missing @NullMarked annotation.")
+                }
+
+                return
+            }
+
+            def relativePath = root.relativize(it)
+            def target = output.resolve(relativePath)
+            Files.createDirectories(target)
+
+            def packageName = relativePath.toString().replace(File.separator, '.')
+
+            target.resolve('package-info.java').withWriter {
+                it.write("""
+                    |@NullMarked
+                    |package $packageName;
+                    |
+                    |import org.jspecify.annotations.NullMarked;
+                    |""".stripMargin()
+                )
+            }
+        }
+    }
+}
