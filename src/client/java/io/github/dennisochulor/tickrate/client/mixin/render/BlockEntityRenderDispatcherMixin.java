@@ -13,7 +13,7 @@ public abstract class BlockEntityRenderDispatcherMixin {
 
     // modify BLOCK ENTITY partial tick
     @ModifyVariable(method = "tryExtractRenderState", at = @At("HEAD"), argsOnly = true)
-    private float tryExtractRenderState(float partialTick, BlockEntity blockEntity) {
+    private float tryExtractRenderState(float partialTicks, BlockEntity blockEntity) {
         return TickRateClientManager.getChunkDeltaTrackerInfo(new ChunkPos(blockEntity.getBlockPos())).partialTick();
     }
 

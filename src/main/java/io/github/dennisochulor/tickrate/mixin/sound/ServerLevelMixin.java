@@ -27,12 +27,13 @@ public class ServerLevelMixin {
     /**
      * Entity pitch change is handled by EntityMixin already
      */
-    @ModifyVariable(method = "playSeededSound(Lnet/minecraft/world/entity/Entity;DDDLnet/minecraft/core/Holder;Lnet/minecraft/sounds/SoundSource;FFJ)V", at = @At("HEAD"), argsOnly = true, name = "pitch")
+    @ModifyVariable(method = "playSeededSound(Lnet/minecraft/world/entity/Entity;DDDLnet/minecraft/core/Holder;Lnet/minecraft/sounds/SoundSource;FFJ)V",
+            at = @At("HEAD"), argsOnly = true, name = "pitch")
     public float playSound(float pitch, @Local(argsOnly = true) @Nullable Entity entity,
                            @Local(argsOnly = true, ordinal = 0) double x, @Local(argsOnly = true, ordinal = 1) double y, @Local(argsOnly = true, ordinal = 2) double z,
-                           @Local(argsOnly = true) SoundSource category) {
+                           @Local(argsOnly = true) SoundSource source) {
         ServerTickRateManager tickManager = server.tickRateManager();
-        return switch(category) {
+        return switch(source) {
             case MASTER,MUSIC,UI,RECORDS,VOICE,NEUTRAL,HOSTILE -> pitch;
             case PLAYERS -> {
                 TickState state;
@@ -56,9 +57,10 @@ public class ServerLevelMixin {
         };
     }
 
-    @ModifyVariable(method = "playSeededSound(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/entity/Entity;Lnet/minecraft/core/Holder;Lnet/minecraft/sounds/SoundSource;FFJ)V", at = @At("HEAD"), argsOnly = true, ordinal = 1)
-    public float playSeededSound$Entity(float pitch, @Local(argsOnly = true, ordinal = 1) Entity entity) { // never called apparently
-        TickState state = server.tickRateManager().tickRate$getEntityTickStateDeep(entity);
+    @ModifyVariable(method = "playSeededSound(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/entity/Entity;Lnet/minecraft/core/Holder;Lnet/minecraft/sounds/SoundSource;FFJ)V",
+            at = @At("HEAD"), argsOnly = true, name = "pitch")
+    public float playSeededSound$Entity(float pitch, @Local(argsOnly = true, name = "sourceEntity") Entity sourceEntity) { // never called apparently
+        TickState state = server.tickRateManager().tickRate$getEntityTickStateDeep(sourceEntity);
         if(state.sprinting()) return TickRate.MAX_SOUND_PITCH;
         else return pitch * (state.rate() / 20.0F);
     }

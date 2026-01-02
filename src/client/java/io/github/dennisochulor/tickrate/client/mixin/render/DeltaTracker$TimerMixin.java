@@ -37,7 +37,7 @@ public class DeltaTracker$TimerMixin implements TickRateDeltaTracker {
     @Unique private boolean clientPlayerUpdated = false;
 
     @Inject(method = "advanceGameTime(J)I", at = @At("HEAD"))
-    private void beginRenderTick(long timeMillis, CallbackInfoReturnable<Integer> cir) {
+    private void beginRenderTick(long currentMs, CallbackInfoReturnable<Integer> cir) {
         lastLastTimeMillis = lastMs;
         lastPartialTick = deltaTickResidual;
         isUpdated.clear();
@@ -45,7 +45,7 @@ public class DeltaTracker$TimerMixin implements TickRateDeltaTracker {
     }
 
     @Inject(method = "advanceGameTime(J)I", at = @At("TAIL"))
-    private void beginRenderTick(long timeMillis, CallbackInfoReturnable<Integer> cir, @Local(name = "ticks") int ticks) {
+    private void beginRenderTick(long currentMs, CallbackInfoReturnable<Integer> cir, @Local(name = "ticks") int ticks) {
         this.ticksToDo = ticks;
         TickRateClientManager.clearCache();
     }

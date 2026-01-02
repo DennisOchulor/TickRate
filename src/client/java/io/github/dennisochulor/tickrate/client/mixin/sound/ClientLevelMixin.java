@@ -26,8 +26,13 @@ public class ClientLevelMixin {
     /**
      * Entity pitch change is handled by EntityMixin (common side) already
      */
-    @ModifyVariable(method = "playSound(DDDLnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FFZJ)V", at = @At("HEAD"), argsOnly = true, name = "pitch")
-    public float playSound(float pitch, @Local(argsOnly = true, ordinal = 0) double x, @Local(argsOnly = true, ordinal = 1) double y, @Local(argsOnly = true, ordinal = 2) double z, @Local(argsOnly = true) SoundSource category) {
+    @ModifyVariable(method = "playSound(DDDLnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FFZJ)V",
+            at = @At("HEAD"), argsOnly = true, name = "pitch")
+    public float playSound(float pitch, @Local(argsOnly = true, ordinal = 0) double x,
+                           @Local(argsOnly = true, ordinal = 1) double y,
+                           @Local(argsOnly = true, ordinal = 2) double z,
+                           @Local(argsOnly = true) SoundSource category)
+    {
         Objects.requireNonNull(minecraft.player);
 
         return switch(category) {
@@ -54,7 +59,8 @@ public class ClientLevelMixin {
      * Entity pitch change is handled by EntityMixin (common side) already
      * Entity is assumed to be Minecraft#player
      */
-    @ModifyVariable(method = "playPlayerSound(Lnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FF)V", at = @At("HEAD"), argsOnly = true, ordinal = 1)
+    @ModifyVariable(method = "playPlayerSound(Lnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FF)V",
+            at = @At("HEAD"), argsOnly = true, name = "pitch")
     public float playPlayerSound$Client(float pitch, @Local(argsOnly = true) SoundSource category) {
         Objects.requireNonNull(minecraft.player);
 
@@ -78,14 +84,16 @@ public class ClientLevelMixin {
         };
     }
 
-    @ModifyVariable(method = "playSeededSound(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/entity/Entity;Lnet/minecraft/core/Holder;Lnet/minecraft/sounds/SoundSource;FFJ)V", at = @At("HEAD"), argsOnly = true, ordinal = 1)
-    public float playSeededSound$Entity(float pitch, @Local(argsOnly = true, ordinal = 1) Entity entity) {
+    @ModifyVariable(method = "playSeededSound(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/entity/Entity;Lnet/minecraft/core/Holder;Lnet/minecraft/sounds/SoundSource;FFJ)V",
+            at = @At("HEAD"), argsOnly = true, name = "pitch")
+    public float playSeededSound$Entity(float pitch, @Local(argsOnly = true, name = "sourceEntity") Entity entity) {
         TickState state = TickRateClientManager.getEntityState(entity);
         if(state.sprinting()) return TickRate.MAX_SOUND_PITCH;
         else return pitch * (state.rate() / 20.0F);
     }
 
-    @ModifyVariable(method = "playLocalSound(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FF)V", at = @At("HEAD"), argsOnly = true, ordinal = 1)
+    @ModifyVariable(method = "playLocalSound(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FF)V",
+            at = @At("HEAD"), argsOnly = true, name = "pitch")
     public float playLocalSound$Entity(float pitch, @Local(argsOnly = true) Entity entity) {
         TickState state = TickRateClientManager.getEntityState(entity);
         if(state.sprinting()) return TickRate.MAX_SOUND_PITCH;

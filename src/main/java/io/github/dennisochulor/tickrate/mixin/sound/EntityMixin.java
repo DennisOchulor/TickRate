@@ -16,7 +16,7 @@ public class EntityMixin {
 
     @Shadow private Level level;
 
-    @ModifyVariable(method = "playSound(Lnet/minecraft/sounds/SoundEvent;FF)V", at = @At("HEAD"), argsOnly = true, ordinal = 1)
+    @ModifyVariable(method = "playSound(Lnet/minecraft/sounds/SoundEvent;FF)V", at = @At("HEAD"), argsOnly = true, name = "pitch")
     public float playSound(float pitch) {
         if(level instanceof ServerLevel serverLevel) {
             Entity entity = (Entity) (Object) this;

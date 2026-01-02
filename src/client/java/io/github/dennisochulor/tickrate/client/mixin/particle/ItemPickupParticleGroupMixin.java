@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 public class ItemPickupParticleGroupMixin {
 
     @ModifyVariable(method = "fromParticle", at = @At("HEAD"), argsOnly = true)
-    private static float fromParticle(float tickProgress, ItemPickupParticle particle) {
+    private static float fromParticle(float partialTickTime, ItemPickupParticle particle) {
         return TickRateClientManager.getChunkDeltaTrackerInfo(new ChunkPos(particle.tickRate$getBlockPos())).partialTick();
     }
 

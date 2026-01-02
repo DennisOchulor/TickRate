@@ -37,12 +37,12 @@ public abstract class LevelChunkTicksMixin<T> implements TickRateLevelChunkTicks
     }
 
     @Redirect(method = "pack", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/ticks/ScheduledTick;toSavedTick(J)Lnet/minecraft/world/ticks/SavedTick;"))
-    public SavedTick<T> pack(ScheduledTick<T> scheduledTick, long time) {
-        if(isFollowingServerTick) return scheduledTick.toSavedTick(time);
+    public SavedTick<T> pack(ScheduledTick<T> scheduledTick, long currentTick) {
+        if(isFollowingServerTick) return scheduledTick.toSavedTick(currentTick);
         else {
-            long newTriggerTick = time + (scheduledTick.triggerTick() - chunkTime);
+            long newTriggerTick = currentTick + (scheduledTick.triggerTick() - chunkTime);
             ScheduledTick<T> orderedTick1 = new ScheduledTick<>(scheduledTick.type(), scheduledTick.pos(),newTriggerTick, scheduledTick.subTickOrder());
-            return orderedTick1.toSavedTick(time);
+            return orderedTick1.toSavedTick(currentTick);
         }
 
     }

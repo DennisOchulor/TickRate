@@ -40,7 +40,7 @@ public abstract class ServerLevelMixin {
     }
 
     @ModifyVariable(method = "tick", at = @At("STORE"), name = "runs")
-    private boolean tick$shouldTick(boolean value) {
+    private boolean tick$shouldTick(boolean runs) {
         ServerTickRateManager tickManager = (ServerTickRateManager) tickRateManager();
         return tickManager.tickRate$shouldTickServer();
     }
@@ -79,7 +79,7 @@ public abstract class ServerLevelMixin {
 
     // for random ticks
     @Inject(method = "tickChunk", at = @At("HEAD"), cancellable = true)
-    private void tickChunk(LevelChunk chunk, int randomTickSpeed, CallbackInfo ci) {
+    private void tickChunk(LevelChunk chunk, int tickSpeed, CallbackInfo ci) {
         ServerTickRateManager tickManager = (ServerTickRateManager) tickRateManager();
         if(!tickManager.tickRate$shouldTickChunk(chunk))
             ci.cancel();
@@ -87,7 +87,7 @@ public abstract class ServerLevelMixin {
 
     // tickSpawners doesn't differentiate between chunks, so use server TPS i guess...
     @Inject(method = "tickCustomSpawners", at = @At("HEAD"), cancellable = true)
-    private void tickSpawners(boolean spawnMonsters, CallbackInfo ci) {
+    private void tickSpawners(boolean spawnEnemies, CallbackInfo ci) {
         ServerTickRateManager tickManager = (ServerTickRateManager) tickRateManager();
         if(!tickManager.tickRate$shouldTickServer())
             ci.cancel();
