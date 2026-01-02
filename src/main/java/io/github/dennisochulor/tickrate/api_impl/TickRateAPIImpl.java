@@ -10,6 +10,8 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -17,6 +19,7 @@ import java.util.Objects;
 
 public final class TickRateAPIImpl implements TickRateAPI {
 
+    @Nullable
     private static TickRateAPI INSTANCE;
 
     public static TickRateAPI getInstance() {

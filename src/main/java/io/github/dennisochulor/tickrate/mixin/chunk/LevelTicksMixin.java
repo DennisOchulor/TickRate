@@ -29,6 +29,7 @@ public class LevelTicksMixin<T> implements TickRateLevelTicks {
     @Shadow @Final private Long2LongMap nextTickForContainer;
     @Shadow @Final private Queue<LevelChunkTicks<T>> containersToTick;
 
+    @SuppressWarnings("NotNullFieldNotInitialized") // it is initialised by ServerLevel's ctor
     @Unique private Level level;
 
     /**
@@ -42,45 +43,46 @@ public class LevelTicksMixin<T> implements TickRateLevelTicks {
 
         while (objectIterator.hasNext()) {
             Long2LongMap.Entry entry = objectIterator.next();
-            long l = entry.getLongKey();
-            long m = entry.getLongValue();
+            long chunkPos = entry.getLongKey();
+            long nextTick = entry.getLongValue();
 
-            LevelChunkTicks<T> levelChunkTicks = allContainers.get(l);
+            LevelChunkTicks<T> levelChunkTicks = allContainers.get(chunkPos);
             ServerTickRateManager tickManager = (ServerTickRateManager) level.tickRateManager();
             levelChunkTicks.tickRate$setServerTime(time);
-            TickState tickState = tickManager.tickRate$getChunkTickStateShallow(level, new ChunkPos(l));
+            TickState tickState = tickManager.tickRate$getChunkTickStateShallow(level, new ChunkPos(chunkPos));
             if(tickState.rate() == -1 && !tickState.frozen() && !tickState.sprinting()) {
                 levelChunkTicks.tickRate$toggleMode(true);
             }
             else {
                 levelChunkTicks.tickRate$toggleMode(false);
-                if(tickManager.tickRate$shouldTickChunk(level,new ChunkPos(l))) {
+                if(tickManager.tickRate$shouldTickChunk(level,new ChunkPos(chunkPos))) {
                     List<ScheduledTick<T>> list = levelChunkTicks.tickRate$tick();
                     this.toRunThisTick.addAll(list);
                 }
                 continue; // this is your fault
             }
 
-            if (m <= time) {
-                LevelChunkTicks<T> levelChunkTicks1 = this.allContainers.get(l);
-                if (levelChunkTicks1 == null) {
+            if (nextTick <= time) {
+                LevelChunkTicks<T> candidateContainer = this.allContainers.get(chunkPos);
+                //noinspection ConstantValue - just following MC's code
+                if (candidateContainer == null) {
                     objectIterator.remove();
                 } else {
-                    ScheduledTick<T> scheduledTick = levelChunkTicks1.peek();
+                    ScheduledTick<T> scheduledTick = candidateContainer.peek();
                     if (scheduledTick == null) {
                         objectIterator.remove();
                     } else if (scheduledTick.triggerTick() > time) {
                         entry.setValue(scheduledTick.triggerTick());
-                    } else if (this.tickCheck.test(l)) {
+                    } else if (this.tickCheck.test(chunkPos)) {
                         objectIterator.remove();
-                        this.containersToTick.add(levelChunkTicks1);
+                        this.containersToTick.add(candidateContainer);
                     }
                 }
             }
         }
     }
 
-    @Unique // should only be called ONCE inside ServerWorld <init>
+    @Unique // should only be called ONCE inside ServerLevel <init>
     public void tickRate$setLevel(ServerLevel level) {
         this.level = level;
     }

@@ -32,38 +32,40 @@ public abstract class ServerLevelMixin {
     @Shadow @Final private LevelTicks<Block> blockTicks;
     @Shadow @Final private LevelTicks<Fluid> fluidTicks;
 
+    @SuppressWarnings("DataFlowIssue") // class cast will not fail at runtime cause mixins
     @Inject(method = "<init>", at = @At("TAIL"))
     private void init(CallbackInfo ci) {
         this.blockTicks.tickRate$setLevel((ServerLevel) (Object)this);
         this.fluidTicks.tickRate$setLevel((ServerLevel) (Object)this);
     }
 
-    @ModifyVariable(method = "tick", at = @At("STORE"), ordinal = 0)
+    @ModifyVariable(method = "tick", at = @At("STORE"), name = "runs")
     private boolean tick$shouldTick(boolean value) {
         ServerTickRateManager tickManager = (ServerTickRateManager) tickRateManager();
         return tickManager.tickRate$shouldTickServer();
     }
 
     @Inject(method = "tick",  at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiling/ProfilerFiller;push(Ljava/lang/String;)V", args = "ldc=tickPending"))
-    private void tick$modifyBl(CallbackInfo ci, @Local LocalBooleanRef bl) {
+    private void tick$tickPending(CallbackInfo ci, @Local(name = "runs") LocalBooleanRef runs) {
         ServerTickRateManager serverTickManager = (ServerTickRateManager) tickRateManager();
-        if(serverTickManager.tickRate$isServerSprint()) bl.set(true);
-        else if(serverTickManager.isFrozen()) bl.set(serverTickManager.isSteppingForward());
-        else bl.set(true);
+        if(serverTickManager.tickRate$isServerSprint()) runs.set(true);
+        else if(serverTickManager.isFrozen()) runs.set(serverTickManager.isSteppingForward());
+        else runs.set(true);
     }
 
     @Inject(method = "tick",  at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiling/ProfilerFiller;popPush(Ljava/lang/String;)V", args = "ldc=raid"))
-    private void tick$modifyBl2(CallbackInfo ci, @Local LocalBooleanRef bl) {
+    private void tick$raid(CallbackInfo ci, @Local(name = "runs") LocalBooleanRef runs) {
         ServerTickRateManager tickManager = (ServerTickRateManager) tickRateManager();
-        bl.set(tickManager.tickRate$shouldTickServer());
+        runs.set(tickManager.tickRate$shouldTickServer());
     }
 
+    // also handles emptyTime
     @Inject(method = "tick",  at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiling/ProfilerFiller;popPush(Ljava/lang/String;)V", args = "ldc=blockEvents"))
-    private void tick$modifyBl3(CallbackInfo ci, @Local LocalBooleanRef bl) {
+    private void tick$blockEvents(CallbackInfo ci, @Local(name = "runs") LocalBooleanRef runs) {
         ServerTickRateManager serverTickManager = (ServerTickRateManager) tickRateManager();
-        if(serverTickManager.tickRate$isServerSprint()) bl.set(true);
-        else if(serverTickManager.isFrozen()) bl.set(serverTickManager.isSteppingForward());
-        else bl.set(true);
+        if(serverTickManager.tickRate$isServerSprint()) runs.set(true);
+        else if(serverTickManager.isFrozen()) runs.set(serverTickManager.isSteppingForward());
+        else runs.set(true);
     }
 
     // head of entity tick lambda

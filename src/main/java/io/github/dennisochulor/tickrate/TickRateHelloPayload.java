@@ -18,6 +18,7 @@ public record TickRateHelloPayload(String version) implements CustomPacketPayloa
     }
 
     public TickRateHelloPayload() {
+        //noinspection OptionalGetWithoutIsPresent
         this(FabricLoader.getInstance().getModContainer(TickRate.MOD_ID).get().getMetadata().getVersion().getFriendlyString());
     }
 

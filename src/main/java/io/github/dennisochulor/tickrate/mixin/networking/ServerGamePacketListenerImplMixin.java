@@ -15,6 +15,7 @@ import net.minecraft.network.protocol.game.ServerboundUseItemOnPacket;
 import net.minecraft.server.ServerTickRateManager;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
+import org.jspecify.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -32,7 +33,7 @@ public abstract class ServerGamePacketListenerImplMixin implements TickRateServe
     @Unique private boolean hasClientMod;
     // Only used if hasClientMod == false
     @Unique private boolean wasFrozen = false;
-    @Unique private ClientboundTickingStatePacket prevPacket = null;
+    @Unique @Nullable private ClientboundTickingStatePacket prevPacket = null;
 
 
     @Override

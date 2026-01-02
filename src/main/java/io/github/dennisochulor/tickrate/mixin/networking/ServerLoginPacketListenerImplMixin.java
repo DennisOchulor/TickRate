@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.ModifyConstant;
 @Mixin(ServerLoginPacketListenerImpl.class)
 public class ServerLoginPacketListenerImplMixin {
 
-    @Shadow @Final MinecraftServer server;
+    @Shadow @Final private MinecraftServer server;
 
     @ModifyConstant(method = "tick", constant = @Constant(intValue = 600))
     public int tick$tookTooLongToLogin(int constant) {

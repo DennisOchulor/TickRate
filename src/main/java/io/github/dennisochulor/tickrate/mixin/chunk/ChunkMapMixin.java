@@ -21,7 +21,7 @@ import net.minecraft.world.level.chunk.LevelChunk;
 @Mixin(ChunkMap.class)
 public class ChunkMapMixin {
 
-    @Shadow @Final ServerLevel level;
+    @Shadow @Final private ServerLevel level;
 
     /**
      * This relates to MC-76973

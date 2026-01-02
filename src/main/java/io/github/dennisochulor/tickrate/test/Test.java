@@ -5,9 +5,9 @@ import io.github.dennisochulor.tickrate.api.TickRateEvents;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.Level;
 
 import static io.github.dennisochulor.tickrate.TickRate.LOGGER;
 
@@ -93,7 +93,7 @@ public final class Test {
         Thread.ofVirtual().name("TickRateTest Thread").start(() -> {
             TickRateAPI api = TickRateAPI.getInstance();
             String uuid = testEntity.getStringUUID();
-            Level level = testEntity.level();
+            ServerLevel level = (ServerLevel) testEntity.level();
             CommandSourceStack src = level.getServer().createCommandSourceStack();
             Commands commander = level.getServer().getCommands();
             ChunkPos chunkPos = testEntity.chunkPosition();
@@ -214,10 +214,10 @@ public final class Test {
 
     private static void register() {
         if(!registered) { // only do it once
-            TickRateEvents.SERVER_RATE.register((server, rate) -> LOGGER.info("server rate {}", rate));
-            TickRateEvents.SERVER_FREEZE.register((server, freeze) -> LOGGER.info("server freeze {}", freeze));
-            TickRateEvents.SERVER_STEP.register((server, stepTicks) -> LOGGER.info("server step {}", stepTicks));
-            TickRateEvents.SERVER_SPRINT.register((server, sprintTicks) -> LOGGER.info("server sprint {}", sprintTicks));
+            TickRateEvents.SERVER_RATE.register((_, rate) -> LOGGER.info("server rate {}", rate));
+            TickRateEvents.SERVER_FREEZE.register((_, freeze) -> LOGGER.info("server freeze {}", freeze));
+            TickRateEvents.SERVER_STEP.register((_, stepTicks) -> LOGGER.info("server step {}", stepTicks));
+            TickRateEvents.SERVER_SPRINT.register((_, sprintTicks) -> LOGGER.info("server sprint {}", sprintTicks));
 
             TickRateEvents.ENTITY_RATE.register((entity, rate) -> LOGGER.info("{} rate {}", entity.getStringUUID(), rate));
             TickRateEvents.ENTITY_FREEZE.register((entity, freeze) -> LOGGER.info("{} freeze {}", entity.getStringUUID(), freeze));

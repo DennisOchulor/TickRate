@@ -1,7 +1,7 @@
 package io.github.dennisochulor.tickrate.mixin.chunk;
 
 import io.github.dennisochulor.tickrate.injected_interface.TickRateLevelChunkTicks;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -20,8 +20,7 @@ import net.minecraft.world.ticks.ScheduledTick;
 public abstract class LevelChunkTicksMixin<T> implements TickRateLevelChunkTicks<T> {
 
     @Shadow @Final private Queue<ScheduledTick<T>> tickQueue;
-    @Shadow public abstract ScheduledTick<T> peek();
-
+    @Shadow public abstract @Nullable ScheduledTick<T> peek();
     @Shadow public abstract @Nullable ScheduledTick<T> poll();
 
     @Unique private long chunkTime;
@@ -57,8 +56,13 @@ public abstract class LevelChunkTicksMixin<T> implements TickRateLevelChunkTicks
     public List<ScheduledTick<T>> tickRate$tick() {
         chunkTime++;
         List<ScheduledTick<T>> list = new ArrayList<>();
-        while(peek() != null) {
-            if(peek().triggerTick() <= chunkTime) list.add(poll());
+        ScheduledTick<T> scheduledTick = peek();
+        while(scheduledTick != null) {
+            if(scheduledTick.triggerTick() <= chunkTime) {
+                list.add(scheduledTick);
+                poll();
+                scheduledTick = peek();
+            }
             else break;
         }
         return list;

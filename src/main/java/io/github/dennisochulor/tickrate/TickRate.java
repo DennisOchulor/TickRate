@@ -9,7 +9,6 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerChunkEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.commands.Commands;
@@ -32,15 +31,13 @@ public class TickRate implements ModInitializer {
 	public void onInitialize() {
 		LOGGER.info("Initializing tickrate!");
 		TickRateAttachments.init();
-		PayloadTypeRegistry.playS2C().register(TickRateHelloPayload.ID, TickRateHelloPayload.CODEC);
-		PayloadTypeRegistry.playC2S().register(TickRateHelloPayload.ID, TickRateHelloPayload.CODEC);
+		PayloadTypeRegistry.clientboundPlay().register(TickRateHelloPayload.ID, TickRateHelloPayload.CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(TickRateHelloPayload.ID, TickRateHelloPayload.CODEC);
 
 		// Don't use ServerPlayConnectionEvents.JOIN, see https://github.com/FabricMC/fabric-api/pull/4921
-		ServerPlayerEvents.JOIN.register(player -> {
-			ServerPlayNetworking.send(player, new TickRateHelloPayload());
-		});
+		ServerPlayerEvents.JOIN.register(player -> ServerPlayNetworking.send(player, new TickRateHelloPayload()));
 
-		ServerPlayNetworking.registerGlobalReceiver(TickRateHelloPayload.ID, ((payload, context) -> {
+		ServerPlayNetworking.registerGlobalReceiver(TickRateHelloPayload.ID, ((_, _) -> {
 			// No-op for now until there is a use case for it.
 		}));
 
@@ -49,26 +46,24 @@ public class TickRate implements ModInitializer {
 			TickRateAPIImpl.init(server);
 		});
 
-		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-			server.tickRateManager().tickRate$serverStarted();
-		});
+		ServerLifecycleEvents.SERVER_STARTED.register(server -> server.tickRateManager().tickRate$serverStarted());
 
-		ServerLifecycleEvents.SERVER_STOPPED.register(server -> TickRateAPIImpl.uninit());
+		ServerLifecycleEvents.SERVER_STOPPED.register(_ -> TickRateAPIImpl.uninit());
 
-		ServerLifecycleEvents.AFTER_SAVE.register((server, flush, force) -> { // for autosaves and when server stops
+		ServerLifecycleEvents.AFTER_SAVE.register((server, _, _) -> { // for autosaves and when server stops
 			server.tickRateManager().tickRate$saveData();
 		});
 
-		// called when entity's chunk level becomes ACCESSIBLE (at least FULL) if it was previously INACCESSIBLE
+		// called when entity's chunk load level becomes ACCESSIBLE (at least FULL) if it was previously INACCESSIBLE
 		ServerEntityEvents.ENTITY_LOAD.register((entity,serverWorld) -> {
 			ServerTickRateManager tickManager = (ServerTickRateManager) serverWorld.tickRateManager();
 			tickManager.tickRate$updateLoad(entity, true);
 		});
 
-		/* During player repsawns, attachments are only transferred when AFTER_RESPAWN is called.
+		/* During player respawns, attachments are only transferred when AFTER_RESPAWN is called.
 		 *  ENTITY_LOAD is called before AFTER_RESPAWN, so attachment data is not up to date.
 		 */
-		ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {
+		ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, _, _) -> {
 			ServerTickRateManager tickManager = (ServerTickRateManager) oldPlayer.level().tickRateManager();
 			tickManager.tickRate$updateLoad(oldPlayer, true); // use the oldPlayer cause it is not guaranteed the attachment transfer has already happened.
 		});
@@ -79,22 +74,22 @@ public class TickRate implements ModInitializer {
 			tickManager.tickRate$updateLoad(entity, false);
 		});
 
-		ServerChunkEvents.CHUNK_LEVEL_TYPE_CHANGE.register((serverWorld, worldChunk, oldLevelType, newLevelType) -> {
-			ServerTickRateManager tickManager = (ServerTickRateManager) serverWorld.tickRateManager();
+		ServerChunkEvents.FULL_CHUNK_STATUS_CHANGE.register((serverLevel, levelChunk, oldStatus, newStatus) -> {
+			ServerTickRateManager tickManager = (ServerTickRateManager) serverLevel.tickRateManager();
 			// consider chunk LOADED if FULL, BLOCK_TICKING, ENTITY_TICKING
 			// consider chunk UNLOADED if INACCESSIBLE
-			if(oldLevelType == FullChunkStatus.INACCESSIBLE && newLevelType.isOrAfter(FullChunkStatus.FULL)) {
-				tickManager.tickRate$updateLoad(worldChunk, true);
+			if(oldStatus == FullChunkStatus.INACCESSIBLE && newStatus.isOrAfter(FullChunkStatus.FULL)) {
+				tickManager.tickRate$updateLoad(levelChunk, true);
 			}
-			else if(newLevelType == FullChunkStatus.INACCESSIBLE) {
-				tickManager.tickRate$updateLoad(worldChunk, false);
+			else if(newStatus == FullChunkStatus.INACCESSIBLE) {
+				tickManager.tickRate$updateLoad(levelChunk, false);
 			}
 		});
 
 		// TickRate dev-only stuff
 		if(FabricLoader.getInstance().isDevelopmentEnvironment()) {
 			// Testing command
-			CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+			CommandRegistrationCallback.EVENT.register((dispatcher, _, _) -> {
 				dispatcher.register(Commands.literal("tickratetest").then(Commands.argument("entity", EntityArgument.entity()).executes(context -> {
 					Test.test(EntityArgument.getEntity(context, "entity"));
 					return 1;

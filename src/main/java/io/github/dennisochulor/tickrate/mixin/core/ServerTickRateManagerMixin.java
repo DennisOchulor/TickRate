@@ -21,6 +21,7 @@ import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.storage.LevelResource;
+import org.jspecify.annotations.Nullable;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -41,7 +42,7 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
     @Unique private int numberOfIndividualSprints = 0;
 
     // migration stuff
-    @Unique private File datafile;
+    @Unique @Nullable private File datafile;
     @Unique private final Map<String,Float> migrationData = new HashMap<>();
     @Unique private float nominalTickRateMigration = -1.0f;
 
@@ -52,7 +53,7 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
     @Inject(method = "stepGameIfPaused", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickRateManager;updateStepTicks()V"))
     public void serverTickManager$step(int ticks, CallbackInfoReturnable<Boolean> cir) { // for server step start
         this.frozenTicksToRun++; // for some reason, the first tick is always skipped. so artificially add one :P
-        TickState state = server.overworld().getAttached(TICK_STATE_SERVER);
+        TickState state = server.overworld().getAttachedOrThrow(TICK_STATE_SERVER);
         TickState newState = state.withStepping(true);
         server.getAllLevels().forEach(serverLevel -> serverLevel.setAttached(TICK_STATE_SERVER, newState));
         setTickRate(state.rate());
@@ -60,7 +61,7 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
 
     @Inject(method = "stopStepping", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickRateManager;updateStepTicks()V"))
     public void stopStepping(CallbackInfoReturnable<Boolean> cir) { // for server step manual stop
-        TickState newState = server.overworld().getAttached(TICK_STATE_SERVER).withStepping(false);
+        TickState newState = server.overworld().getAttachedOrThrow(TICK_STATE_SERVER).withStepping(false);
         server.getAllLevels().forEach(serverLevel -> serverLevel.setAttached(TICK_STATE_SERVER, newState));
         updateFastestTicker();
     }
@@ -72,26 +73,26 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
             this.frozenTicksToRun--;
             if(this.frozenTicksToRun == 0) { // for natural server step end
                 updateFastestTicker();
-                TickState newState = server.overworld().getAttached(TICK_STATE_SERVER).withStepping(false);
+                TickState newState = server.overworld().getAttachedOrThrow(TICK_STATE_SERVER).withStepping(false);
                 server.getAllLevels().forEach(serverLevel -> serverLevel.setAttached(TICK_STATE_SERVER, newState));            }
         }
     }
 
     @Inject(method = "requestGameToSprint", at = @At("TAIL"))
     public void startSprint(int ticks, CallbackInfoReturnable<Boolean> cir) { // for server sprint start
-        TickState newState = server.overworld().getAttached(TICK_STATE_SERVER).withSprinting(true);
+        TickState newState = server.overworld().getAttachedOrThrow(TICK_STATE_SERVER).withSprinting(true);
         server.getAllLevels().forEach(serverLevel -> serverLevel.setAttached(TICK_STATE_SERVER, newState));
     }
 
     @Inject(method = "finishTickSprint", at = @At("TAIL"))
     public void finishSprinting(CallbackInfo ci) { // for server sprint both manual/natural stop
-        TickState newState = server.overworld().getAttached(TICK_STATE_SERVER).withSprinting(false);
+        TickState newState = server.overworld().getAttachedOrThrow(TICK_STATE_SERVER).withSprinting(false);
         server.getAllLevels().forEach(serverLevel -> serverLevel.setAttached(TICK_STATE_SERVER, newState));
     }
 
     @Inject(method = "setFrozen", at = @At("TAIL"))
     public void setFrozen(CallbackInfo ci, @Local(argsOnly = true) boolean frozen) { // for server (un)freeze
-        TickState newState = server.overworld().getAttached(TICK_STATE_SERVER).withFrozen(frozen);
+        TickState newState = server.overworld().getAttachedOrThrow(TICK_STATE_SERVER).withFrozen(frozen);
         server.getAllLevels().forEach(serverLevel -> serverLevel.setAttached(TICK_STATE_SERVER, newState));
     }
 
@@ -108,14 +109,14 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
         datafile = server.getWorldPath(LevelResource.ROOT).resolve("data/TickRateData.nbt").toFile();
         if(datafile.exists()) {
             try {
-                CompoundTag nbt = NbtIo.read(datafile.toPath());
+                CompoundTag nbt = Objects.requireNonNull(NbtIo.read(datafile.toPath()));
                 nominalTickRateMigration = nbt.getFloat("nominalTickRate").orElse(-1.0f);
-                NbtOps.INSTANCE.getMap(nbt.get("entities")).getOrThrow().entries().forEach(pair -> {
+                NbtOps.INSTANCE.getMap(Objects.requireNonNull(nbt.get("entities"))).getOrThrow().entries().forEach(pair -> {
                     String key = NbtOps.INSTANCE.getStringValue(pair.getFirst()).getOrThrow();
                     float value = NbtOps.INSTANCE.getNumberValue(pair.getSecond()).getOrThrow().floatValue();
                     migrationData.put(key,value);
                 });
-                NbtOps.INSTANCE.getMap(nbt.get("chunks")).ifSuccess(nbtElementMapLike -> {
+                NbtOps.INSTANCE.getMap(Objects.requireNonNull(nbt.get("chunks"))).ifSuccess(nbtElementMapLike -> {
                     nbtElementMapLike.entries().forEach(pair -> {
                         String key = NbtOps.INSTANCE.getStringValue(pair.getFirst()).getOrThrow();
                         float value = NbtOps.INSTANCE.getNumberValue(pair.getSecond()).getOrThrow().floatValue();
@@ -134,12 +135,14 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
         TickState serverState = server.overworld().getAttachedOrCreate(TICK_STATE_SERVER);
         if(nominalTickRateMigration != -1.0f) serverState = serverState.withRate((int) nominalTickRateMigration);
 
-        final TickState finalServerState = serverState;
+        final TickState finalServerState = Objects.requireNonNull(serverState);
         server.getAllLevels().forEach(serverLevel -> serverLevel.setAttached(TICK_STATE_SERVER, finalServerState));
         updateTickersMap(finalServerState.rate(), 1);
     }
 
     public void tickRate$saveData() {
+        Objects.requireNonNull(datafile);
+
         if(!migrationData.isEmpty()) {
             CompoundTag nbt = new CompoundTag();
             var entitiesNbt = NbtOps.INSTANCE.mapBuilder();
@@ -153,7 +156,8 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
             }
         }
         else {
-            if(datafile.exists()) datafile.delete();
+            if(datafile.exists()) //noinspection ResultOfMethodCallIgnored
+                datafile.delete();
         }
     }
 
@@ -175,9 +179,10 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
         boolean shouldTick;
 
         if(tickState.sprinting()) {
-            int sprintTicks = entity.getAttached(SPRINT_TICKS);
+            int sprintTicks = entity.getAttachedOrThrow(SPRINT_TICKS);
             if(sprintTicks == 0) {
                 entity.removeAttached(SPRINT_TICKS);
+                //noinspection DataFlowIssue
                 entity.modifyAttached(TICK_STATE, tickState1 -> tickState1.withSprinting(false));
                 numberOfIndividualSprints--;
                 shouldTick = false;
@@ -197,9 +202,10 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
             else shouldTick = tickRate$shouldTickChunk(entity.level(), entity.chunkPosition());
 
             if(shouldTick && tickState.stepping()) {
-                int stepTicks = entity.getAttached(STEP_TICKS);
+                int stepTicks = entity.getAttachedOrThrow(STEP_TICKS);
                 if(stepTicks == 0) {
                     entity.removeAttached(STEP_TICKS);
+                    //noinspection DataFlowIssue
                     entity.modifyAttached(TICK_STATE, tickState1 -> tickState1.withStepping(false));
                 }
                 else {
@@ -242,9 +248,10 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
         boolean shouldTick;
 
         if(tickState.sprinting()) {
-            int sprintTicks = chunk.getAttached(SPRINT_TICKS);
+            int sprintTicks = chunk.getAttachedOrThrow(SPRINT_TICKS);
             if(sprintTicks == 0) {
                 chunk.removeAttached(SPRINT_TICKS);
+                //noinspection DataFlowIssue
                 chunk.modifyAttached(TICK_STATE, tickState1 -> tickState1.withSprinting(false));
                 numberOfIndividualSprints--;
                 shouldTick = false;
@@ -264,9 +271,10 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
             else shouldTick = tickRate$shouldTickServer();
 
             if(shouldTick && tickState.stepping()) {
-                int stepTicks = chunk.getAttached(STEP_TICKS);
+                int stepTicks = chunk.getAttachedOrThrow(STEP_TICKS);
                 if(stepTicks == 0) {
                     chunk.removeAttached(STEP_TICKS);
+                    //noinspection DataFlowIssue
                     chunk.modifyAttached(TICK_STATE, tickState1 -> tickState1.withStepping(false));
                 }
                 else {
@@ -311,7 +319,7 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
     }
 
     public void tickRate$setServerRate(int rate) {
-        TickState prevState = server.overworld().getAttached(TICK_STATE_SERVER);
+        TickState prevState = server.overworld().getAttachedOrThrow(TICK_STATE_SERVER);
         TickState newState = prevState.withRate(rate);
         server.getAllLevels().forEach(serverLevel -> serverLevel.setAttached(TICK_STATE_SERVER, newState));
         updateTickersMap(prevState.rate(), -1);
@@ -324,7 +332,7 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
     }
 
     public TickState tickRate$getServerTickState() {
-        return server.overworld().getAttached(TICK_STATE_SERVER);
+        return server.overworld().getAttachedOrThrow(TICK_STATE_SERVER);
     }
 
     public void tickRate$ticked() {
@@ -355,6 +363,7 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
 
 
     // rate == -1 for reset
+    @SuppressWarnings({"DataFlowIssue", "ConstantValue"})
     public void tickRate$setRate(int rate, Collection<? extends AttachmentTarget> targets) {
         targets.forEach(target -> target.modifyAttached(TICK_STATE, tickState -> {
             tickState = tickState==null ? TickState.DEFAULT : tickState;
@@ -365,6 +374,7 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
         updateFastestTicker();
     }
 
+    @SuppressWarnings({"DataFlowIssue", "ConstantValue"})
     public void tickRate$setFrozen(boolean frozen, Collection<? extends AttachmentTarget> targets) {
         targets.forEach(target -> target.modifyAttached(TICK_STATE, tickState -> {
             tickState = tickState==null ? TickState.DEFAULT : tickState;
@@ -375,6 +385,7 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
     }
 
     // steps == 0 for stop
+    @SuppressWarnings({"DataFlowIssue", "ConstantValue"})
     public boolean tickRate$step(int steps, Collection<? extends AttachmentTarget> targets) {
         boolean canStep = targets.stream().allMatch(target -> {
             TickState tickState = target.getAttachedOrElse(TICK_STATE, TickState.DEFAULT);
@@ -395,6 +406,7 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
     }
 
     // ticks == 0 for stop
+    @SuppressWarnings({"DataFlowIssue", "ConstantValue"})
     public boolean tickRate$sprint(int ticks, Collection<? extends AttachmentTarget> targets) {
         // cannot be stepping
         boolean canSprint = targets.stream().noneMatch(target -> target.getAttachedOrElse(TICK_STATE, TickState.DEFAULT).stepping());
@@ -452,12 +464,12 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
         if(state.rate() == -1) {
             TickState chunkState = tickRate$getChunkTickStateDeep(entity.level(), entity.chunkPosition());
             if(state.equals(TickState.DEFAULT)) state = chunkState;
-            else state = state.withRate(chunkState.rate());
+            else state = Objects.requireNonNull(state.withRate(chunkState.rate()));
         }
         if(serverState.frozen() || serverState.sprinting() || serverState.stepping())
             state = serverState.withRate(serverState.stepping() ? serverState.rate() : state.rate());
 
-        return state;
+        return Objects.requireNonNull(state);
     }
 
     public TickState tickRate$getChunkTickStateShallow(Level level, ChunkPos chunkPos) {
@@ -473,8 +485,8 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
 
         if(state.rate() == -1) rate = serverState.rate();
         if(serverState.frozen() || serverState.sprinting() || serverState.stepping())
-            return serverState.withRate(serverState.stepping() ? serverState.rate() : rate);
-        return state.withRate(rate);
+            return Objects.requireNonNull(serverState.withRate(serverState.stepping() ? serverState.rate() : rate));
+        return Objects.requireNonNull(state.withRate(rate));
     }
 
 
@@ -513,7 +525,7 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
     private void updateTickersMap(int rate, int change) {
         if(change > 0) tickers.merge(rate, change, Integer::sum);
         else if (change < 0) {
-            tickers.compute(rate, (k,v) -> {
+            tickers.compute(rate, (_,v) -> {
                 if(v == null) throw new IllegalStateException("When removing rate from tickers map, " + rate + " TPS already 0");
                 v += change;
                 if(v < 0) throw new IllegalStateException("When removing rate from tickers map, " + rate + " TPS deducted to below 0 (" + v + ")");

@@ -10,34 +10,34 @@ import java.util.Collection;
 
 public interface TickRateTickManager {
 
-    default void tickRate$serverStarting() {}
-    default void tickRate$serverStarted() {}
-    default void tickRate$saveData() {}
+    default void tickRate$serverStarting() { throw new UnsupportedOperationException("Implemented via mixin!"); }
+    default void tickRate$serverStarted() { throw new UnsupportedOperationException("Implemented via mixin!"); }
+    default void tickRate$saveData() { throw new UnsupportedOperationException("Implemented via mixin!"); }
 
-    default boolean tickRate$shouldTickEntity(Entity entity) {return false;}
-    default boolean tickRate$shouldTickChunk(Level world, ChunkPos chunkPos) {return false;}
-    default boolean tickRate$shouldTickChunk(LevelChunk chunk) {return false;}
-    default boolean tickRate$shouldTickServer() {return false;}
+    default boolean tickRate$shouldTickEntity(Entity entity) { throw new UnsupportedOperationException("Implemented via mixin!"); }
+    default boolean tickRate$shouldTickChunk(Level world, ChunkPos chunkPos) { throw new UnsupportedOperationException("Implemented via mixin!"); }
+    default boolean tickRate$shouldTickChunk(LevelChunk chunk) { throw new UnsupportedOperationException("Implemented via mixin!"); }
+    default boolean tickRate$shouldTickServer() { throw new UnsupportedOperationException("Implemented via mixin!"); }
 
-    default void tickRate$updateLoad(AttachmentTarget attachmentTarget, boolean loaded) {}
-    default void tickRate$setServerRate(int rate) {}
-    default int tickRate$getServerRate() {return 0;}
-    default void tickRate$ticked() {}
-    default boolean tickRate$isIndividualSprint() {return false;}
-    default boolean tickRate$isServerSprint() {return false;}
+    default void tickRate$updateLoad(AttachmentTarget attachmentTarget, boolean loaded) { throw new UnsupportedOperationException("Implemented via mixin!"); }
+    default void tickRate$setServerRate(int rate) { throw new UnsupportedOperationException("Implemented via mixin!"); }
+    default int tickRate$getServerRate() { throw new UnsupportedOperationException("Implemented via mixin!"); }
+    default void tickRate$ticked() { throw new UnsupportedOperationException("Implemented via mixin!"); }
+    default boolean tickRate$isIndividualSprint() { throw new UnsupportedOperationException("Implemented via mixin!"); }
+    default boolean tickRate$isServerSprint() { throw new UnsupportedOperationException("Implemented via mixin!"); }
 
-    default void tickRate$setRate(int rate, Collection<? extends AttachmentTarget> targets) {}
-    default void tickRate$setFrozen(boolean frozen, Collection<? extends AttachmentTarget> targets) {}
-    default boolean tickRate$step(int steps, Collection<? extends AttachmentTarget> targets) {return false;}
-    default boolean tickRate$sprint(int ticks, Collection<? extends AttachmentTarget> targets) {return false;}
+    default void tickRate$setRate(int rate, Collection<? extends AttachmentTarget> targets) { throw new UnsupportedOperationException("Implemented via mixin!"); }
+    default void tickRate$setFrozen(boolean frozen, Collection<? extends AttachmentTarget> targets) { throw new UnsupportedOperationException("Implemented via mixin!"); }
+    default boolean tickRate$step(int steps, Collection<? extends AttachmentTarget> targets) { throw new UnsupportedOperationException("Implemented via mixin!"); }
+    default boolean tickRate$sprint(int ticks, Collection<? extends AttachmentTarget> targets) { throw new UnsupportedOperationException("Implemented via mixin!"); }
 
-    default int tickRate$getEntityRate(Entity entity) {return 0;}
-    default int tickRate$getChunkRate(LevelChunk chunk) {return 0;}
+    default int tickRate$getEntityRate(Entity entity) { throw new UnsupportedOperationException("Implemented via mixin!"); }
+    default int tickRate$getChunkRate(LevelChunk chunk) { throw new UnsupportedOperationException("Implemented via mixin!"); }
 
-    default TickState tickRate$getChunkTickStateShallow(Level world, ChunkPos chunkPos) {return null;}
-    default TickState tickRate$getEntityTickStateShallow(Entity entity) {return null;}
-    default TickState tickRate$getChunkTickStateDeep(Level world, ChunkPos chunkPos) {return null;}
-    default TickState tickRate$getEntityTickStateDeep(Entity entity) {return null;}
-    default TickState tickRate$getServerTickState() {return null;}
+    default TickState tickRate$getChunkTickStateShallow(Level world, ChunkPos chunkPos) { throw new UnsupportedOperationException("Implemented via mixin!"); }
+    default TickState tickRate$getEntityTickStateShallow(Entity entity) { throw new UnsupportedOperationException("Implemented via mixin!"); }
+    default TickState tickRate$getChunkTickStateDeep(Level world, ChunkPos chunkPos) { throw new UnsupportedOperationException("Implemented via mixin!"); }
+    default TickState tickRate$getEntityTickStateDeep(Entity entity) { throw new UnsupportedOperationException("Implemented via mixin!"); }
+    default TickState tickRate$getServerTickState() { throw new UnsupportedOperationException("Implemented via mixin!"); }
 
 }
