@@ -17,6 +17,8 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
+import java.util.Objects;
+
 @Mixin(ClientLevel.class)
 public class ClientLevelMixin {
 
@@ -27,6 +29,8 @@ public class ClientLevelMixin {
      */
     @ModifyVariable(method = "playSound(DDDLnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FFZJ)V", at = @At("HEAD"), argsOnly = true, ordinal = 1)
     public float playSound(float pitch, @Local(argsOnly = true, ordinal = 0) double x, @Local(argsOnly = true, ordinal = 1) double y, @Local(argsOnly = true, ordinal = 2) double z, @Local(argsOnly = true) SoundSource category) {
+        Objects.requireNonNull(minecraft.player);
+
         return switch(category) {
             case MASTER,MUSIC,UI,RECORDS,VOICE,NEUTRAL,HOSTILE -> pitch;
             case PLAYERS -> {
@@ -53,6 +57,8 @@ public class ClientLevelMixin {
      */
     @ModifyVariable(method = "playPlayerSound(Lnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FF)V", at = @At("HEAD"), argsOnly = true, ordinal = 1)
     public float playPlayerSound$Client(float pitch, @Local(argsOnly = true) SoundSource category) {
+        Objects.requireNonNull(minecraft.player);
+
         return switch(category) {
             case MASTER,MUSIC,UI,RECORDS,VOICE,NEUTRAL,HOSTILE -> pitch;
             case PLAYERS -> {

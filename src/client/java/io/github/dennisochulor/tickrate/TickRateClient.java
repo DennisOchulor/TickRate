@@ -1,8 +1,8 @@
 package io.github.dennisochulor.tickrate;
 
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.network.chat.Component;
@@ -21,7 +21,7 @@ public class TickRateClient implements ClientModInitializer {
 			TickRateClientManager.setServerHasMod(false);
 		});
 
-		ClientCommandRegistrationCallback.EVENT.register((dispatcher, _) -> dispatcher.register(ClientCommandManager.literal("tick_indicator")
+		ClientCommandRegistrationCallback.EVENT.register((dispatcher, _) -> dispatcher.register(ClientCommands.literal("tick_indicator")
 				.executes(context -> {
 					if(TickIndicator.toggle()) context.getSource().sendFeedback(Component.literal("Tick indicator toggled on."));
 					else context.getSource().sendFeedback(Component.literal("Tick indicator toggled off."));

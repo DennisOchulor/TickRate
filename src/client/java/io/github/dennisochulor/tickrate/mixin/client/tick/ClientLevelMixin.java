@@ -14,6 +14,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.Objects;
+
 @Mixin(ClientLevel.class)
 public class ClientLevelMixin {
 
@@ -21,6 +23,7 @@ public class ClientLevelMixin {
 
     @Inject(method = "doAnimateTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/core/BlockPos$MutableBlockPos;set(III)Lnet/minecraft/core/BlockPos$MutableBlockPos;", shift = At.Shift.AFTER), cancellable = true)
     public void randomBlockDisplayTicks(int centerX, int centerY, int centerZ, int radius, RandomSource random, Block block, BlockPos.MutableBlockPos pos, CallbackInfo ci) {
+        Objects.requireNonNull(minecraft.player);
         float playerChunkRate = Math.min(20, TickRateClientManager.getChunkState(minecraft.player.chunkPosition()).rate());
         float chunkRate = TickRateClientManager.getChunkState(new ChunkPos(pos)).rate();
         if(playerChunkRate > chunkRate) { // slow it down by chance if player's chunk ticking faster than the random chunk, otherwise ignore

@@ -16,6 +16,7 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.world.TickRateManager;
+import org.jspecify.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -24,14 +25,15 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.Objects;
 import java.util.function.BooleanSupplier;
 
 @Mixin(Minecraft.class)
 public abstract class MinecraftMixin {
 
 	@Shadow public abstract DeltaTracker getDeltaTracker();
-	@Shadow public ClientLevel level;
-	@Shadow public LocalPlayer player;
+	@Shadow @Nullable public ClientLevel level;
+	@Shadow @Nullable public LocalPlayer player;
 	@Shadow @Final public ParticleEngine particleEngine;
 	@Shadow @Final public Options options;
 	@Shadow protected abstract boolean isLevelRunningNormally();
@@ -50,19 +52,22 @@ public abstract class MinecraftMixin {
 	@Inject(method = "runTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/profiling/ProfilerFiller;pop()V", ordinal = 0))
 	private void runTick(boolean tick, CallbackInfo ci) {
 		if(!TickRateClientManager.serverHasMod()) return;
+		Objects.requireNonNull(level);
+		Objects.requireNonNull(player);
+
 		DeltaTracker deltaTracker = getDeltaTracker();
-		int playerChunkI = TickRateClientManager.getChunkDeltaTrackerInfo(this.player.chunkPosition()).i();
-		for(int i=0; i<10; i++) { // these things need to tick all 10 times
-			deltaTracker.tickRate$setMovingI(i);
+		int playerChunkTicksToDo = TickRateClientManager.getChunkDeltaTrackerInfo(this.player.chunkPosition()).ticksToDo();
+		for(int ticksToDo = 0; ticksToDo < 10; ticksToDo++) { // these things need to tick all 10 times
+			deltaTracker.tickRate$setMovingTicksToDo(ticksToDo);
 			this.level.tickEntities();
 			this.level.tickBlockEntities();
 			this.particleEngine.tick();
 
-			if(this.isLevelRunningNormally() && i < playerChunkI) { // animate according to the player's chunk (not the player themself)
+			if(this.isLevelRunningNormally() && ticksToDo < playerChunkTicksToDo) { // animate according to the player's chunk (not the player themself)
 				this.level.animateTick(this.player.getBlockX(), this.player.getBlockY(), this.player.getBlockZ());
 			}
 
-			if(!this.pause && i < deltaTracker.tickRate$getI()) { // tick according to server, not the player
+			if(!this.pause && ticksToDo < deltaTracker.tickRate$getTicksToDo()) { // tick according to server, not the player
 				this.level.tickRateManager().tick();
 				if(this.level.tickRateManager().runsNormally()) this.levelRenderer.tick(this.gameRenderer.getMainCamera());
 				this.level.tick(() -> true);
@@ -76,17 +81,17 @@ public abstract class MinecraftMixin {
 	}
 
 	@ModifyExpressionValue(method = "runTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/DeltaTracker$Timer;advanceTime(JZ)I"))
-	private int modifyPlayerI(int i) { // make the clientTick follow the player's tick rate (which may differ from the server)
+	private int modifyPlayerTicksToDo(int i) { // make the clientTick follow the player's tick rate (which may differ from the server)
 		if(!TickRateClientManager.serverHasMod()) return i;
-		return TickRateClientManager.getEntityDeltaTrackerInfo(this.player).i();
+		return TickRateClientManager.getEntityDeltaTrackerInfo(Objects.requireNonNull(this.player)).ticksToDo();
 	}
 
-	@Definition(id = "i", local = @Local(type = int.class))
-	@Expression("i > 0")
+	@Definition(id = "ticksToDo", local = @Local(type = int.class))
+	@Expression("ticksToDo > 0")
 	@ModifyExpressionValue(method = "runTick", at = @At("MIXINEXTRAS:EXPRESSION"))
-	private boolean tickTexturesFollowingPlayerChunkI(boolean original) {
+	private boolean tickTexturesFollowingPlayerChunk(boolean original) {
 		if (this.player == null) return original;
-		else return TickRateClientManager.getChunkDeltaTrackerInfo(this.player.chunkPosition()).i() > 0;
+		else return TickRateClientManager.getChunkDeltaTrackerInfo(this.player.chunkPosition()).ticksToDo() > 0;
 	}
 
 	@Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientLevel;tickEntities()V"))

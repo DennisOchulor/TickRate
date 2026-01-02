@@ -3,6 +3,8 @@ package io.github.dennisochulor.tickrate;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 
+import java.util.Objects;
+
 public class TickIndicator {
 
     private TickIndicator() {}
@@ -20,10 +22,11 @@ public class TickIndicator {
 
     public static void tick() {
         if(!TickIndicator.isEnabled() || !TickRateClientManager.serverHasMod()) return;
-        Minecraft client = Minecraft.getInstance();
-        TickState chunkState = TickRateClientManager.getChunkState(client.player.chunkPosition());
+
+        Minecraft minecraft = Minecraft.getInstance();
+        TickState chunkState = TickRateClientManager.getChunkState(Objects.requireNonNull(minecraft.player).chunkPosition());
         int chunkRate = chunkState.rate();
-        TickState entityState = client.crosshairPickEntity!=null ? TickRateClientManager.getEntityState(client.crosshairPickEntity) : null;
+        TickState entityState = minecraft.crosshairPickEntity!=null ? TickRateClientManager.getEntityState(minecraft.crosshairPickEntity) : null;
         int entityRate = (entityState!=null ? entityState.rate() : 0);
 
         String chunkStateStr = "";
@@ -44,7 +47,7 @@ public class TickIndicator {
                 entityStateStr = " (Frozen)";
         }
 
-        client.player.displayClientMessage(Component.literal("Entity: " + entityRate + " TPS" + entityStateStr + "       Chunk: " + chunkRate + " TPS" + chunkStateStr), true);
+        minecraft.player.displayClientMessage(Component.literal("Entity: " + entityRate + " TPS" + entityStateStr + "       Chunk: " + chunkRate + " TPS" + chunkStateStr), true);
     }
 
 }

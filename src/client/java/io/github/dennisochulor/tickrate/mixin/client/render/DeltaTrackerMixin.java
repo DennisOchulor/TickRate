@@ -10,14 +10,14 @@ import org.spongepowered.asm.mixin.Unique;
 public interface DeltaTrackerMixin extends TickRateDeltaTracker {
 
     @Unique
-    default DeltaTrackerInfo tickRate$getDeltaTrackerInfo(int tps) {return null;}
+    default DeltaTrackerInfo tickRate$getDeltaTrackerInfo(int tps) { throw new UnsupportedOperationException("Implemented via mixin!"); }
     @Unique
-    default DeltaTrackerInfo tickRate$getClientPlayerDeltaTrackerInfo(int tps) {return null;}
+    default DeltaTrackerInfo tickRate$getClientPlayerDeltaTrackerInfo(int tps) { throw new UnsupportedOperationException("Implemented via mixin!"); }
     @Unique
-    default void tickRate$setMovingI(int newI) {}
+    default void tickRate$setMovingTicksToDo(int newI) { throw new UnsupportedOperationException("Implemented via mixin!"); }
     @Unique
-    default int tickRate$getMovingI() {return 0;}
+    default int tickRate$getMovingTicksToDo() { throw new UnsupportedOperationException("Implemented via mixin!"); }
     @Unique
-    default int tickRate$getI() {return 0;}
+    default int tickRate$getTicksToDo() { throw new UnsupportedOperationException("Implemented via mixin!"); }
 
 }

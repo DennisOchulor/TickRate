@@ -9,17 +9,19 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
+import java.util.Objects;
+
 @Mixin(EnchantmentScreen.class)
 public class EnchantmentScreenMixin {
 
     @Redirect(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/DeltaTracker;getGameTimeDeltaPartialTick(Z)F"))
     public float render(DeltaTracker instance, boolean ignoreFreeze) {
-        return TickRateClientManager.getEntityDeltaTrackerInfo(Minecraft.getInstance().player).partialTick();
+        return TickRateClientManager.getEntityDeltaTrackerInfo(Objects.requireNonNull(Minecraft.getInstance().player)).partialTick();
     }
 
     @ModifyExpressionValue(method = "renderBook", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/DeltaTracker;getGameTimeDeltaPartialTick(Z)F"))
     private float renderBook(float original) {
-        return TickRateClientManager.getEntityDeltaTrackerInfo(Minecraft.getInstance().player).partialTick();
+        return TickRateClientManager.getEntityDeltaTrackerInfo(Objects.requireNonNull(Minecraft.getInstance().player)).partialTick();
     }
 
 }

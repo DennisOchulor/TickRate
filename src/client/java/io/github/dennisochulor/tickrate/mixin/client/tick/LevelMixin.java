@@ -25,7 +25,7 @@ public abstract class LevelMixin {
     public <T extends Entity> void tickEntity(Consumer<T> tickConsumer, T entity, CallbackInfo ci) {
         if(isClientSide() && TickRateClientManager.serverHasMod()) {
             DeltaTracker deltaTracker = Minecraft.getInstance().getDeltaTracker();
-            if(deltaTracker.tickRate$getMovingI() >= TickRateClientManager.getEntityDeltaTrackerInfo(entity).i()) {
+            if(deltaTracker.tickRate$getMovingTicksToDo() >= TickRateClientManager.getEntityDeltaTrackerInfo(entity).ticksToDo()) {
                 ci.cancel();
             }
         }
@@ -35,7 +35,7 @@ public abstract class LevelMixin {
     protected void tickBlockEntities(TickingBlockEntity instance) {
         if(isClientSide() && TickRateClientManager.serverHasMod()) {
             DeltaTracker deltaTracker = Minecraft.getInstance().getDeltaTracker();
-            if(deltaTracker.tickRate$getMovingI() < TickRateClientManager.getChunkDeltaTrackerInfo(new ChunkPos(instance.getPos())).i()) {
+            if(deltaTracker.tickRate$getMovingTicksToDo() < TickRateClientManager.getChunkDeltaTrackerInfo(new ChunkPos(instance.getPos())).ticksToDo()) {
                 instance.tick();
             }
         }

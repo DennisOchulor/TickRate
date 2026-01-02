@@ -12,19 +12,27 @@ import net.minecraft.world.level.ChunkPos;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
+import java.util.Objects;
+
 @Mixin(ParticleGroup.class)
 public class ParticleGroupMixin {
 
     @WrapOperation(method = "tickParticle", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/particle/Particle;tick()V"))
     private void tickParticle(Particle particle, Operation<Void> original) { // particle ticking
         if(TickRateClientManager.serverHasMod()) {
+            Minecraft minecraft = Minecraft.getInstance();
+            Objects.requireNonNull(minecraft.player);
+
             // Modded particle types can't be accounted for properly, so just give em playerChunkI
             ParticleRenderType renderType = particle.getGroup();
-            boolean isVanillaParticle = renderType == ParticleRenderType.SINGLE_QUADS || renderType == ParticleRenderType.NO_RENDER || renderType == ParticleRenderType.ELDER_GUARDIANS || renderType == ParticleRenderType.ITEM_PICKUP;
-            int i = isVanillaParticle ? TickRateClientManager.getChunkDeltaTrackerInfo(new ChunkPos(particle.tickRate$getBlockPos())).i() : TickRateClientManager.getChunkDeltaTrackerInfo(Minecraft.getInstance().player.chunkPosition()).i();
+            boolean isVanillaParticle = renderType == ParticleRenderType.SINGLE_QUADS || renderType == ParticleRenderType.NO_RENDER ||
+                                        renderType == ParticleRenderType.ELDER_GUARDIANS || renderType == ParticleRenderType.ITEM_PICKUP;
+            int i = isVanillaParticle ?
+                    TickRateClientManager.getChunkDeltaTrackerInfo(new ChunkPos(particle.tickRate$getBlockPos())).ticksToDo() :
+                    TickRateClientManager.getChunkDeltaTrackerInfo(minecraft.player.chunkPosition()).ticksToDo();
 
-            DeltaTracker deltaTracker = Minecraft.getInstance().getDeltaTracker();
-            if(deltaTracker.tickRate$getMovingI() < i) {
+            DeltaTracker deltaTracker = minecraft.getDeltaTracker();
+            if(deltaTracker.tickRate$getMovingTicksToDo() < i) {
                 original.call(particle);
             }
         }

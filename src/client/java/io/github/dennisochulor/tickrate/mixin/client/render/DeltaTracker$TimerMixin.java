@@ -27,8 +27,8 @@ public class DeltaTracker$TimerMixin implements TickRateDeltaTracker {
 
     @Unique private long lastLastTimeMillis; // formerly prevPrevTickMillis
     @Unique private float lastPartialTick; // formerly prevTickProgress
-    @Unique private int movingI;
-    @Unique private int i;
+    @Unique private int movingTicksToDo;
+    @Unique private int ticksToDo;
     // all things (except client's player) ticking at a certain TPS will tick/animate the exact same client-side, so just map TPS->TickProgressInfo
     @Unique private final Map<Integer, DeltaTrackerInfo> prevPartialTicks = new HashMap<>();
     @Unique private final Set<Integer> isUpdated = new HashSet<>();
@@ -45,8 +45,8 @@ public class DeltaTracker$TimerMixin implements TickRateDeltaTracker {
     }
 
     @Inject(method = "advanceGameTime(J)I", at = @At("TAIL"))
-    private void beginRenderTick(long timeMillis, CallbackInfoReturnable<Integer> cir, @Local int i) {
-        this.i = i;
+    private void beginRenderTick(long timeMillis, CallbackInfoReturnable<Integer> cir, @Local(name = "ticks") int ticks) {
+        this.ticksToDo = ticks;
         TickRateClientManager.clearCache();
     }
 
@@ -79,18 +79,18 @@ public class DeltaTracker$TimerMixin implements TickRateDeltaTracker {
     }
 
     @Override
-    public void tickRate$setMovingI(int newI) {
-        movingI = newI;
+    public void tickRate$setMovingTicksToDo(int i) {
+        movingTicksToDo = i;
     }
 
     @Override
-    public int tickRate$getMovingI() {
-        return movingI;
+    public int tickRate$getMovingTicksToDo() {
+        return movingTicksToDo;
     }
 
     @Override
-    public int tickRate$getI() {
-        return i;
+    public int tickRate$getTicksToDo() {
+        return ticksToDo;
     }
 
 }
