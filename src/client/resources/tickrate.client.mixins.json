@@ -1,6 +1,6 @@
 {
   "required": true,
-  "package": "io.github.dennisochulor.tickrate.mixin.client",
+  "package": "io.github.dennisochulor.tickrate.client.mixin",
   "compatibilityLevel": "JAVA_25",
   "client": [
     "misc.EnchantmentScreenMixin",
