@@ -28,14 +28,14 @@ public class ClientLevelMixin {
      */
     @ModifyVariable(method = "playSound(DDDLnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FFZJ)V",
             at = @At("HEAD"), argsOnly = true, name = "pitch")
-    public float playSound(float pitch, @Local(argsOnly = true, ordinal = 0) double x,
-                           @Local(argsOnly = true, ordinal = 1) double y,
-                           @Local(argsOnly = true, ordinal = 2) double z,
-                           @Local(argsOnly = true) SoundSource category)
+    public float playSound(float pitch, @Local(argsOnly = true, name = "x") double x,
+                           @Local(argsOnly = true, name = "y") double y,
+                           @Local(argsOnly = true, name = "z") double z,
+                           @Local(argsOnly = true, name = "source") SoundSource source)
     {
         Objects.requireNonNull(minecraft.player);
 
-        return switch(category) {
+        return switch(source) {
             case MASTER,MUSIC,UI,RECORDS,VOICE,NEUTRAL,HOSTILE -> pitch;
             case PLAYERS -> {
                 TickState state = TickRateClientManager.getEntityState(minecraft.player);
@@ -61,10 +61,10 @@ public class ClientLevelMixin {
      */
     @ModifyVariable(method = "playPlayerSound(Lnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FF)V",
             at = @At("HEAD"), argsOnly = true, name = "pitch")
-    public float playPlayerSound$Client(float pitch, @Local(argsOnly = true) SoundSource category) {
+    public float playPlayerSound$Client(float pitch, @Local(argsOnly = true, name = "source") SoundSource source) {
         Objects.requireNonNull(minecraft.player);
 
-        return switch(category) {
+        return switch(source) {
             case MASTER,MUSIC,UI,RECORDS,VOICE,NEUTRAL,HOSTILE -> pitch;
             case PLAYERS -> {
                 TickState state = TickRateClientManager.getEntityState(minecraft.player);
@@ -86,16 +86,16 @@ public class ClientLevelMixin {
 
     @ModifyVariable(method = "playSeededSound(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/entity/Entity;Lnet/minecraft/core/Holder;Lnet/minecraft/sounds/SoundSource;FFJ)V",
             at = @At("HEAD"), argsOnly = true, name = "pitch")
-    public float playSeededSound$Entity(float pitch, @Local(argsOnly = true, name = "sourceEntity") Entity entity) {
-        TickState state = TickRateClientManager.getEntityState(entity);
+    public float playSeededSound$Entity(float pitch, @Local(argsOnly = true, name = "sourceEntity") Entity sourceEntity) {
+        TickState state = TickRateClientManager.getEntityState(sourceEntity);
         if(state.sprinting()) return TickRate.MAX_SOUND_PITCH;
         else return pitch * (state.rate() / 20.0F);
     }
 
     @ModifyVariable(method = "playLocalSound(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/sounds/SoundEvent;Lnet/minecraft/sounds/SoundSource;FF)V",
             at = @At("HEAD"), argsOnly = true, name = "pitch")
-    public float playLocalSound$Entity(float pitch, @Local(argsOnly = true) Entity entity) {
-        TickState state = TickRateClientManager.getEntityState(entity);
+    public float playLocalSound$Entity(float pitch, @Local(argsOnly = true, name = "sourceEntity") Entity sourceEntity) {
+        TickState state = TickRateClientManager.getEntityState(sourceEntity);
         if(state.sprinting()) return TickRate.MAX_SOUND_PITCH;
         else return pitch * (state.rate() / 20.0F);
     }

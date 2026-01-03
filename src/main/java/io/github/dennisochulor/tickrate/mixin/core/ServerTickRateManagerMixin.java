@@ -46,7 +46,7 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
     @Unique private final Map<String,Float> migrationData = new HashMap<>();
     @Unique private float nominalTickRateMigration = -1.0f;
 
-    @Shadow public abstract void setTickRate(float tickRate);
+    @Shadow public abstract void setTickRate(float rate);
     @Shadow @Final private MinecraftServer server;
     @Shadow private long scheduledCurrentSprintTicks;
 
@@ -91,7 +91,7 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
     }
 
     @Inject(method = "setFrozen", at = @At("TAIL"))
-    public void setFrozen(CallbackInfo ci, @Local(argsOnly = true) boolean frozen) { // for server (un)freeze
+    public void setFrozen(CallbackInfo ci, @Local(argsOnly = true, name = "frozen") boolean frozen) { // for server (un)freeze
         TickState newState = server.overworld().getAttachedOrThrow(TICK_STATE_SERVER).withFrozen(frozen);
         server.getAllLevels().forEach(serverLevel -> serverLevel.setAttached(TICK_STATE_SERVER, newState));
     }

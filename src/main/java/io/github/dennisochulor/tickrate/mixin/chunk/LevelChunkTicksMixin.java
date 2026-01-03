@@ -27,7 +27,7 @@ public abstract class LevelChunkTicksMixin<T> implements TickRateLevelChunkTicks
     @Unique private long serverTime;
     @Unique private boolean isFollowingServerTick = true;
 
-    @ModifyVariable(method = "schedule", at = @At("HEAD"), argsOnly = true)
+    @ModifyVariable(method = "schedule", at = @At("HEAD"), argsOnly = true, name = "tick")
     public ScheduledTick<T> schedule(ScheduledTick<T> scheduledTick) {
         if(!isFollowingServerTick) {
             long newTriggerTick = chunkTime + (scheduledTick.triggerTick()-serverTime);

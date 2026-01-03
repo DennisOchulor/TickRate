@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 @Mixin(LevelRenderer.class)
 public class LevelRendererMixin {
 
-    @ModifyVariable(method = "renderLevel", at = @At("HEAD"), argsOnly = true)
+    @ModifyVariable(method = "renderLevel", at = @At("HEAD"), argsOnly = true, name = "deltaTracker")
     public DeltaTracker renderLevel(DeltaTracker deltaTracker) {
         return Minecraft.getInstance().getDeltaTracker(); //replace player's DeltaTracker with server's DeltaTracker
     }

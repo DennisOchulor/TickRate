@@ -27,8 +27,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class ServerGamePacketListenerImplMixin implements TickRateServerGamePacketListenerImpl {
 
     @Shadow public ServerPlayer player;
-    @Shadow public abstract void teleport(double x, double y, double z, float yaw, float pitch);
-    @Shadow public abstract void ackBlockChangesUpTo(int sequence);
+    @Shadow public abstract void teleport(double x, double y, double z, float yRot, float xRot);
+    @Shadow public abstract void ackBlockChangesUpTo(int packetSequenceNr);
 
     @Unique private boolean hasClientMod;
     // Only used if hasClientMod == false

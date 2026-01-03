@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 public abstract class BlockEntityRenderDispatcherMixin {
 
     // modify BLOCK ENTITY partial tick
-    @ModifyVariable(method = "tryExtractRenderState", at = @At("HEAD"), argsOnly = true)
+    @ModifyVariable(method = "tryExtractRenderState", at = @At("HEAD"), argsOnly = true, name = "partialTicks")
     private float tryExtractRenderState(float partialTicks, BlockEntity blockEntity) {
         return TickRateClientManager.getChunkDeltaTrackerInfo(new ChunkPos(blockEntity.getBlockPos())).partialTick();
     }

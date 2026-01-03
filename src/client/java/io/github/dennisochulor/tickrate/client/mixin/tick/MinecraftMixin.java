@@ -37,7 +37,7 @@ public abstract class MinecraftMixin {
 	@Shadow @Final public ParticleEngine particleEngine;
 	@Shadow @Final public Options options;
 	@Shadow protected abstract boolean isLevelRunningNormally();
-	@Shadow public abstract void openChatScreen(ChatComponent.ChatMethod method);
+	@Shadow public abstract void openChatScreen(ChatComponent.ChatMethod chatMethod);
 	@Shadow private volatile boolean pause;
 	@Shadow @Final public LevelRenderer levelRenderer;
 	@Shadow @Final public GameRenderer gameRenderer;

@@ -29,9 +29,12 @@ public class ServerLevelMixin {
      */
     @ModifyVariable(method = "playSeededSound(Lnet/minecraft/world/entity/Entity;DDDLnet/minecraft/core/Holder;Lnet/minecraft/sounds/SoundSource;FFJ)V",
             at = @At("HEAD"), argsOnly = true, name = "pitch")
-    public float playSound(float pitch, @Local(argsOnly = true) @Nullable Entity entity,
-                           @Local(argsOnly = true, ordinal = 0) double x, @Local(argsOnly = true, ordinal = 1) double y, @Local(argsOnly = true, ordinal = 2) double z,
-                           @Local(argsOnly = true) SoundSource source) {
+    public float playSound(float pitch, @Local(argsOnly = true, name = "except") @Nullable Entity entity,
+                           @Local(argsOnly = true, name = "x") double x,
+                           @Local(argsOnly = true, name = "y") double y,
+                           @Local(argsOnly = true, name = "z") double z,
+                           @Local(argsOnly = true, name = "source") SoundSource source
+    ) {
         ServerTickRateManager tickManager = server.tickRateManager();
         return switch(source) {
             case MASTER,MUSIC,UI,RECORDS,VOICE,NEUTRAL,HOSTILE -> pitch;

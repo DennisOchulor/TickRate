@@ -28,7 +28,7 @@ public class ParticleEngineMixin {
         else original.call(particle);
     }
 
-    @ModifyVariable(method = "extract", at = @At("HEAD"), argsOnly = true)
+    @ModifyVariable(method = "extract", at = @At("HEAD"), argsOnly = true, name = "partialTickTime")
     private float extract(float partialTick) {
         // Modded particle types can't really be accounted for, so just give em player's chunk partial tick
         return TickRateClientManager.getChunkDeltaTrackerInfo(Objects.requireNonNull(Minecraft.getInstance().player).chunkPosition()).partialTick();

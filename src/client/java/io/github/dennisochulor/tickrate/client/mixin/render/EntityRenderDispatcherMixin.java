@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 public abstract class EntityRenderDispatcherMixin {
 
     // modify ENTITY partial tick
-    @ModifyVariable(method = "extractEntity", at = @At("HEAD"), argsOnly = true)
+    @ModifyVariable(method = "extractEntity", at = @At("HEAD"), argsOnly = true, name = "partialTicks")
     private float extractEntity(float partialTick, Entity entity) {
         return TickRateClientManager.getEntityDeltaTrackerInfo(entity).partialTick();
     }

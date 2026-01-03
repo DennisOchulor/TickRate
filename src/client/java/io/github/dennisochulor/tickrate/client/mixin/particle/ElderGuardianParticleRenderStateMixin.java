@@ -16,7 +16,7 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 @Mixin(targets = "net/minecraft/client/particle/ElderGuardianParticleGroup$ElderGuardianParticleRenderState")
 public class ElderGuardianParticleRenderStateMixin {
 
-    @ModifyVariable(method = "fromParticle", at = @At("HEAD"), argsOnly = true)
+    @ModifyVariable(method = "fromParticle", at = @At("HEAD"), argsOnly = true, name = "partialTickTime")
     private static float fromParticle(float partialTickTime, ElderGuardianParticle particle) {
         return TickRateClientManager.getChunkDeltaTrackerInfo(new ChunkPos(particle.tickRate$getBlockPos())).partialTick();
     }
