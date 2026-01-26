@@ -49,13 +49,13 @@ public class LevelTicksMixin<T> implements TickRateLevelTicks {
             LevelChunkTicks<T> levelChunkTicks = allContainers.get(chunkPos);
             ServerTickRateManager tickManager = (ServerTickRateManager) level.tickRateManager();
             levelChunkTicks.tickRate$setServerTime(time);
-            TickState tickState = tickManager.tickRate$getChunkTickStateShallow(level, new ChunkPos(chunkPos));
+            TickState tickState = tickManager.tickRate$getChunkTickStateShallow(level, ChunkPos.unpack(chunkPos));
             if(tickState.rate() == -1 && !tickState.frozen() && !tickState.sprinting()) {
                 levelChunkTicks.tickRate$toggleMode(true);
             }
             else {
                 levelChunkTicks.tickRate$toggleMode(false);
-                if(tickManager.tickRate$shouldTickChunk(level,new ChunkPos(chunkPos))) {
+                if(tickManager.tickRate$shouldTickChunk(level, ChunkPos.unpack(chunkPos))) {
                     List<ScheduledTick<T>> list = levelChunkTicks.tickRate$tick();
                     this.toRunThisTick.addAll(list);
                 }

@@ -21,7 +21,7 @@ public class ParticleEngineMixin {
     private void tick$emitters(TrackingEmitter particle, Operation<Void> original) { // emitter particle ticking
         if(TickRateClientManager.serverHasMod()) {
             DeltaTracker deltaTracker = Minecraft.getInstance().getDeltaTracker();
-            if(deltaTracker.tickRate$getMovingTicksToDo() < TickRateClientManager.getChunkDeltaTrackerInfo(new ChunkPos(particle.tickRate$getBlockPos())).ticksToDo()) {
+            if(deltaTracker.tickRate$getMovingTicksToDo() < TickRateClientManager.getChunkDeltaTrackerInfo(ChunkPos.containing(particle.tickRate$getBlockPos())).ticksToDo()) {
                 original.call(particle);
             }
         }

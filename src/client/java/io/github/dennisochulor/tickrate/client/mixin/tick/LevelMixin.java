@@ -35,7 +35,7 @@ public abstract class LevelMixin {
     protected void tickBlockEntities(TickingBlockEntity instance) {
         if(isClientSide() && TickRateClientManager.serverHasMod()) {
             DeltaTracker deltaTracker = Minecraft.getInstance().getDeltaTracker();
-            if(deltaTracker.tickRate$getMovingTicksToDo() < TickRateClientManager.getChunkDeltaTrackerInfo(new ChunkPos(instance.getPos())).ticksToDo()) {
+            if(deltaTracker.tickRate$getMovingTicksToDo() < TickRateClientManager.getChunkDeltaTrackerInfo(ChunkPos.containing(instance.getPos())).ticksToDo()) {
                 instance.tick();
             }
         }

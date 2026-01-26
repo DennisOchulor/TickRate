@@ -43,7 +43,7 @@ public class ServerLevelMixin {
                 if(entity != null) // possibly handles player sounds
                     state = tickManager.tickRate$getEntityTickStateDeep(entity);
                 else
-                    state = tickManager.tickRate$getChunkTickStateDeep((Level) (Object) this, new ChunkPos(new BlockPos(Mth.floor(x), Mth.floor(y), Mth.floor(z))));
+                    state = tickManager.tickRate$getChunkTickStateDeep((Level) (Object) this, ChunkPos.containing(new BlockPos(Mth.floor(x), Mth.floor(y), Mth.floor(z))));
                 if(state.sprinting()) yield TickRate.MAX_SOUND_PITCH;
                 else yield pitch * (state.rate() / 20.0F);
             }
@@ -53,7 +53,7 @@ public class ServerLevelMixin {
                 else yield pitch * (state.rate() / 20.0F);
             }
             case BLOCKS, AMBIENT -> {
-                TickState state = tickManager.tickRate$getChunkTickStateDeep((Level)(Object)this, new ChunkPos(new BlockPos(Mth.floor(x), Mth.floor(y), Mth.floor(z))));
+                TickState state = tickManager.tickRate$getChunkTickStateDeep((Level)(Object)this, ChunkPos.containing(new BlockPos(Mth.floor(x), Mth.floor(y), Mth.floor(z))));
                 if(state.sprinting()) yield TickRate.MAX_SOUND_PITCH;
                 else yield pitch * (state.rate() / 20.0F);
             }

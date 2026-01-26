@@ -220,11 +220,11 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
 
     public boolean tickRate$shouldTickChunk(Level level, ChunkPos chunkPos) {
         // check the ticked cache
-        String key = level.dimension().identifier() + "-" + chunkPos.toLong();
+        String key = level.dimension().identifier() + "-" + chunkPos.pack();
         Boolean cachedShouldTick = ticked.get(key);
         if(cachedShouldTick != null) return cachedShouldTick;
         else {
-            LevelChunk levelChunk = (LevelChunk) level.getChunk(chunkPos.x, chunkPos.z, ChunkStatus.FULL, false);
+            LevelChunk levelChunk = (LevelChunk) level.getChunk(chunkPos.x(), chunkPos.z(), ChunkStatus.FULL, false);
             if(levelChunk == null) { // chunk is not fully loaded and accessible yet, so just don't tick it.
                 ticked.put(key, false);
                 return false;
@@ -235,7 +235,7 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
 
     public boolean tickRate$shouldTickChunk(LevelChunk chunk) {
         // check the ticked cache
-        String key = chunk.getLevel().dimension().identifier() + "-" + chunk.getPos().toLong();
+        String key = chunk.getLevel().dimension().identifier() + "-" + chunk.getPos().pack();
         Boolean cachedShouldTick = ticked.get(key);
         if(cachedShouldTick != null) return cachedShouldTick;
 
@@ -438,7 +438,7 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
         if(rate != -1) return rate;
 
         ChunkPos chunkPos = entity.chunkPosition();
-        return tickRate$getChunkRate((LevelChunk) entity.level().getChunk(chunkPos.x, chunkPos.z, ChunkStatus.FULL, false));
+        return tickRate$getChunkRate((LevelChunk) entity.level().getChunk(chunkPos.x(), chunkPos.z(), ChunkStatus.FULL, false));
     }
 
     public int tickRate$getChunkRate(LevelChunk chunk) {
@@ -474,7 +474,7 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
 
     public TickState tickRate$getChunkTickStateShallow(Level level, ChunkPos chunkPos) {
         // try get the correct TickState as soon as it is available.
-        ChunkAccess chunk = level.getChunk(chunkPos.x, chunkPos.z, ChunkStatus.STRUCTURE_STARTS, false);
+        ChunkAccess chunk = level.getChunk(chunkPos.x(), chunkPos.z(), ChunkStatus.STRUCTURE_STARTS, false);
         return chunk==null ? TickState.DEFAULT : chunk.getAttachedOrElse(TICK_STATE, TickState.DEFAULT);
     }
 
@@ -541,7 +541,7 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
 
         String key = switch (target) {
             case Entity e -> e.getStringUUID();
-            case LevelChunk levelChunk -> levelChunk.getLevel().dimension().identifier() + "-" + levelChunk.getPos().toLong();
+            case LevelChunk levelChunk -> levelChunk.getLevel().dimension().identifier() + "-" + levelChunk.getPos().pack();
             default -> "";
         };
 

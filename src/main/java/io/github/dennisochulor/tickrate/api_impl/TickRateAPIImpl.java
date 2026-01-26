@@ -61,7 +61,7 @@ public final class TickRateAPIImpl implements TickRateAPI {
         Objects.requireNonNull(level, "level cannot be null!");
         Objects.requireNonNull(chunks, "chunks cannot be null!");
         chunks.forEach(chunkPos -> {
-            LevelChunk levelChunk = (LevelChunk) level.getChunk(chunkPos.x,chunkPos.z,ChunkStatus.FULL,false);
+            LevelChunk levelChunk = (LevelChunk) level.getChunk(chunkPos.x(),chunkPos.z(),ChunkStatus.FULL,false);
             if(levelChunk==null || levelChunk.getFullStatus() == FullChunkStatus.INACCESSIBLE)
                 throw new IllegalArgumentException("Some of the specified chunks are not loaded!");
             levelChunks.add(levelChunk);

@@ -98,7 +98,7 @@ public abstract class ServerLevelMixin {
     public void shouldTickBlocksAt(long chunkPos, CallbackInfoReturnable<Boolean> cir) {
         ServerLevel level = (ServerLevel) (Object) this;
         ServerTickRateManager tickManager = (ServerTickRateManager) tickRateManager();
-        if(!tickManager.tickRate$shouldTickChunk(level, new ChunkPos(chunkPos))) cir.setReturnValue(false);
+        if(!tickManager.tickRate$shouldTickChunk(level, ChunkPos.unpack(chunkPos))) cir.setReturnValue(false);
     }
 
     @Inject(method = "anyPlayerCloseEnoughForSpawning(Lnet/minecraft/world/level/ChunkPos;)Z", at = @At("HEAD"), cancellable = true)
@@ -112,7 +112,7 @@ public abstract class ServerLevelMixin {
     public void shouldTickEntityAt(BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
         ServerLevel level = (ServerLevel) (Object) this;
         ServerTickRateManager tickManager = (ServerTickRateManager) tickRateManager();
-        if(!tickManager.tickRate$shouldTickChunk(level, new ChunkPos(pos))) cir.setReturnValue(false);
+        if(!tickManager.tickRate$shouldTickChunk(level, ChunkPos.containing(pos))) cir.setReturnValue(false);
     }
 
     @Inject(method = "canSpawnEntitiesInChunk", at = @At("HEAD"), cancellable = true)

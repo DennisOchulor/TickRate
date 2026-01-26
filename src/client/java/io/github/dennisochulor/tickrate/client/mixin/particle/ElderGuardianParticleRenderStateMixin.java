@@ -18,7 +18,7 @@ public class ElderGuardianParticleRenderStateMixin {
 
     @ModifyVariable(method = "fromParticle", at = @At("HEAD"), argsOnly = true, name = "partialTickTime")
     private static float fromParticle(float partialTickTime, ElderGuardianParticle particle) {
-        return TickRateClientManager.getChunkDeltaTrackerInfo(new ChunkPos(particle.tickRate$getBlockPos())).partialTick();
+        return TickRateClientManager.getChunkDeltaTrackerInfo(ChunkPos.containing(particle.tickRate$getBlockPos())).partialTick();
     }
 
 }

@@ -28,7 +28,7 @@ public class ParticleGroupMixin {
             boolean isVanillaParticle = renderType == ParticleRenderType.SINGLE_QUADS || renderType == ParticleRenderType.NO_RENDER ||
                                         renderType == ParticleRenderType.ELDER_GUARDIANS || renderType == ParticleRenderType.ITEM_PICKUP;
             int i = isVanillaParticle ?
-                    TickRateClientManager.getChunkDeltaTrackerInfo(new ChunkPos(particle.tickRate$getBlockPos())).ticksToDo() :
+                    TickRateClientManager.getChunkDeltaTrackerInfo(ChunkPos.containing(particle.tickRate$getBlockPos())).ticksToDo() :
                     TickRateClientManager.getChunkDeltaTrackerInfo(minecraft.player.chunkPosition()).ticksToDo();
 
             DeltaTracker deltaTracker = minecraft.getDeltaTracker();

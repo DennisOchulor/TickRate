@@ -69,7 +69,7 @@ public class TickRateClientManager {
     }
 
     public static DeltaTrackerInfo getChunkDeltaTrackerInfo(ChunkPos chunkPos) {
-        DeltaTrackerInfo info = chunkCache.get(chunkPos.toLong());
+        DeltaTrackerInfo info = chunkCache.get(chunkPos.pack());
         if(info != null) return info;
 
         DeltaTracker deltaTracker = Minecraft.getInstance().getDeltaTracker();
@@ -82,7 +82,7 @@ public class TickRateClientManager {
             else info = deltaTracker.tickRate$getDeltaTrackerInfo(state.rate());
         }
 
-        chunkCache.put(chunkPos.toLong(), info);
+        chunkCache.put(chunkPos.pack(), info);
         return info;
     }
 
@@ -104,7 +104,7 @@ public class TickRateClientManager {
      */
     public static TickState getChunkState(ChunkPos chunkPos) {
         if(!serverHasMod) return getServerState();
-        TickState state = Objects.requireNonNull(Minecraft.getInstance().level).getChunk(chunkPos.x, chunkPos.z).getAttached(TICK_STATE);
+        TickState state = Objects.requireNonNull(Minecraft.getInstance().level).getChunk(chunkPos.x(), chunkPos.z()).getAttached(TICK_STATE);
         if(state == null) return getServerState();
 
         int rate = state.rate();

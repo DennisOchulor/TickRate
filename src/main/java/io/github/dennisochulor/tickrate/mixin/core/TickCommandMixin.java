@@ -359,7 +359,7 @@ public class TickCommandMixin {
     private static List<LevelChunk> chunkCheck(List<ChunkPos> chunks, CommandSourceStack source) throws CommandSyntaxException {
         List<LevelChunk> levelChunks = new ArrayList<>();
         boolean match = chunks.stream().anyMatch(chunkPos -> {
-            LevelChunk levelChunk = (LevelChunk) source.getLevel().getChunk(chunkPos.x,chunkPos.z,ChunkStatus.FULL,false);
+            LevelChunk levelChunk = (LevelChunk) source.getLevel().getChunk(chunkPos.x(),chunkPos.z(),ChunkStatus.FULL,false);
             boolean isChunkUnloaded = levelChunk==null || levelChunk.getFullStatus() == FullChunkStatus.INACCESSIBLE;
             if (!isChunkUnloaded) levelChunks.add(levelChunk);
             return isChunkUnloaded;
