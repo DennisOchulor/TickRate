@@ -15,7 +15,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(EntityHitboxDebugRenderer.class)
 public abstract class EntityHitboxDebugRendererMixin {
     @Inject(method = "emitGizmos", at = @At(value = "INVOKE",
-            target = "Lnet/minecraft/client/renderer/debug/EntityHitboxDebugRenderer;showHitboxes(Lnet/minecraft/world/entity/Entity;FZ)V",
+            target = "Lnet/minecraft/world/entity/Entity;isInvisible()Z",
             ordinal = 0))
     public void emitGizmos(double camX, double camY, double camZ, DebugValueAccess debugValues, Frustum frustum, float partialTicks, CallbackInfo ci,
                            @Local(argsOnly = true, name = "partialTicks") LocalFloatRef partialTicksRef, @Local(name = "entity") Entity entity) {
