@@ -4,28 +4,29 @@
   "compatibilityLevel": "JAVA_25",
   "client": [
     "misc.EnchantmentScreenMixin",
-    "particle.QuadParticleGroupMixin",
     "particle.ElderGuardianParticleRenderStateMixin",
     "particle.ItemPickupParticleGroupMixin",
     "particle.ParticleEngineMixin",
-    "particle.ParticleMixin",
     "particle.ParticleGroupMixin",
+    "particle.ParticleMixin",
+    "particle.QuadParticleGroupMixin",
     "render.BlockEntityRenderDispatcherMixin",
-    "render.EntityRenderDispatcherMixin",
-    "render.GameRendererMixin",
     "render.DeltaTracker$TimerMixin",
     "render.DeltaTrackerMixin",
+    "render.EntityRenderDispatcherMixin",
+    "render.GameRendererMixin",
     "render.LevelRendererMixin",
     "sound.ClientLevelMixin",
     "sound.SoundSystemMixin",
     "tick.ClientLevelMixin",
-    "tick.MinecraftMixin",
-    "tick.LevelMixin"
+    "tick.LevelMixin",
+    "tick.MinecraftMixin"
   ],
   "injectors": {
     "defaultRequire": 1
   },
   "mixins": [
+    "misc.EntityHitboxDebugRendererMixin",
     "misc.MobEffectUtilMixin"
   ],
   "mixinextras": {
