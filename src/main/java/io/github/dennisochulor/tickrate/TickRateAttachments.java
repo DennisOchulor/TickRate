@@ -5,6 +5,7 @@ import net.fabricmc.fabric.api.attachment.v1.AttachmentSyncPredicate;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.ExtraCodecs;
+import net.minecraft.util.Unit;
 
 public class TickRateAttachments {
     private TickRateAttachments() {}
@@ -24,6 +25,12 @@ public class TickRateAttachments {
                             .syncWith(TickState.PACKET_CODEC, AttachmentSyncPredicate.all())
                             .initializer(() -> TickState.ofRate(20))
                             .copyOnDeath()
+    );
+
+    public static final AttachmentType<Unit> SERVER_OVERRIDE = AttachmentRegistry.create(Identifier.fromNamespaceAndPath(TickRate.MOD_ID, "server_override"),
+            builder ->
+                    builder.persistent(Unit.CODEC)
+                            .syncWith(Unit.STREAM_CODEC, AttachmentSyncPredicate.all())
     );
 
     public static final AttachmentType<Integer> STEP_TICKS = AttachmentRegistry.create(Identifier.fromNamespaceAndPath(TickRate.MOD_ID, "step_ticks"),

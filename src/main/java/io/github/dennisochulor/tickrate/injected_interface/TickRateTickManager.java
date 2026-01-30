@@ -22,6 +22,8 @@ public interface TickRateTickManager {
     default void tickRate$updateLoad(AttachmentTarget attachmentTarget, boolean loaded) { throw new UnsupportedOperationException("Implemented via mixin!"); }
     default void tickRate$setServerRate(int rate) { throw new UnsupportedOperationException("Implemented via mixin!"); }
     default int tickRate$getServerRate() { throw new UnsupportedOperationException("Implemented via mixin!"); }
+    default void tickRate$setServerOverride(boolean override) { throw new UnsupportedOperationException("Implemented via mixin!"); }
+    default boolean tickRate$isServerOverride() { throw new UnsupportedOperationException("Implemented via mixin!"); }
     default void tickRate$ticked() { throw new UnsupportedOperationException("Implemented via mixin!"); }
     default boolean tickRate$isIndividualSprint() { throw new UnsupportedOperationException("Implemented via mixin!"); }
     default boolean tickRate$isServerSprint() { throw new UnsupportedOperationException("Implemented via mixin!"); }

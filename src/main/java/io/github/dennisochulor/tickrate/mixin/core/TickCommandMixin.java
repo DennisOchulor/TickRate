@@ -1,9 +1,11 @@
 package io.github.dennisochulor.tickrate.mixin.core;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
+import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
@@ -39,13 +41,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.util.*;
 
 @Mixin(TickCommand.class)
-public class TickCommandMixin {
+public abstract class TickCommandMixin {
 
     @Unique private static final SimpleCommandExceptionType UNLOADED_CHUNKS_SELECTED = new SimpleCommandExceptionType(Component.literal("Some of the specified chunks are not loaded!"));
 
     @Shadow @Final private static String DEFAULT_TICKRATE;
-    @Shadow private static String nanosToMilisString(long nanos) { return ""; }
-
+    @Shadow private static String nanosToMilisString(long nanos) { throw new UnsupportedOperationException("Shadow mixin"); }
+    @Shadow private static int setFreeze(CommandSourceStack source, boolean freeze) { throw new UnsupportedOperationException("Shadow mixin"); }
+    @Shadow private static int sprint(CommandSourceStack source, int time) { throw new UnsupportedOperationException("Shadow mixin"); }
 
     @ModifyArg(method = "register", at = @At(value = "INVOKE", target = "Lnet/minecraft/commands/Commands;hasPermission(Lnet/minecraft/server/permissions/PermissionCheck;)Lnet/minecraft/server/permissions/PermissionProviderCheck;"))
     private static PermissionCheck modifyPermissionLevel(PermissionCheck permissionCheck) {
@@ -147,6 +150,48 @@ public class TickCommandMixin {
                 );
         return builder;
     }
+
+    // register the true/false override for /tick freeze
+    @ModifyExpressionValue(method = "register", at = @At(value = "INVOKE", target = "Lnet/minecraft/commands/Commands;literal(Ljava/lang/String;)Lcom/mojang/brigadier/builder/LiteralArgumentBuilder;", args = "ldc=freeze"))
+    private static LiteralArgumentBuilder<CommandSourceStack> registerServerFreezeWithOverrideArg(LiteralArgumentBuilder<CommandSourceStack> original) {
+        original.then(
+                Commands.argument("override", BoolArgumentType.bool())
+                        .executes(context -> {
+                            boolean override = BoolArgumentType.getBool(context, "override");
+                            if(override) context.getSource().getServer().tickRateManager().tickRate$setServerOverride(true);
+                            return setFreeze(context.getSource(), true);
+                        })
+        );
+        return original;
+    }
+
+    @Inject(method = "lambda$register$11", at = @At("HEAD"))
+    private static void registerVanillaServerFreeze(CommandContext<CommandSourceStack> c, CallbackInfoReturnable<Integer> cir) {
+        // if override not specified, then default to true
+        c.getSource().getServer().tickRateManager().tickRate$setServerOverride(true);
+    }
+
+    // register the true/false override for /tick sprint
+    @ModifyExpressionValue(method = "register", at = @At(value = "INVOKE", target = "Lcom/mojang/brigadier/builder/RequiredArgumentBuilder;suggests(Lcom/mojang/brigadier/suggestion/SuggestionProvider;)Lcom/mojang/brigadier/builder/RequiredArgumentBuilder;", ordinal = 2))
+    private static RequiredArgumentBuilder<?, ?> registerServerSprintWithOverrideArg(RequiredArgumentBuilder<CommandSourceStack, ?> original) {
+        original.then(
+                Commands.argument("override", BoolArgumentType.bool())
+                        .executes(context -> {
+                            boolean override = BoolArgumentType.getBool(context, "override");
+                            if(override) context.getSource().getServer().tickRateManager().tickRate$setServerOverride(true);
+                            return sprint(context.getSource(), IntegerArgumentType.getInteger(context, "time"));
+                        })
+        );
+        return original;
+    }
+
+    @Inject(method = "lambda$register$9", at = @At("HEAD"))
+    private static void registerVanillaServerSprint(CommandContext<CommandSourceStack> c, CallbackInfoReturnable<Integer> cir) {
+        // if override not specified, then default to true
+        c.getSource().getServer().tickRateManager().tickRate$setServerOverride(true);
+    }
+
+
 
     /**
      * @author Ninjaking312

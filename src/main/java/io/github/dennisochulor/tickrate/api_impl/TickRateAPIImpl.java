@@ -87,13 +87,20 @@ public final class TickRateAPIImpl implements TickRateAPI {
     }
 
     @Override
-    public void freezeServer(boolean freeze) {
+    public void freezeServer(boolean freeze, boolean override) {
         if(freeze) {
             if(tickManager.tickRate$isServerSprint()) tickManager.stopSprinting();
             if(tickManager.isSteppingForward()) tickManager.stopStepping();
         }
+        if(override) tickManager.tickRate$setServerOverride(true);
+
         tickManager.setFrozen(freeze);
         TickRateEvents.SERVER_FREEZE.invoker().onServerFreeze(server, freeze);
+    }
+
+    @Override
+    public void freezeServer(boolean freeze) {
+        freezeServer(freeze, true);
     }
 
     @Override
@@ -108,16 +115,21 @@ public final class TickRateAPIImpl implements TickRateAPI {
     }
 
     @Override
-    public void sprintServer(int sprintTicks) {
+    public void sprintServer(int sprintTicks, boolean override) {
         if(sprintTicks < 0) throw new IllegalArgumentException("sprintTicks must be >= 0");
 
         if(sprintTicks == 0) tickManager.stopSprinting();
         else {
+            if(override) tickManager.tickRate$setServerOverride(true);
             tickManager.requestGameToSprint(sprintTicks);
             TickRateEvents.SERVER_SPRINT.invoker().onServerSprint(server, sprintTicks);
         }
     }
 
+    @Override
+    public void sprintServer(int sprintTicks) {
+        sprintServer(sprintTicks, true);
+    }
 
 
     @Override
