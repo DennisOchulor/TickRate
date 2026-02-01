@@ -28,9 +28,7 @@ public class TickRateAttachments {
     );
 
     public static final AttachmentType<Unit> SERVER_OVERRIDE = AttachmentRegistry.create(Identifier.fromNamespaceAndPath(TickRate.MOD_ID, "server_override"),
-            builder ->
-                    builder.persistent(Unit.CODEC)
-                            .syncWith(Unit.STREAM_CODEC, AttachmentSyncPredicate.all())
+            builder -> builder.syncWith(Unit.STREAM_CODEC, AttachmentSyncPredicate.all())
     );
 
     public static final AttachmentType<Integer> STEP_TICKS = AttachmentRegistry.create(Identifier.fromNamespaceAndPath(TickRate.MOD_ID, "step_ticks"),

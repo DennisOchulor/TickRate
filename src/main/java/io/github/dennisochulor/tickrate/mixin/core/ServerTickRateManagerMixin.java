@@ -25,6 +25,7 @@ import org.jspecify.annotations.Nullable;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
@@ -49,6 +50,8 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
     @Shadow public abstract void setTickRate(float rate);
     @Shadow @Final private MinecraftServer server;
     @Shadow private long scheduledCurrentSprintTicks;
+    @Shadow public abstract void setFrozen(boolean frozen);
+    @Shadow protected abstract void updateStateToClients();
 
     @Inject(method = "stepGameIfPaused", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickRateManager;updateStepTicks()V"))
     public void serverTickManager$step(int ticks, CallbackInfoReturnable<Boolean> cir) { // for server step start
@@ -74,14 +77,19 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
             if(this.frozenTicksToRun == 0) { // for natural server step end
                 updateFastestTicker();
                 TickState newState = server.overworld().getAttachedOrThrow(TICK_STATE_SERVER).withStepping(false);
-                server.getAllLevels().forEach(serverLevel -> serverLevel.setAttached(TICK_STATE_SERVER, newState));            }
+                server.getAllLevels().forEach(serverLevel -> serverLevel.setAttached(TICK_STATE_SERVER, newState));
+            }
         }
     }
 
-    @Inject(method = "requestGameToSprint", at = @At("TAIL"))
-    public void startSprint(int ticks, CallbackInfoReturnable<Boolean> cir) { // for server sprint start
+    @Redirect(method = "requestGameToSprint", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickRateManager;setFrozen(Z)V"))
+    public void startSprint(ServerTickRateManager instance, boolean frozen) { // for server sprint start
         TickState newState = server.overworld().getAttachedOrThrow(TICK_STATE_SERVER).withSprinting(true);
         server.getAllLevels().forEach(serverLevel -> serverLevel.setAttached(TICK_STATE_SERVER, newState));
+
+        // To avoid sprint override getting removed by the setFrozen inject
+        super.setFrozen(false);
+        updateStateToClients();
     }
 
     @Inject(method = "finishTickSprint", at = @At("TAIL"))
@@ -96,6 +104,11 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
         TickState newState = server.overworld().getAttachedOrThrow(TICK_STATE_SERVER).withFrozen(frozen);
         server.getAllLevels().forEach(serverLevel -> serverLevel.setAttached(TICK_STATE_SERVER, newState));
         if(!frozen) tickRate$setServerOverride(false);
+    }
+
+    @Override
+    public boolean runsNormally() { // if not override, then just true
+        return !tickRate$isServerOverride() || super.runsNormally();
     }
 
     /**
@@ -137,9 +150,16 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
         TickState serverState = server.overworld().getAttachedOrCreate(TICK_STATE_SERVER);
         if(nominalTickRateMigration != -1.0f) serverState = serverState.withRate((int) nominalTickRateMigration);
 
-        final TickState finalServerState = Objects.requireNonNull(serverState);
+        //noinspection DataFlowIssue, do not persist freeze/step/sprint from previous run cause it is just too problematic!
+        final TickState finalServerState = Objects.requireNonNull(TickState.ofRate(serverState.rate()));
         server.getAllLevels().forEach(serverLevel -> serverLevel.setAttached(TICK_STATE_SERVER, finalServerState));
         updateTickersMap(finalServerState.rate(), 1);
+
+        // set vanilla fields since they don't persist
+        if(finalServerState.frozen()) {
+            setFrozen(true);
+            updateStateToClients();
+        }
     }
 
     public void tickRate$saveData() {
