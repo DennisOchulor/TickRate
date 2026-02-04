@@ -41,6 +41,7 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
     @Unique private final SortedMap<Integer,Integer> tickers = new TreeMap<>(Comparator.reverseOrder()); // tickRate -> numberOfTickers, for fastest ticker tracking
     @Unique private int sprintAvgTicksPerSecond = -1;
     @Unique private int numberOfIndividualSprints = 0;
+    @Unique private boolean wasServerOverride = false;
 
     // migration stuff
     @Unique @Nullable private File datafile;
@@ -96,14 +97,14 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
     public void finishSprinting(CallbackInfo ci) { // for server sprint both manual/natural stop
         TickState newState = server.overworld().getAttachedOrThrow(TICK_STATE_SERVER).withSprinting(false);
         server.getAllLevels().forEach(serverLevel -> serverLevel.setAttached(TICK_STATE_SERVER, newState));
-        tickRate$setServerOverride(false);
+        tickRate$revertServerOverride();
     }
 
     @Inject(method = "setFrozen", at = @At("TAIL"))
     public void setFrozen(CallbackInfo ci, @Local(argsOnly = true, name = "frozen") boolean frozen) { // for server (un)freeze
         TickState newState = server.overworld().getAttachedOrThrow(TICK_STATE_SERVER).withFrozen(frozen);
         server.getAllLevels().forEach(serverLevel -> serverLevel.setAttached(TICK_STATE_SERVER, newState));
-        if(!frozen) tickRate$setServerOverride(false);
+        if(!frozen) tickRate$revertServerOverride();
     }
 
     @Override
@@ -358,8 +359,17 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
 
     @Override
     public void tickRate$setServerOverride(boolean override) {
-        if(override) server.getAllLevels().forEach(serverLevel -> serverLevel.setAttached(SERVER_OVERRIDE, Unit.INSTANCE));
-        else server.getAllLevels().forEach(serverLevel -> serverLevel.removeAttached(SERVER_OVERRIDE));
+        wasServerOverride = server.overworld().hasAttached(SERVER_OVERRIDE);
+        server.getAllLevels().forEach(serverLevel -> serverLevel.setAttached(SERVER_OVERRIDE, override ? Unit.INSTANCE : null));
+    }
+
+    @Override
+    public void tickRate$revertServerOverride() {
+        TickState serverState = tickRate$getServerTickState();
+        if(serverState.sprinting() || serverState.frozen())
+            server.getAllLevels().forEach(serverLevel -> serverLevel.setAttached(SERVER_OVERRIDE, wasServerOverride ? Unit.INSTANCE : null));
+        else
+            server.getAllLevels().forEach(serverLevel -> serverLevel.removeAttached(SERVER_OVERRIDE));
     }
 
     @Override

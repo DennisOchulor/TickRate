@@ -167,7 +167,7 @@ public abstract class TickCommandMixin {
                 Commands.argument("override", BoolArgumentType.bool())
                         .executes(context -> {
                             boolean override = BoolArgumentType.getBool(context, "override");
-                            if(override) context.getSource().getServer().tickRateManager().tickRate$setServerOverride(true);
+                            context.getSource().getServer().tickRateManager().tickRate$setServerOverride(override);
                             return setFreeze(context.getSource(), true);
                         })
         );
@@ -195,7 +195,7 @@ public abstract class TickCommandMixin {
                 Commands.argument("override", BoolArgumentType.bool())
                         .executes(context -> {
                             boolean override = BoolArgumentType.getBool(context, "override");
-                            if(override) context.getSource().getServer().tickRateManager().tickRate$setServerOverride(true);
+                            context.getSource().getServer().tickRateManager().tickRate$setServerOverride(override);
                             return sprint(context.getSource(), IntegerArgumentType.getInteger(context, "time"));
                         })
         );

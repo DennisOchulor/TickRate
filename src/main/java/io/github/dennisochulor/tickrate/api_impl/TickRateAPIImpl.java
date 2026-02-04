@@ -92,7 +92,7 @@ public final class TickRateAPIImpl implements TickRateAPI {
             if(tickManager.tickRate$isServerSprint()) tickManager.stopSprinting();
             if(tickManager.isSteppingForward()) tickManager.stopStepping();
         }
-        if(override) tickManager.tickRate$setServerOverride(true);
+        tickManager.tickRate$setServerOverride(override);
 
         tickManager.setFrozen(freeze);
         TickRateEvents.SERVER_FREEZE.invoker().onServerFreeze(server, freeze);
@@ -120,7 +120,7 @@ public final class TickRateAPIImpl implements TickRateAPI {
 
         if(sprintTicks == 0) tickManager.stopSprinting();
         else {
-            if(override) tickManager.tickRate$setServerOverride(true);
+            tickManager.tickRate$setServerOverride(override);
             tickManager.requestGameToSprint(sprintTicks);
             TickRateEvents.SERVER_SPRINT.invoker().onServerSprint(server, sprintTicks);
         }
