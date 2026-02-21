@@ -16,6 +16,7 @@ public class PlayerRenderTickCounter implements RenderTickCounter {
     @Override
     public float getTickDelta(boolean ignoreFreeze) {
         if(TickRateClientManager.serverHasMod()) {
+            if(MinecraftClient.getInstance().world == null) return 0;
             if(MinecraftClient.getInstance().world.getTickManager().isFrozen())
                 return MinecraftClient.getInstance().getRenderTickCounter().getTickDelta(ignoreFreeze);
             else

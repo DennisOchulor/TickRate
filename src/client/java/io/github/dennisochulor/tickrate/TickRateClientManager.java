@@ -39,6 +39,7 @@ public class TickRateClientManager {
     }
 
     public static TickDeltaInfo getEntityTickDelta(Entity entity) {
+        if(entity == null) return TickDeltaInfo.NO_ANIMATE;
         TickDeltaInfo info = entityCache.get(entity.getId());
         if(info != null) return info;
 
@@ -83,6 +84,7 @@ public class TickRateClientManager {
     }
 
     public static TickState getEntityState(Entity entity) {
+        if(entity == null) return TickState.DEFAULT;
         if(entity.hasVehicle()) return getEntityState(entity.getRootVehicle()); // all passengers will follow TPS of the root entity
         TickState state = entity.getAttached(TICK_STATE);
         if(state == null) return getChunkState(entity.getChunkPos());
@@ -99,7 +101,7 @@ public class TickRateClientManager {
      * World is assumed to be the {@link MinecraftClient#world}
      */
     public static TickState getChunkState(ChunkPos chunkPos) {
-        if(!serverHasMod) return getServerState();
+        if(!serverHasMod || MinecraftClient.getInstance().world == null) return getServerState();
         TickState state = MinecraftClient.getInstance().world.getChunk(chunkPos.x, chunkPos.z).getAttached(TICK_STATE);
         if(state == null) return getServerState();
 
@@ -112,6 +114,7 @@ public class TickRateClientManager {
     }
 
     public static TickState getServerState() {
+        if(MinecraftClient.getInstance().world == null) return TickState.DEFAULT;
         if(!serverHasMod) {
             TickManager tickManager = MinecraftClient.getInstance().world.getTickManager();
             return new TickState((int) tickManager.getTickRate(),tickManager.isFrozen(),tickManager.isStepping(),false); // Client does not have any sprint info
