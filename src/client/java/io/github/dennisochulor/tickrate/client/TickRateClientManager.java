@@ -34,7 +34,7 @@ public class TickRateClientManager {
     }
 
     public static boolean serverHasMod() {
-        return serverHasMod;
+        return serverHasMod && Minecraft.getInstance().player != null;
     }
 
     public static float getMillisPerServerTick() {
@@ -49,7 +49,7 @@ public class TickRateClientManager {
         DeltaTracker deltaTracker = minecraft.getDeltaTracker();
         TickState serverState = getServerState();
 
-        if(!serverHasMod) info = DeltaTrackerInfo.ofServer(false);
+        if(!serverHasMod()) info = DeltaTrackerInfo.ofServer(false);
         else if(minecraft.isPaused()) info = DeltaTrackerInfo.NO_ANIMATE;
         else if(entity instanceof Player && serverState.frozen()) info = DeltaTrackerInfo.ofServer(true); // tick freeze doesn't affect players
         else if(entity.isPassenger()) info = getEntityDeltaTrackerInfo(entity.getRootVehicle());
@@ -73,7 +73,7 @@ public class TickRateClientManager {
         if(info != null) return info;
 
         DeltaTracker deltaTracker = Minecraft.getInstance().getDeltaTracker();
-        if(!serverHasMod) info = DeltaTrackerInfo.ofServer(false);
+        if(!serverHasMod()) info = DeltaTrackerInfo.ofServer(false);
         else if(Minecraft.getInstance().isPaused()) info = DeltaTrackerInfo.NO_ANIMATE;
         else {
             TickState state = getChunkState(chunkPos);
@@ -103,7 +103,7 @@ public class TickRateClientManager {
      * Level is assumed to be the {@link Minecraft#level}
      */
     public static TickState getChunkState(ChunkPos chunkPos) {
-        if(!serverHasMod) return getServerState();
+        if(!serverHasMod()) return getServerState();
         TickState state = Objects.requireNonNull(Minecraft.getInstance().level).getChunk(chunkPos.x(), chunkPos.z()).getAttached(TICK_STATE);
         if(state == null) return getServerState();
 
@@ -117,7 +117,7 @@ public class TickRateClientManager {
 
     public static TickState getServerState() {
         Level level = Objects.requireNonNull(Minecraft.getInstance().level);
-        if(!serverHasMod) {
+        if(!serverHasMod()) {
             TickRateManager tickManager = level.tickRateManager();
             return new TickState((int) tickManager.tickrate(),tickManager.isFrozen(),tickManager.isSteppingForward(),false); // Client does not have any sprint info
         }
