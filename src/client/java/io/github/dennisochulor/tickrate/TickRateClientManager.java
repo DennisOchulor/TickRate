@@ -31,7 +31,7 @@ public class TickRateClientManager {
     }
 
     public static boolean serverHasMod() {
-        return serverHasMod;
+        return serverHasMod && MinecraftClient.getInstance().player != null;
     }
 
     public static float getMillisPerServerTick() {
@@ -45,7 +45,7 @@ public class TickRateClientManager {
         RenderTickCounter renderTickCounter = MinecraftClient.getInstance().getRenderTickCounter();
         TickState serverState = getServerState();
 
-        if(!serverHasMod) info = TickDeltaInfo.ofServer(false);
+        if(!serverHasMod()) info = TickDeltaInfo.ofServer(false);
         else if(MinecraftClient.getInstance().isPaused()) info = TickDeltaInfo.NO_ANIMATE;
         else if(entity instanceof PlayerEntity && serverState.frozen()) info = TickDeltaInfo.ofServer(true); // tick freeze doesn't affect players
         else if(entity.hasVehicle()) info = getEntityTickDelta(entity.getRootVehicle());
@@ -69,7 +69,7 @@ public class TickRateClientManager {
         if(info != null) return info;
 
         RenderTickCounter renderTickCounter = MinecraftClient.getInstance().getRenderTickCounter();
-        if(!serverHasMod) info = TickDeltaInfo.ofServer(false);
+        if(!serverHasMod()) info = TickDeltaInfo.ofServer(false);
         else if(MinecraftClient.getInstance().isPaused()) info = TickDeltaInfo.NO_ANIMATE;
         else {
             TickState state = getChunkState(chunkPos);
@@ -99,7 +99,7 @@ public class TickRateClientManager {
      * World is assumed to be the {@link MinecraftClient#world}
      */
     public static TickState getChunkState(ChunkPos chunkPos) {
-        if(!serverHasMod) return getServerState();
+        if(!serverHasMod()) return getServerState();
         TickState state = MinecraftClient.getInstance().world.getChunk(chunkPos.x, chunkPos.z).getAttached(TICK_STATE);
         if(state == null) return getServerState();
 
@@ -112,7 +112,7 @@ public class TickRateClientManager {
     }
 
     public static TickState getServerState() {
-        if(!serverHasMod) {
+        if(!serverHasMod()) {
             TickManager tickManager = MinecraftClient.getInstance().world.getTickManager();
             return new TickState((int) tickManager.getTickRate(),tickManager.isFrozen(),tickManager.isStepping(),false); // Client does not have any sprint info
         }
