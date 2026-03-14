@@ -60,16 +60,16 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
     @Inject(method = "stepGameIfPaused", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickRateManager;updateStepTicks()V"))
     public void serverTickManager$step(int ticks, CallbackInfoReturnable<Boolean> cir) { // for server step start
         this.frozenTicksToRun++; // for some reason, the first tick is always skipped. so artificially add one :P
-        TickState state = server.overworld().getAttachedOrThrow(TICK_STATE_SERVER);
-        TickState newState = state.withStepping(true);
-        server.getAllLevels().forEach(serverLevel -> serverLevel.setAttached(TICK_STATE_SERVER, newState));
+        TickState state = tickRate$getServerTickState();
+        TickState newState = Objects.requireNonNull(state.withStepping(true));
+        tickRate$setServerTickState(newState);
         setTickRate(state.rate());
     }
 
     @Inject(method = "stopStepping", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickRateManager;updateStepTicks()V"))
     public void stopStepping(CallbackInfoReturnable<Boolean> cir) { // for server step manual stop
-        TickState newState = server.overworld().getAttachedOrThrow(TICK_STATE_SERVER).withStepping(false);
-        server.getAllLevels().forEach(serverLevel -> serverLevel.setAttached(TICK_STATE_SERVER, newState));
+        TickState newState = Objects.requireNonNull(tickRate$getServerTickState().withStepping(false));
+        tickRate$setServerTickState(newState);
         updateFastestTicker();
     }
 
@@ -80,19 +80,17 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
             this.frozenTicksToRun--;
             if(this.frozenTicksToRun == 0) { // for natural server step end
                 updateFastestTicker();
-                TickState newState = server.overworld().getAttachedOrThrow(TICK_STATE_SERVER).withStepping(false);
-                server.getAllLevels().forEach(serverLevel -> serverLevel.setAttached(TICK_STATE_SERVER, newState));
+                TickState newState = Objects.requireNonNull(tickRate$getServerTickState().withStepping(false));
+                tickRate$setServerTickState(newState);
             }
         }
     }
 
     @WrapOperation(method = "requestGameToSprint", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickRateManager;setFrozen(Z)V"))
     public void startSprint(ServerTickRateManager instance, boolean frozen, Operation<Void> original) { // for server sprint start
-        TickState newState = server.overworld().getAttachedOrThrow(TICK_STATE_SERVER).withSprinting(true);
-        server.getAllLevels().forEach(serverLevel -> {
-            serverLevel.setAttached(TICK_STATE_SERVER, newState);
-            serverLevel.setAttached(SERVER_SPRINT_OVERRIDE, SERVER_OVERRIDE_ARG.orElse(true) ? Unit.INSTANCE : null);
-        });
+        TickState newState = Objects.requireNonNull(tickRate$getServerTickState().withSprinting(true));
+        tickRate$setServerTickState(newState);
+        server.globalAttachments().setAttached(SERVER_SPRINT_OVERRIDE, SERVER_OVERRIDE_ARG.orElse(true) ? Unit.INSTANCE : null);
 
         ScopedValue.where(IS_FROM_SPRINT_METHOD, Unit.INSTANCE).run(() -> original.call(instance, frozen));
     }
@@ -105,26 +103,22 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
 
     @WrapOperation(method = "finishTickSprint", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickRateManager;setFrozen(Z)V"))
     public void finishSprinting(ServerTickRateManager instance, boolean frozen, Operation<Void> original) { // for server sprint both manual/natural stop
-        TickState newState = server.overworld().getAttachedOrThrow(TICK_STATE_SERVER).withSprinting(false);
-        server.getAllLevels().forEach(serverLevel -> {
-            serverLevel.setAttached(TICK_STATE_SERVER, newState);
-            serverLevel.removeAttached(SERVER_SPRINT_OVERRIDE);
-        });
+        TickState newState = Objects.requireNonNull(tickRate$getServerTickState().withSprinting(false));
+        tickRate$setServerTickState(newState);
+        server.globalAttachments().removeAttached(SERVER_SPRINT_OVERRIDE);
 
         ScopedValue.where(IS_FROM_SPRINT_METHOD, Unit.INSTANCE).run(() -> original.call(instance, frozen));
     }
 
     @Inject(method = "setFrozen", at = @At("TAIL"))
     public void setFrozen(CallbackInfo ci, @Local(argsOnly = true, name = "frozen") boolean frozen) { // for server (un)freeze
-        TickState newState = server.overworld().getAttachedOrThrow(TICK_STATE_SERVER).withFrozen(frozen);
-        server.getAllLevels().forEach(serverLevel -> {
-            serverLevel.setAttached(TICK_STATE_SERVER, newState);
+        TickState newState = Objects.requireNonNull(tickRate$getServerTickState().withFrozen(frozen));
+        tickRate$setServerTickState(newState);
 
-            if(!IS_FROM_SPRINT_METHOD.isBound()) {
-                if(frozen && SERVER_OVERRIDE_ARG.orElse(true)) serverLevel.setAttached(SERVER_FREEZE_OVERRIDE, Unit.INSTANCE);
-                else serverLevel.removeAttached(SERVER_FREEZE_OVERRIDE);
-            }
-        });
+        if(!IS_FROM_SPRINT_METHOD.isBound()) {
+            if(frozen && SERVER_OVERRIDE_ARG.orElse(true)) server.globalAttachments().setAttached(SERVER_FREEZE_OVERRIDE, Unit.INSTANCE);
+            else server.globalAttachments().removeAttached(SERVER_FREEZE_OVERRIDE);
+        }
     }
 
     @Override
@@ -166,14 +160,22 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
         }
     }
 
+    @SuppressWarnings("deprecation")
     public void tickRate$serverStarted() {
-        // Have to attach TICK_STATE_SERVER to ALL levels so client can sync it regardless of what level they are in :>
-        TickState serverState = server.overworld().getAttachedOrCreate(TICK_STATE_SERVER);
+        TickState serverState = server.globalAttachments().getAttachedOrCreate(TICK_STATE, () -> TickState.ofRate(20));
+
+        // migration from NBT
         if(nominalTickRateMigration != -1.0f) serverState = serverState.withRate((int) nominalTickRateMigration);
+
+        // migration from TICK_STATE_SERVER
+        if(server.overworld().hasAttached(TICK_STATE_SERVER)) {
+            serverState = Objects.requireNonNull(serverState).withRate(server.overworld().getAttachedOrThrow(TICK_STATE_SERVER).rate());
+            server.getAllLevels().forEach(serverLevel -> serverLevel.removeAttached(TICK_STATE_SERVER));
+        }
 
         //noinspection DataFlowIssue, do not persist freeze/step/sprint from previous run cause it is just too problematic!
         final TickState finalServerState = Objects.requireNonNull(TickState.ofRate(serverState.rate()));
-        server.getAllLevels().forEach(serverLevel -> serverLevel.setAttached(TICK_STATE_SERVER, finalServerState));
+        tickRate$setServerTickState(finalServerState);
         updateTickersMap(finalServerState.rate(), 1);
     }
 
@@ -355,9 +357,10 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
     }
 
     public void tickRate$setServerRate(int rate) {
-        TickState prevState = server.overworld().getAttachedOrThrow(TICK_STATE_SERVER);
-        TickState newState = prevState.withRate(rate);
-        server.getAllLevels().forEach(serverLevel -> serverLevel.setAttached(TICK_STATE_SERVER, newState));
+        TickState prevState = tickRate$getServerTickState();
+        TickState newState = Objects.requireNonNull(prevState.withRate(rate));
+        tickRate$setServerTickState(newState);
+
         updateTickersMap(prevState.rate(), -1);
         updateTickersMap(rate, 1);
         updateFastestTicker();
@@ -368,7 +371,12 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
     }
 
     public TickState tickRate$getServerTickState() {
-        return server.overworld().getAttachedOrThrow(TICK_STATE_SERVER);
+        return server.globalAttachments().getAttachedOrThrow(TICK_STATE);
+    }
+
+    @Unique
+    public void tickRate$setServerTickState(TickState state) {
+        server.globalAttachments().setAttached(TICK_STATE, state);
     }
 
     @Override

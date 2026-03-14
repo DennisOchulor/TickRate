@@ -115,15 +115,15 @@ public class TickRateClientManager {
             TickRateManager tickManager = level.tickRateManager();
             return new TickState((int) tickManager.tickrate(),tickManager.isFrozen(),tickManager.isSteppingForward(),false); // Client does not have any sprint info
         }
-        return level.getAttachedOrThrow(TICK_STATE_SERVER);
+        return level.globalAttachments().getAttachedOrThrow(TICK_STATE);
     }
 
     public static boolean isServerOverride() {
         ClientLevel level = Objects.requireNonNull(Minecraft.getInstance().level);
         TickState serverTickState = getServerState();
 
-        if(serverTickState.sprinting()) return level.hasAttached(SERVER_SPRINT_OVERRIDE);
-        else if(serverTickState.frozen()) return level.hasAttached(SERVER_FREEZE_OVERRIDE);
+        if(serverTickState.sprinting()) return level.globalAttachments().hasAttached(SERVER_SPRINT_OVERRIDE);
+        else if(serverTickState.frozen()) return level.globalAttachments().hasAttached(SERVER_FREEZE_OVERRIDE);
         else return false;
     }
 

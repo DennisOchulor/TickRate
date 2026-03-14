@@ -19,6 +19,10 @@ public class TickRateAttachments {
                             .copyOnDeath()
     );
 
+    /**
+     * Still kept for migration purposes, from before Fabric global attachments existed.
+     */
+    @Deprecated
     public static final AttachmentType<TickState> TICK_STATE_SERVER = AttachmentRegistry.create(Identifier.fromNamespaceAndPath(TickRate.MOD_ID, "tick_state_server"),
             builder ->
                     builder.persistent(TickState.CODEC)
