@@ -48,7 +48,8 @@ public class TickIndicator {
                 entityStateStr = " (Frozen)";
         }
 
-        minecraft.player.displayClientMessage(Component.literal("Entity: " + entityRate + " TPS" + entityStateStr + "       Chunk: " + chunkRate + " TPS" + chunkStateStr), true);
+        minecraft.player.sendOverlayMessage(
+                Component.literal("Entity: " + entityRate + " TPS" + entityStateStr + "       Chunk: " + chunkRate + " TPS" + chunkStateStr));
     }
 
 }

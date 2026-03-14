@@ -18,7 +18,8 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 @Mixin(QuadParticleGroup.class)
 public class QuadParticleGroupMixin {
 
-    @ModifyArg(method = "extractRenderState", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/particle/SingleQuadParticle;extract(Lnet/minecraft/client/renderer/state/QuadParticleRenderState;Lnet/minecraft/client/Camera;F)V"))
+    @ModifyArg(method = "extractRenderState", at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/client/particle/SingleQuadParticle;extract(Lnet/minecraft/client/renderer/state/level/QuadParticleRenderState;Lnet/minecraft/client/Camera;F)V"))
     private float extractRenderState(float partialTick, @Local(name = "particle") SingleQuadParticle particle) {
         return TickRateClientManager.getChunkDeltaTrackerInfo(ChunkPos.containing(particle.tickRate$getBlockPos())).partialTick();
     }

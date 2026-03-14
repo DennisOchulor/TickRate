@@ -12,10 +12,17 @@ public class LevelRendererMixin {
 
     @ModifyVariable(method = "renderLevel", at = @At("HEAD"), argsOnly = true, name = "deltaTracker")
     public DeltaTracker renderLevel(DeltaTracker deltaTracker) {
-        return Minecraft.getInstance().getDeltaTracker(); //replace player's DeltaTracker with server's DeltaTracker
+        // replace player's DeltaTracker with world's DeltaTracker
+        // technically it is already the world's, but keep this for futureproofing
+        return Minecraft.getInstance().getDeltaTracker();
     }
 
-    // NOTE: Since 1.21.9, (Block) Entity partialTick is modified in (Block)EntityRenderDispatcherMixin respectively
-    // Mainly to maintain compat with Sodium that overrides extractVisibleBlockEntities() bleh...
+    @ModifyVariable(method = "extractLevel", at = @At("HEAD"), argsOnly = true, name = "deltaTracker")
+    public DeltaTracker extractLevel(DeltaTracker deltaTracker) {
+        // replace player's DeltaTracker with world's DeltaTracker
+        // technically it is already the world's, but keep this for futureproofing
+        return Minecraft.getInstance().getDeltaTracker();
+    }
+
 
 }

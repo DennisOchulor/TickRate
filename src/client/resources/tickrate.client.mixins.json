@@ -28,6 +28,7 @@
   "mixins": [
     "misc.EntityHitboxDebugRendererMixin",
     "misc.MobEffectUtilMixin",
+    "render.CameraMixin",
     "tick.TickRateManagerMixin"
   ],
   "mixinextras": {
