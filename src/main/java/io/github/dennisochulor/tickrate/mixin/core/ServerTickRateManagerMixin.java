@@ -2,6 +2,7 @@ package io.github.dennisochulor.tickrate.mixin.core;
 
 import static io.github.dennisochulor.tickrate.TickRateAttachments.*;
 
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
@@ -53,6 +54,7 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
     @Shadow public abstract void setTickRate(float rate);
     @Shadow @Final private MinecraftServer server;
     @Shadow private long scheduledCurrentSprintTicks;
+    @Shadow private boolean previousIsFrozen;
     @Shadow public abstract void setFrozen(boolean frozen);
 
     @Inject(method = "stepGameIfPaused", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickRateManager;updateStepTicks()V"))
@@ -93,6 +95,12 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
         });
 
         ScopedValue.where(IS_FROM_SPRINT_METHOD, Unit.INSTANCE).run(() -> original.call(instance, frozen));
+    }
+
+    @ModifyExpressionValue(method = "requestGameToSprint",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickRateManager;isFrozen()Z"))
+    public boolean maintainPreviousFrozenIfSprintInterrupted(boolean original, @Local(name = "interrupted") boolean interrupted) {
+        return interrupted ? previousIsFrozen : original;
     }
 
     @WrapOperation(method = "finishTickSprint", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickRateManager;setFrozen(Z)V"))
