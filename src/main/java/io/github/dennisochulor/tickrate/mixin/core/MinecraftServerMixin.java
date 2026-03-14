@@ -3,6 +3,7 @@ package io.github.dennisochulor.tickrate.mixin.core;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.ServerFunctionManager;
 import net.minecraft.server.ServerTickRateManager;
+import net.minecraft.world.clock.ServerClockManager;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.*;
@@ -20,6 +21,11 @@ public abstract class MinecraftServerMixin {
 
 	@Redirect(method = "tickChildren", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerFunctionManager;tick()V"))
 	protected void tickChildren$CommandTick(ServerFunctionManager instance) {
+		if(tickRateManager().tickRate$shouldTickServer()) instance.tick();
+	}
+
+	@Redirect(method = "tickChildren", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/clock/ServerClockManager;tick()V"))
+	protected void tickChildren$ClockTick(ServerClockManager instance) {
 		if(tickRateManager().tickRate$shouldTickServer()) instance.tick();
 	}
 
