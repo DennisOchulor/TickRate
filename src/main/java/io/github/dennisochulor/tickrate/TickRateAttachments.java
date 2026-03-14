@@ -27,7 +27,11 @@ public class TickRateAttachments {
                             .copyOnDeath()
     );
 
-    public static final AttachmentType<Unit> SERVER_OVERRIDE = AttachmentRegistry.create(Identifier.fromNamespaceAndPath(TickRate.MOD_ID, "server_override"),
+    public static final AttachmentType<Unit> SERVER_FREEZE_OVERRIDE = AttachmentRegistry.create(Identifier.fromNamespaceAndPath(TickRate.MOD_ID, "server_freeze_override"),
+            builder -> builder.syncWith(Unit.STREAM_CODEC, AttachmentSyncPredicate.all())
+    );
+
+    public static final AttachmentType<Unit> SERVER_SPRINT_OVERRIDE = AttachmentRegistry.create(Identifier.fromNamespaceAndPath(TickRate.MOD_ID, "server_sprint_override"),
             builder -> builder.syncWith(Unit.STREAM_CODEC, AttachmentSyncPredicate.all())
     );
 

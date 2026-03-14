@@ -2,6 +2,7 @@ package io.github.dennisochulor.tickrate.api_impl;
 
 import io.github.dennisochulor.tickrate.api.TickRateAPI;
 import io.github.dennisochulor.tickrate.api.TickRateEvents;
+import io.github.dennisochulor.tickrate.injected_interface.TickRateServerTickManager;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.ServerTickRateManager;
 import net.minecraft.server.level.FullChunkStatus;
@@ -92,9 +93,7 @@ public final class TickRateAPIImpl implements TickRateAPI {
             if(tickManager.tickRate$isServerSprint()) tickManager.stopSprinting();
             if(tickManager.isSteppingForward()) tickManager.stopStepping();
         }
-        tickManager.tickRate$setServerOverride(override);
-
-        tickManager.setFrozen(freeze);
+        ScopedValue.where(TickRateServerTickManager.SERVER_OVERRIDE_ARG, override).run(() -> tickManager.setFrozen(freeze));
         TickRateEvents.SERVER_FREEZE.invoker().onServerFreeze(server, freeze);
     }
 
@@ -120,8 +119,7 @@ public final class TickRateAPIImpl implements TickRateAPI {
 
         if(sprintTicks == 0) tickManager.stopSprinting();
         else {
-            tickManager.tickRate$setServerOverride(override);
-            tickManager.requestGameToSprint(sprintTicks);
+            ScopedValue.where(TickRateServerTickManager.SERVER_OVERRIDE_ARG, override).run(() -> tickManager.requestGameToSprint(sprintTicks));
             TickRateEvents.SERVER_SPRINT.invoker().onServerSprint(server, sprintTicks);
         }
     }

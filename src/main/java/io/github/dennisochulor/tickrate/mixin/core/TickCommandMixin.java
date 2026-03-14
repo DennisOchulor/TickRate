@@ -3,7 +3,6 @@ package io.github.dennisochulor.tickrate.mixin.core;
 import com.llamalad7.mixinextras.expression.Definition;
 import com.llamalad7.mixinextras.expression.Expression;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -14,6 +13,7 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import io.github.dennisochulor.tickrate.api.TickRateEvents;
+import io.github.dennisochulor.tickrate.injected_interface.TickRateServerTickManager;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentTarget;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -167,22 +167,9 @@ public abstract class TickCommandMixin {
                 Commands.argument("override", BoolArgumentType.bool())
                         .executes(context -> {
                             boolean override = BoolArgumentType.getBool(context, "override");
-                            context.getSource().getServer().tickRateManager().tickRate$setServerOverride(override);
-                            return setFreeze(context.getSource(), true);
+                            return ScopedValue.where(TickRateServerTickManager.SERVER_OVERRIDE_ARG, override).call(() -> setFreeze(context.getSource(), true));
                         })
         );
-    }
-
-    @Definition(id = "literal", method = "Lnet/minecraft/commands/Commands;literal(Ljava/lang/String;)Lcom/mojang/brigadier/builder/LiteralArgumentBuilder;")
-    @Definition(id = "executes", method = "Lcom/mojang/brigadier/builder/LiteralArgumentBuilder;executes(Lcom/mojang/brigadier/Command;)Lcom/mojang/brigadier/builder/ArgumentBuilder;")
-    @Expression("literal('freeze').executes(?)")
-    @ModifyArg(method = "register", at = @At("MIXINEXTRAS:EXPRESSION"))
-    private static Command<CommandSourceStack> registerVanillaServerFreeze(Command<CommandSourceStack> command) {
-        // if override not specified, then default to true
-        return context -> {
-            context.getSource().getServer().tickRateManager().tickRate$setServerOverride(true);
-            return command.run(context);
-        };
     }
 
     // register the true/false override for /tick sprint
@@ -195,24 +182,10 @@ public abstract class TickCommandMixin {
                 Commands.argument("override", BoolArgumentType.bool())
                         .executes(context -> {
                             boolean override = BoolArgumentType.getBool(context, "override");
-                            context.getSource().getServer().tickRateManager().tickRate$setServerOverride(override);
-                            return sprint(context.getSource(), IntegerArgumentType.getInteger(context, "time"));
+                            return ScopedValue.where(TickRateServerTickManager.SERVER_OVERRIDE_ARG, override).call(() -> sprint(context.getSource(), IntegerArgumentType.getInteger(context, "time")));
                         })
         );
     }
-
-    @ModifyArg(method = "register", at = @At(value = "INVOKE",
-            target = "Lcom/mojang/brigadier/builder/RequiredArgumentBuilder;executes(Lcom/mojang/brigadier/Command;)Lcom/mojang/brigadier/builder/ArgumentBuilder;",
-            ordinal = 2))
-    private static Command<CommandSourceStack> registerVanillaServerSprint(Command<CommandSourceStack> command) {
-        // if override not specified, then default to true
-        return context -> {
-            context.getSource().getServer().tickRateManager().tickRate$setServerOverride(true);
-            return command.run(context);
-        };
-    }
-
-
 
     /**
      * @author Ninjaking312

@@ -9,6 +9,7 @@ import java.util.Objects;
 import io.github.dennisochulor.tickrate.TickState;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.world.TickRateManager;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ChunkPos;
@@ -118,7 +119,12 @@ public class TickRateClientManager {
     }
 
     public static boolean isServerOverride() {
-        return Objects.requireNonNull(Minecraft.getInstance().level).hasAttached(SERVER_OVERRIDE);
+        ClientLevel level = Objects.requireNonNull(Minecraft.getInstance().level);
+        TickState serverTickState = getServerState();
+
+        if(serverTickState.sprinting()) return level.hasAttached(SERVER_SPRINT_OVERRIDE);
+        else if(serverTickState.frozen()) return level.hasAttached(SERVER_FREEZE_OVERRIDE);
+        else return false;
     }
 
 }

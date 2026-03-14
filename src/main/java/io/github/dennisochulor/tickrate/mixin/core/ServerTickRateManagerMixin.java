@@ -2,8 +2,10 @@ package io.github.dennisochulor.tickrate.mixin.core;
 
 import static io.github.dennisochulor.tickrate.TickRateAttachments.*;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
-import io.github.dennisochulor.tickrate.injected_interface.TickRateTickManager;
+import io.github.dennisochulor.tickrate.injected_interface.TickRateServerTickManager;
 import io.github.dennisochulor.tickrate.TickState;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentTarget;
 import net.minecraft.nbt.CompoundTag;
@@ -25,7 +27,6 @@ import org.jspecify.annotations.Nullable;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
@@ -34,14 +35,15 @@ import java.io.IOException;
 import java.util.*;
 
 @Mixin(ServerTickRateManager.class)
-public abstract class ServerTickRateManagerMixin extends TickRateManager implements TickRateTickManager {
+public abstract class ServerTickRateManagerMixin extends TickRateManager implements TickRateServerTickManager {
+
+    @Unique private static final ScopedValue<Unit> IS_FROM_SPRINT_METHOD = ScopedValue.newInstance();
 
     @Unique private int ticks = 0;
     @Unique private final Map<String,Boolean> ticked = new HashMap<>(); // someIdentifierString -> cachedShouldTick, needed to ensure TickState is only updated ONCE per mainloop tick
     @Unique private final SortedMap<Integer,Integer> tickers = new TreeMap<>(Comparator.reverseOrder()); // tickRate -> numberOfTickers, for fastest ticker tracking
     @Unique private int sprintAvgTicksPerSecond = -1;
     @Unique private int numberOfIndividualSprints = 0;
-    @Unique private boolean wasServerOverride = false;
 
     // migration stuff
     @Unique @Nullable private File datafile;
@@ -52,7 +54,6 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
     @Shadow @Final private MinecraftServer server;
     @Shadow private long scheduledCurrentSprintTicks;
     @Shadow public abstract void setFrozen(boolean frozen);
-    @Shadow protected abstract void updateStateToClients();
 
     @Inject(method = "stepGameIfPaused", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickRateManager;updateStepTicks()V"))
     public void serverTickManager$step(int ticks, CallbackInfoReturnable<Boolean> cir) { // for server step start
@@ -83,28 +84,39 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
         }
     }
 
-    @Redirect(method = "requestGameToSprint", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickRateManager;setFrozen(Z)V"))
-    public void startSprint(ServerTickRateManager instance, boolean frozen) { // for server sprint start
+    @WrapOperation(method = "requestGameToSprint", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickRateManager;setFrozen(Z)V"))
+    public void startSprint(ServerTickRateManager instance, boolean frozen, Operation<Void> original) { // for server sprint start
         TickState newState = server.overworld().getAttachedOrThrow(TICK_STATE_SERVER).withSprinting(true);
-        server.getAllLevels().forEach(serverLevel -> serverLevel.setAttached(TICK_STATE_SERVER, newState));
+        server.getAllLevels().forEach(serverLevel -> {
+            serverLevel.setAttached(TICK_STATE_SERVER, newState);
+            serverLevel.setAttached(SERVER_SPRINT_OVERRIDE, SERVER_OVERRIDE_ARG.orElse(true) ? Unit.INSTANCE : null);
+        });
 
-        // To avoid sprint override getting removed by the setFrozen inject
-        super.setFrozen(false);
-        updateStateToClients();
+        ScopedValue.where(IS_FROM_SPRINT_METHOD, Unit.INSTANCE).run(() -> original.call(instance, frozen));
     }
 
-    @Inject(method = "finishTickSprint", at = @At("TAIL"))
-    public void finishSprinting(CallbackInfo ci) { // for server sprint both manual/natural stop
+    @WrapOperation(method = "finishTickSprint", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickRateManager;setFrozen(Z)V"))
+    public void finishSprinting(ServerTickRateManager instance, boolean frozen, Operation<Void> original) { // for server sprint both manual/natural stop
         TickState newState = server.overworld().getAttachedOrThrow(TICK_STATE_SERVER).withSprinting(false);
-        server.getAllLevels().forEach(serverLevel -> serverLevel.setAttached(TICK_STATE_SERVER, newState));
-        tickRate$revertServerOverride();
+        server.getAllLevels().forEach(serverLevel -> {
+            serverLevel.setAttached(TICK_STATE_SERVER, newState);
+            serverLevel.removeAttached(SERVER_SPRINT_OVERRIDE);
+        });
+
+        ScopedValue.where(IS_FROM_SPRINT_METHOD, Unit.INSTANCE).run(() -> original.call(instance, frozen));
     }
 
     @Inject(method = "setFrozen", at = @At("TAIL"))
     public void setFrozen(CallbackInfo ci, @Local(argsOnly = true, name = "frozen") boolean frozen) { // for server (un)freeze
         TickState newState = server.overworld().getAttachedOrThrow(TICK_STATE_SERVER).withFrozen(frozen);
-        server.getAllLevels().forEach(serverLevel -> serverLevel.setAttached(TICK_STATE_SERVER, newState));
-        if(!frozen) tickRate$revertServerOverride();
+        server.getAllLevels().forEach(serverLevel -> {
+            serverLevel.setAttached(TICK_STATE_SERVER, newState);
+
+            if(!IS_FROM_SPRINT_METHOD.isBound()) {
+                if(frozen && SERVER_OVERRIDE_ARG.orElse(true)) serverLevel.setAttached(SERVER_FREEZE_OVERRIDE, Unit.INSTANCE);
+                else serverLevel.removeAttached(SERVER_FREEZE_OVERRIDE);
+            }
+        });
     }
 
     @Override
@@ -155,12 +167,6 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
         final TickState finalServerState = Objects.requireNonNull(TickState.ofRate(serverState.rate()));
         server.getAllLevels().forEach(serverLevel -> serverLevel.setAttached(TICK_STATE_SERVER, finalServerState));
         updateTickersMap(finalServerState.rate(), 1);
-
-        // set vanilla fields since they don't persist
-        if(finalServerState.frozen()) {
-            setFrozen(true);
-            updateStateToClients();
-        }
     }
 
     public void tickRate$saveData() {
@@ -358,23 +364,12 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
     }
 
     @Override
-    public void tickRate$setServerOverride(boolean override) {
-        wasServerOverride = server.overworld().hasAttached(SERVER_OVERRIDE);
-        server.getAllLevels().forEach(serverLevel -> serverLevel.setAttached(SERVER_OVERRIDE, override ? Unit.INSTANCE : null));
-    }
-
-    @Override
-    public void tickRate$revertServerOverride() {
-        TickState serverState = tickRate$getServerTickState();
-        if(serverState.sprinting() || serverState.frozen())
-            server.getAllLevels().forEach(serverLevel -> serverLevel.setAttached(SERVER_OVERRIDE, wasServerOverride ? Unit.INSTANCE : null));
-        else
-            server.getAllLevels().forEach(serverLevel -> serverLevel.removeAttached(SERVER_OVERRIDE));
-    }
-
-    @Override
     public boolean tickRate$isServerOverride() {
-        return server.overworld().hasAttached(SERVER_OVERRIDE);
+        TickState serverState = tickRate$getServerTickState();
+
+        if(serverState.sprinting()) return server.overworld().hasAttached(SERVER_SPRINT_OVERRIDE);
+        else if(serverState.frozen()) return server.overworld().hasAttached(SERVER_FREEZE_OVERRIDE);
+        else return false;
     }
 
     public void tickRate$ticked() {
