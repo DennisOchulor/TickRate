@@ -27,7 +27,9 @@
   },
   "mixins": [
     "misc.EntityHitboxDebugRendererMixin",
-    "misc.MobEffectUtilMixin"
+    "misc.MobEffectUtilMixin",
+    "render.CameraMixin",
+    "tick.TickRateManagerMixin"
   ],
   "mixinextras": {
     "minVersion": "0.5.0"

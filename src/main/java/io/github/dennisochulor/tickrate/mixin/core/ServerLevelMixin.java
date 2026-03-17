@@ -49,7 +49,7 @@ public abstract class ServerLevelMixin {
     private void tick$tickPending(CallbackInfo ci, @Local(name = "runs") LocalBooleanRef runs) {
         ServerTickRateManager serverTickManager = (ServerTickRateManager) tickRateManager();
         if(serverTickManager.tickRate$isServerSprint()) runs.set(true);
-        else if(serverTickManager.isFrozen()) runs.set(serverTickManager.isSteppingForward());
+        else if(serverTickManager.isFrozen() && serverTickManager.tickRate$isServerOverride()) runs.set(serverTickManager.isSteppingForward());
         else runs.set(true);
     }
 
@@ -64,7 +64,7 @@ public abstract class ServerLevelMixin {
     private void tick$blockEvents(CallbackInfo ci, @Local(name = "runs") LocalBooleanRef runs) {
         ServerTickRateManager serverTickManager = (ServerTickRateManager) tickRateManager();
         if(serverTickManager.tickRate$isServerSprint()) runs.set(true);
-        else if(serverTickManager.isFrozen()) runs.set(serverTickManager.isSteppingForward());
+        else if(serverTickManager.isFrozen() && serverTickManager.tickRate$isServerOverride()) runs.set(serverTickManager.isSteppingForward());
         else runs.set(true);
     }
 

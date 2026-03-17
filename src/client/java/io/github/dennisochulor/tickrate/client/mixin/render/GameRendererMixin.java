@@ -17,10 +17,9 @@ public class GameRendererMixin {
 
     @Unique private static final PlayerDeltaTracker playerDeltaTracker = new PlayerDeltaTracker();
 
-    @ModifyVariable(method = "render", at = @At(value = "HEAD"), argsOnly = true, name = "deltaTracker")
-    private DeltaTracker render(DeltaTracker deltaTracker) {
-        if(TickRateClientManager.serverHasMod()) return playerDeltaTracker;
-        else return deltaTracker;
+    @ModifyVariable(method = "extractGui", at = @At("HEAD"), argsOnly = true)
+    private DeltaTracker extractGui(DeltaTracker deltaTracker) {
+        return playerDeltaTracker;
     }
 
     @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/LevelRenderer;tick(Lnet/minecraft/client/Camera;)V"))

@@ -9,9 +9,9 @@ import java.util.Objects;
 import io.github.dennisochulor.tickrate.TickState;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.world.TickRateManager;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 
@@ -47,11 +47,9 @@ public class TickRateClientManager {
 
         Minecraft minecraft = Minecraft.getInstance();
         DeltaTracker deltaTracker = minecraft.getDeltaTracker();
-        TickState serverState = getServerState();
 
         if(!serverHasMod()) info = DeltaTrackerInfo.ofServer(false);
         else if(minecraft.isPaused()) info = DeltaTrackerInfo.NO_ANIMATE;
-        else if(entity instanceof Player && serverState.frozen()) info = DeltaTrackerInfo.ofServer(true); // tick freeze doesn't affect players
         else if(entity.isPassenger()) info = getEntityDeltaTrackerInfo(entity.getRootVehicle());
         else {
             // client's own player OR entities where client player is a passenger can go above 20TPS limit
@@ -87,32 +85,28 @@ public class TickRateClientManager {
     }
 
     public static TickState getEntityState(Entity entity) {
+        if(!serverHasMod() || isServerOverride()) return getServerState();
         if(entity.isPassenger()) return getEntityState(entity.getRootVehicle()); // all passengers will follow TPS of the root entity
+
         TickState state = entity.getAttached(TICK_STATE);
         if(state == null) return getChunkState(entity.chunkPosition());
 
-        int rate = state.rate();
-        TickState serverState = getServerState();
-        if(rate == -1) rate = getChunkState(entity.chunkPosition()).rate();
-        if(serverState.frozen() || serverState.sprinting() || serverState.stepping())
-            return Objects.requireNonNull(serverState.withRate(serverState.stepping() ? serverState.rate() : rate));
-        return Objects.requireNonNull(state.withRate(rate));
+        if(state.rate() == -1) state = state.withRate(getChunkState(entity.chunkPosition()).rate());
+        return Objects.requireNonNull(state);
     }
 
     /**
      * Level is assumed to be the {@link Minecraft#level}
      */
     public static TickState getChunkState(ChunkPos chunkPos) {
-        if(!serverHasMod()) return getServerState();
+        if(!serverHasMod() || isServerOverride()) return getServerState();
+
         TickState state = Objects.requireNonNull(Minecraft.getInstance().level).getChunk(chunkPos.x(), chunkPos.z()).getAttached(TICK_STATE);
         if(state == null) return getServerState();
 
-        int rate = state.rate();
-        TickState serverState = getServerState();
-        if(state.rate() == -1) rate = serverState.rate();
-        if(serverState.frozen() || serverState.sprinting() || serverState.stepping())
-            return Objects.requireNonNull(serverState.withRate(serverState.stepping() ? serverState.rate() : rate));
-        return Objects.requireNonNull(state.withRate(rate));
+        if(state.rate() == -1) state = state.withRate(getServerState().rate());
+
+        return Objects.requireNonNull(state);
     }
 
     public static TickState getServerState() {
@@ -121,7 +115,16 @@ public class TickRateClientManager {
             TickRateManager tickManager = level.tickRateManager();
             return new TickState((int) tickManager.tickrate(),tickManager.isFrozen(),tickManager.isSteppingForward(),false); // Client does not have any sprint info
         }
-        return level.getAttachedOrThrow(TICK_STATE_SERVER);
+        return level.globalAttachments().getAttachedOrThrow(TICK_STATE);
+    }
+
+    public static boolean isServerOverride() {
+        ClientLevel level = Objects.requireNonNull(Minecraft.getInstance().level);
+        TickState serverTickState = getServerState();
+
+        if(serverTickState.sprinting()) return level.globalAttachments().hasAttached(SERVER_SPRINT_OVERRIDE);
+        else if(serverTickState.frozen()) return level.globalAttachments().hasAttached(SERVER_FREEZE_OVERRIDE);
+        else return false;
     }
 
 }

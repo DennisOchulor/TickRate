@@ -80,9 +80,9 @@ public abstract class MinecraftMixin {
 		TickIndicator.tick();
 	}
 
-	@ModifyExpressionValue(method = "runTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/DeltaTracker$Timer;advanceTime(JZ)I"))
-	private int modifyPlayerTicksToDo(int i) { // make the clientTick follow the player's tick rate (which may differ from the server)
-		if(!TickRateClientManager.serverHasMod()) return i;
+	@ModifyExpressionValue(method = "runTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/DeltaTracker$Timer;advanceGameTime(J)I"))
+	private int modifyPlayerTicksToDo(int ticksToDo) { // make the clientTick follow the player's tick rate (which may differ from the server)
+		if(!TickRateClientManager.serverHasMod()) return ticksToDo;
 		return TickRateClientManager.getEntityDeltaTrackerInfo(Objects.requireNonNull(this.player)).ticksToDo();
 	}
 

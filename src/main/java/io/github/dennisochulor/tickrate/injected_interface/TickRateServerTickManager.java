@@ -8,7 +8,9 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.LevelChunk;
 import java.util.Collection;
 
-public interface TickRateTickManager {
+public interface TickRateServerTickManager {
+
+    ScopedValue<Boolean> SERVER_OVERRIDE_ARG = ScopedValue.newInstance();
 
     default void tickRate$serverStarting() { throw new UnsupportedOperationException("Implemented via mixin!"); }
     default void tickRate$serverStarted() { throw new UnsupportedOperationException("Implemented via mixin!"); }
@@ -22,6 +24,7 @@ public interface TickRateTickManager {
     default void tickRate$updateLoad(AttachmentTarget attachmentTarget, boolean loaded) { throw new UnsupportedOperationException("Implemented via mixin!"); }
     default void tickRate$setServerRate(int rate) { throw new UnsupportedOperationException("Implemented via mixin!"); }
     default int tickRate$getServerRate() { throw new UnsupportedOperationException("Implemented via mixin!"); }
+    default boolean tickRate$isServerOverride() { throw new UnsupportedOperationException("Implemented via mixin!"); }
     default void tickRate$ticked() { throw new UnsupportedOperationException("Implemented via mixin!"); }
     default boolean tickRate$isIndividualSprint() { throw new UnsupportedOperationException("Implemented via mixin!"); }
     default boolean tickRate$isServerSprint() { throw new UnsupportedOperationException("Implemented via mixin!"); }

@@ -5,6 +5,7 @@ import net.fabricmc.fabric.api.attachment.v1.AttachmentSyncPredicate;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.ExtraCodecs;
+import net.minecraft.util.Unit;
 
 public class TickRateAttachments {
     private TickRateAttachments() {}
@@ -18,12 +19,24 @@ public class TickRateAttachments {
                             .copyOnDeath()
     );
 
+    /**
+     * Still kept for migration purposes, from before Fabric global attachments existed.
+     */
+    @Deprecated
     public static final AttachmentType<TickState> TICK_STATE_SERVER = AttachmentRegistry.create(Identifier.fromNamespaceAndPath(TickRate.MOD_ID, "tick_state_server"),
             builder ->
                     builder.persistent(TickState.CODEC)
                             .syncWith(TickState.PACKET_CODEC, AttachmentSyncPredicate.all())
                             .initializer(() -> TickState.ofRate(20))
                             .copyOnDeath()
+    );
+
+    public static final AttachmentType<Unit> SERVER_FREEZE_OVERRIDE = AttachmentRegistry.create(Identifier.fromNamespaceAndPath(TickRate.MOD_ID, "server_freeze_override"),
+            builder -> builder.syncWith(Unit.STREAM_CODEC, AttachmentSyncPredicate.all())
+    );
+
+    public static final AttachmentType<Unit> SERVER_SPRINT_OVERRIDE = AttachmentRegistry.create(Identifier.fromNamespaceAndPath(TickRate.MOD_ID, "server_sprint_override"),
+            builder -> builder.syncWith(Unit.STREAM_CODEC, AttachmentSyncPredicate.all())
     );
 
     public static final AttachmentType<Integer> STEP_TICKS = AttachmentRegistry.create(Identifier.fromNamespaceAndPath(TickRate.MOD_ID, "step_ticks"),

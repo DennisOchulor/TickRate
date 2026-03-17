@@ -8,7 +8,7 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 
 /**
- * API v3 for TickRate v0.5.0 <p>
+ * API v4 for TickRate v0.7.0 <p>
  * This class represents the sole entrypoint for TickRate's API. This API should only be used on the logical server.
  *
  * @see TickRateEvents
@@ -40,6 +40,16 @@ public interface TickRateAPI {
      * Freezes or unfreezes the server depending on <code>freeze</code>.
      *
      * @param freeze <code>true</code> to freeze, <code>false</code> to unfreeze.
+     * @param override whether to freeze everything regardless of their tick state, only applicable if <code>freeze</code> is true.
+     */
+    void freezeServer(boolean freeze, boolean override);
+
+    /**
+     * Freezes or unfreezes the server depending on <code>freeze</code>. Freezing the server overrides everything by default.
+     *
+     * @param freeze <code>true</code> to freeze, <code>false</code> to unfreeze.
+     *
+     * @see TickRateAPI#freezeServer(boolean, boolean)
      */
     void freezeServer(boolean freeze);
 
@@ -53,8 +63,17 @@ public interface TickRateAPI {
     void stepServer(int stepTicks);
 
     /**
-     * Sprints the server. <p>
-     * If <code>sprintTicks</code> is 0, the server will stop sprinting.
+     * Sprints the server.
+     * <p>If <code>sprintTicks</code> is 0, the server will stop sprinting.
+     *
+     * @param override whether to sprint everything regardless of their tick state.
+     * @throws IllegalArgumentException if <code>sprintTicks</code> is less than 0.
+     */
+    void sprintServer(int sprintTicks, boolean override);
+
+    /**
+     * Sprints the server. Sprinting the server overrides everything by default.
+     * <p>If <code>sprintTicks</code> is 0, the server will stop sprinting.
      *
      * @throws IllegalArgumentException if <code>sprintTicks</code> is less than 0.
      */

@@ -2,6 +2,7 @@ package io.github.dennisochulor.tickrate.api_impl;
 
 import io.github.dennisochulor.tickrate.api.TickRateAPI;
 import io.github.dennisochulor.tickrate.api.TickRateEvents;
+import io.github.dennisochulor.tickrate.injected_interface.TickRateServerTickManager;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.ServerTickRateManager;
 import net.minecraft.server.level.FullChunkStatus;
@@ -87,13 +88,18 @@ public final class TickRateAPIImpl implements TickRateAPI {
     }
 
     @Override
-    public void freezeServer(boolean freeze) {
+    public void freezeServer(boolean freeze, boolean override) {
         if(freeze) {
             if(tickManager.tickRate$isServerSprint()) tickManager.stopSprinting();
             if(tickManager.isSteppingForward()) tickManager.stopStepping();
         }
-        tickManager.setFrozen(freeze);
+        ScopedValue.where(TickRateServerTickManager.SERVER_OVERRIDE_ARG, override).run(() -> tickManager.setFrozen(freeze));
         TickRateEvents.SERVER_FREEZE.invoker().onServerFreeze(server, freeze);
+    }
+
+    @Override
+    public void freezeServer(boolean freeze) {
+        freezeServer(freeze, true);
     }
 
     @Override
@@ -108,16 +114,20 @@ public final class TickRateAPIImpl implements TickRateAPI {
     }
 
     @Override
-    public void sprintServer(int sprintTicks) {
+    public void sprintServer(int sprintTicks, boolean override) {
         if(sprintTicks < 0) throw new IllegalArgumentException("sprintTicks must be >= 0");
 
         if(sprintTicks == 0) tickManager.stopSprinting();
         else {
-            tickManager.requestGameToSprint(sprintTicks);
+            ScopedValue.where(TickRateServerTickManager.SERVER_OVERRIDE_ARG, override).run(() -> tickManager.requestGameToSprint(sprintTicks));
             TickRateEvents.SERVER_SPRINT.invoker().onServerSprint(server, sprintTicks);
         }
     }
 
+    @Override
+    public void sprintServer(int sprintTicks) {
+        sprintServer(sprintTicks, true);
+    }
 
 
     @Override
