@@ -22,7 +22,7 @@ public class TickIndicator {
     }
 
     public static void tick() {
-        if(!TickIndicator.isEnabled() || !TickRateClientManager.serverHasMod()) return;
+        if (!TickIndicator.isEnabled() || !TickRateClientManager.serverHasMod()) return;
 
         Minecraft minecraft = Minecraft.getInstance();
         TickState chunkState = TickRateClientManager.getChunkState(Objects.requireNonNull(minecraft.player).chunkPosition());
@@ -32,19 +32,19 @@ public class TickIndicator {
 
         String chunkStateStr = "";
         String entityStateStr = "";
-        if(chunkState.sprinting())
+        if (chunkState.sprinting())
             chunkStateStr = " (Sprinting)";
-        else if(chunkState.stepping())
+        else if (chunkState.stepping())
             chunkStateStr = " (Stepping)";
-        else if(chunkState.frozen())
+        else if (chunkState.frozen())
             chunkStateStr = " (Frozen)";
 
-        if(entityState != null) {
-            if(entityState.sprinting())
+        if (entityState != null) {
+            if (entityState.sprinting())
                 entityStateStr = " (Sprinting)";
-            else if(entityState.stepping())
+            else if (entityState.stepping())
                 entityStateStr = " (Stepping)";
-            else if(entityState.frozen())
+            else if (entityState.frozen())
                 entityStateStr = " (Frozen)";
         }
 

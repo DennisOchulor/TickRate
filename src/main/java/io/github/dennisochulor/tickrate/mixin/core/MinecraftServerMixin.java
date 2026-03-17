@@ -21,12 +21,12 @@ public abstract class MinecraftServerMixin {
 
 	@Redirect(method = "tickChildren", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerFunctionManager;tick()V"))
 	protected void tickChildren$CommandTick(ServerFunctionManager instance) {
-		if(tickRateManager().tickRate$shouldTickServer()) instance.tick();
+		if (tickRateManager().tickRate$shouldTickServer()) instance.tick();
 	}
 
 	@Redirect(method = "tickChildren", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/clock/ServerClockManager;tick()V"))
 	protected void tickChildren$ClockTick(ServerClockManager instance) {
-		if(tickRateManager().tickRate$shouldTickServer()) instance.tick();
+		if (tickRateManager().tickRate$shouldTickServer()) instance.tick();
 	}
 
 	@ModifyConstant(method = "tickServer", constant = @Constant(intValue = 20))
@@ -36,7 +36,7 @@ public abstract class MinecraftServerMixin {
 
 	@Redirect(method = "runServer", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/ServerTickRateManager;checkShouldSprintThisTick()Z"))
 	private boolean runServer$sprint(ServerTickRateManager instance) {
-		if(instance.tickRate$isServerSprint()) return instance.checkShouldSprintThisTick();
+		if (instance.tickRate$isServerSprint()) return instance.checkShouldSprintThisTick();
 		return instance.tickRate$isIndividualSprint();
 	}
 

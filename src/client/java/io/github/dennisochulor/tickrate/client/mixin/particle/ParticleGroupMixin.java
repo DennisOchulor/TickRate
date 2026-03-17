@@ -19,7 +19,7 @@ public class ParticleGroupMixin {
 
     @WrapOperation(method = "tickParticle", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/particle/Particle;tick()V"))
     private void tickParticle(Particle particle, Operation<Void> original) { // particle ticking
-        if(TickRateClientManager.serverHasMod()) {
+        if (TickRateClientManager.serverHasMod()) {
             Minecraft minecraft = Minecraft.getInstance();
             Objects.requireNonNull(minecraft.player);
 
@@ -32,7 +32,7 @@ public class ParticleGroupMixin {
                     TickRateClientManager.getChunkDeltaTrackerInfo(minecraft.player.chunkPosition()).ticksToDo();
 
             DeltaTracker deltaTracker = minecraft.getDeltaTracker();
-            if(deltaTracker.tickRate$getMovingTicksToDo() < i) {
+            if (deltaTracker.tickRate$getMovingTicksToDo() < i) {
                 original.call(particle);
             }
         }

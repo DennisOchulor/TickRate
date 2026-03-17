@@ -24,7 +24,7 @@ public class GameRendererMixin {
 
     @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/LevelRenderer;tick(Lnet/minecraft/client/Camera;)V"))
     private void tick(LevelRenderer instance, Camera camera) { // levelRenderer follows server tick
-        if(!TickRateClientManager.serverHasMod()) instance.tick(camera);
+        if (!TickRateClientManager.serverHasMod()) instance.tick(camera);
         // otherwise NO-OP
     }
 

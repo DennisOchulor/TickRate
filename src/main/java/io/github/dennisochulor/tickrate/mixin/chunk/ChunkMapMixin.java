@@ -32,9 +32,9 @@ public class ChunkMapMixin {
     @WrapOperation(method = "tick()V", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/level/ServerEntity;sendChanges()V"))
     void tick$tickServerEntity(ServerEntity serverEntity, Operation<Void> original) {
         Entity entity = serverEntity.tickRate$getEntity();
-        if(entity instanceof Projectile || entity instanceof ItemEntity) {
+        if (entity instanceof Projectile || entity instanceof ItemEntity) {
             ServerTickRateManager tickManager = (ServerTickRateManager) level.tickRateManager();
-            if(tickManager.tickRate$shouldTickEntity(entity)) original.call(serverEntity);
+            if (tickManager.tickRate$shouldTickEntity(entity)) original.call(serverEntity);
         }
         else original.call(serverEntity);
     }
@@ -43,7 +43,7 @@ public class ChunkMapMixin {
     private <E> boolean collectSpawningChunks(List<E> list, E e) {
         ServerTickRateManager tickManager = (ServerTickRateManager) level.tickRateManager();
         LevelChunk chunk = (LevelChunk) e;
-        if(tickManager.tickRate$shouldTickChunk(chunk))
+        if (tickManager.tickRate$shouldTickChunk(chunk))
             return list.add(e);
         else return false;
     }

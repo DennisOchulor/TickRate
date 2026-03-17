@@ -11,7 +11,7 @@ public class PlayerDeltaTracker implements DeltaTracker {
     @Override
     public float getGameTimeDeltaTicks() {
         Minecraft minecraft = Minecraft.getInstance();
-        if(TickRateClientManager.serverHasMod())
+        if (TickRateClientManager.serverHasMod())
             return TickRateClientManager.getEntityDeltaTrackerInfo(Objects.requireNonNull(minecraft.player)).deltaTicks();
         else return minecraft.getDeltaTracker().getGameTimeDeltaTicks();
     }
@@ -19,7 +19,7 @@ public class PlayerDeltaTracker implements DeltaTracker {
     @Override
     public float getGameTimeDeltaPartialTick(boolean ignoreFreeze) {
         Minecraft minecraft = Minecraft.getInstance();
-        if(TickRateClientManager.serverHasMod())
+        if (TickRateClientManager.serverHasMod())
             return TickRateClientManager.getEntityDeltaTrackerInfo(Objects.requireNonNull(minecraft.player)).partialTick();
         else return minecraft.getDeltaTracker().getGameTimeDeltaPartialTick(ignoreFreeze);
     }

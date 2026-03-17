@@ -269,7 +269,7 @@ public abstract class TickCommandMixin {
             default -> throw new IllegalArgumentException("Unknown target type: " + targets.getFirst());
         }
 
-        if(roundRate != -1) {
+        if (roundRate != -1) {
             source.sendSuccess(() -> Component.nullToEmpty("Set tick rate of " + targets.size() + " " + targetType + " to " + roundRate + " TPS."), false);
             return roundRate;
         }
@@ -342,17 +342,17 @@ public abstract class TickCommandMixin {
         switch(targets.getFirst()) {
             case Entity ignored -> {
                 targetType = "entities";
-                if(success && steps != 0) targets.forEach(entity -> TickRateEvents.ENTITY_STEP.invoker().onEntityStep((Entity) entity, steps));
+                if (success && steps != 0) targets.forEach(entity -> TickRateEvents.ENTITY_STEP.invoker().onEntityStep((Entity) entity, steps));
             }
             case LevelChunk ignored -> {
                 targetType = "chunks";
-                if(success && steps != 0) targets.forEach(chunk -> TickRateEvents.CHUNK_STEP.invoker().onChunkStep((LevelChunk) chunk, steps));
+                if (success && steps != 0) targets.forEach(chunk -> TickRateEvents.CHUNK_STEP.invoker().onChunkStep((LevelChunk) chunk, steps));
             }
             default -> throw new IllegalArgumentException("Unknown target type: " + targets.getFirst());
         }
 
-        if(success) {
-            if(steps != 0) source.sendSuccess(() -> Component.literal(targets.size() + " " + targetType + " will step " + steps + " ticks."), false);
+        if (success) {
+            if (steps != 0) source.sendSuccess(() -> Component.literal(targets.size() + " " + targetType + " will step " + steps + " ticks."), false);
             else source.sendSuccess(() -> Component.literal(targets.size() + " " + targetType + " have stopped stepping."), false);
         }
         else source.sendFailure(Component.literal("All of the specified " + targetType + " must be frozen first and cannot be sprinting!").withColor(CommonColors.SOFT_RED));
@@ -368,17 +368,17 @@ public abstract class TickCommandMixin {
         switch(targets.getFirst()) {
             case Entity ignored -> {
                 targetType = "entities";
-                if(success && ticks != 0) targets.forEach(entity -> TickRateEvents.ENTITY_SPRINT.invoker().onEntitySprint((Entity) entity, ticks));
+                if (success && ticks != 0) targets.forEach(entity -> TickRateEvents.ENTITY_SPRINT.invoker().onEntitySprint((Entity) entity, ticks));
             }
             case LevelChunk ignored -> {
                 targetType = "chunks";
-                if(success && ticks != 0) targets.forEach(chunk -> TickRateEvents.CHUNK_SPRINT.invoker().onChunkSprint((LevelChunk) chunk, ticks));
+                if (success && ticks != 0) targets.forEach(chunk -> TickRateEvents.CHUNK_SPRINT.invoker().onChunkSprint((LevelChunk) chunk, ticks));
             }
             default -> throw new IllegalArgumentException("Unknown target type: " + targets.getFirst());
         }
 
-        if(success) {
-            if(ticks != 0) source.sendSuccess(() -> Component.literal(targets.size() + " " + targetType + " will sprint " + ticks + " ticks."), false);
+        if (success) {
+            if (ticks != 0) source.sendSuccess(() -> Component.literal(targets.size() + " " + targetType + " will sprint " + ticks + " ticks."), false);
             else source.sendSuccess(() -> Component.literal(targets.size() + " " + targetType + " have stopped sprinting."), false);
         }
         else source.sendFailure(Component.literal("All of the specified " + targetType + " must not be stepping!").withColor(CommonColors.SOFT_RED));
@@ -404,7 +404,7 @@ public abstract class TickCommandMixin {
             return isChunkUnloaded;
         });
 
-        if(match) throw UNLOADED_CHUNKS_SELECTED.create();
+        if (match) throw UNLOADED_CHUNKS_SELECTED.create();
         return levelChunks;
     }
 
@@ -438,8 +438,8 @@ public abstract class TickCommandMixin {
                 int chunkMaxX = SectionPos.blockToSectionCoord(maxX);
                 int chunkMaxZ = SectionPos.blockToSectionCoord(maxZ);
                 List<ChunkPos> chunks = new ArrayList<>();
-                for(int chunkX = chunkMinX; chunkX <= chunkMaxX; chunkX++) {
-                    for(int chunkZ = chunkMinZ; chunkZ <= chunkMaxZ; chunkZ++) {
+                for (int chunkX = chunkMinX; chunkX <= chunkMaxX; chunkX++) {
+                    for (int chunkZ = chunkMinZ; chunkZ <= chunkMaxZ; chunkZ++) {
                         chunks.add(new ChunkPos(chunkX, chunkZ));
                     }
                 }
@@ -461,8 +461,8 @@ public abstract class TickCommandMixin {
                 int chunkMaxX = SectionPos.posToSectionCoord(maxX);
                 int chunkMaxZ = SectionPos.posToSectionCoord(maxZ);
                 List<ChunkPos> chunks = new ArrayList<>();
-                for(int chunkX = chunkMinX; chunkX <= chunkMaxX; chunkX++) {
-                    for(int chunkZ = chunkMinZ; chunkZ <= chunkMaxZ; chunkZ++) {
+                for (int chunkX = chunkMinX; chunkX <= chunkMaxX; chunkX++) {
+                    for (int chunkZ = chunkMinZ; chunkZ <= chunkMaxZ; chunkZ++) {
                         // https://www.geeksforgeeks.org/check-if-any-point-overlaps-the-given-circle-and-rectangle/
                         ChunkPos chunkPos = new ChunkPos(chunkX, chunkZ);
                         SectionPos chunkSectionPos = SectionPos.of(chunkPos,0);
@@ -480,7 +480,7 @@ public abstract class TickCommandMixin {
                         // find distance between nearest point and circle centre
                         int Dx = Xn - Xc;
                         int Dz = Yn - Zc;
-                        if((Dx * Dx + Dz * Dz) <= radius * radius) chunks.add(chunkPos); // if overlap, add it
+                        if ((Dx * Dx + Dz * Dz) <= radius * radius) chunks.add(chunkPos); // if overlap, add it
                     }
                 }
                 yield chunks;

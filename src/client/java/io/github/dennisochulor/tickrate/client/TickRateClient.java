@@ -25,7 +25,7 @@ public class TickRateClient implements ClientModInitializer {
 
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, _) -> dispatcher.register(ClientCommands.literal("tick_indicator")
 				.executes(context -> {
-					if(TickIndicator.toggle()) context.getSource().sendFeedback(Component.literal("Tick indicator toggled on."));
+					if (TickIndicator.toggle()) context.getSource().sendFeedback(Component.literal("Tick indicator toggled on."));
 					else context.getSource().sendFeedback(Component.literal("Tick indicator toggled off."));
 					return 0;
 				})

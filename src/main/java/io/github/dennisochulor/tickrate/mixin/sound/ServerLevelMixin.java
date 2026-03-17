@@ -40,21 +40,21 @@ public class ServerLevelMixin {
             case MASTER,MUSIC,UI,RECORDS,VOICE,NEUTRAL,HOSTILE -> pitch;
             case PLAYERS -> {
                 TickState state;
-                if(entity != null) // possibly handles player sounds
+                if (entity != null) // possibly handles player sounds
                     state = tickManager.tickRate$getEntityTickStateDeep(entity);
                 else
                     state = tickManager.tickRate$getChunkTickStateDeep((Level) (Object) this, ChunkPos.containing(new BlockPos(Mth.floor(x), Mth.floor(y), Mth.floor(z))));
-                if(state.sprinting()) yield TickRate.MAX_SOUND_PITCH;
+                if (state.sprinting()) yield TickRate.MAX_SOUND_PITCH;
                 else yield pitch * (state.rate() / 20.0F);
             }
             case WEATHER -> {
                 TickState state = tickManager.tickRate$getServerTickState();
-                if(state.sprinting()) yield TickRate.MAX_SOUND_PITCH;
+                if (state.sprinting()) yield TickRate.MAX_SOUND_PITCH;
                 else yield pitch * (state.rate() / 20.0F);
             }
             case BLOCKS, AMBIENT -> {
                 TickState state = tickManager.tickRate$getChunkTickStateDeep((Level)(Object)this, ChunkPos.containing(new BlockPos(Mth.floor(x), Mth.floor(y), Mth.floor(z))));
-                if(state.sprinting()) yield TickRate.MAX_SOUND_PITCH;
+                if (state.sprinting()) yield TickRate.MAX_SOUND_PITCH;
                 else yield pitch * (state.rate() / 20.0F);
             }
         };
@@ -64,7 +64,7 @@ public class ServerLevelMixin {
             at = @At("HEAD"), argsOnly = true, name = "pitch")
     public float playSeededSound$Entity(float pitch, @Local(argsOnly = true, name = "sourceEntity") Entity sourceEntity) { // never called apparently
         TickState state = server.tickRateManager().tickRate$getEntityTickStateDeep(sourceEntity);
-        if(state.sprinting()) return TickRate.MAX_SOUND_PITCH;
+        if (state.sprinting()) return TickRate.MAX_SOUND_PITCH;
         else return pitch * (state.rate() / 20.0F);
     }
 

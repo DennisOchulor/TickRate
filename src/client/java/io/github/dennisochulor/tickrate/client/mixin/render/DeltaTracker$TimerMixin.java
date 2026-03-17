@@ -53,7 +53,7 @@ public class DeltaTracker$TimerMixin implements TickRateDeltaTracker {
     @Unique
     public DeltaTrackerInfo tickRate$getDeltaTrackerInfo(int tps) {
         float millisPerTick = 1000.0f / tps;
-        if(isUpdated.contains(tps)) return prevPartialTicks.get(tps);
+        if (isUpdated.contains(tps)) return prevPartialTicks.get(tps);
         float dynamicDeltaTicks = (float)(lastMs - lastLastTimeMillis) / Math.max(millisPerTick, msPerTick);
         float specificPartialTick = prevPartialTicks.getOrDefault(tps, new DeltaTrackerInfo(lastPartialTick,0,0)).partialTick() + dynamicDeltaTicks;
         int i = (int) specificPartialTick;
@@ -68,7 +68,7 @@ public class DeltaTracker$TimerMixin implements TickRateDeltaTracker {
     public DeltaTrackerInfo tickRate$getClientPlayerDeltaTrackerInfo(int tps) {
         // the client's player can go above 20TPS, so it needs special treatment
         float millisPerTick = 1000.0f / tps;
-        if(clientPlayerUpdated) return clientPlayerDeltaTrackerInfo;
+        if (clientPlayerUpdated) return clientPlayerDeltaTrackerInfo;
         float deltaTicks = (float)(lastMs - lastLastTimeMillis) / millisPerTick;
         float specificPartialTick = clientPlayerDeltaTrackerInfo.partialTick() + deltaTicks;
         int i = (int) specificPartialTick;

@@ -48,8 +48,8 @@ public abstract class ServerLevelMixin {
     @Inject(method = "tick",  at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiling/ProfilerFiller;push(Ljava/lang/String;)V", args = "ldc=tickPending"))
     private void tick$tickPending(CallbackInfo ci, @Local(name = "runs") LocalBooleanRef runs) {
         ServerTickRateManager serverTickManager = (ServerTickRateManager) tickRateManager();
-        if(serverTickManager.tickRate$isServerSprint()) runs.set(true);
-        else if(serverTickManager.isFrozen() && serverTickManager.tickRate$isServerOverride()) runs.set(serverTickManager.isSteppingForward());
+        if (serverTickManager.tickRate$isServerSprint()) runs.set(true);
+        else if (serverTickManager.isFrozen() && serverTickManager.tickRate$isServerOverride()) runs.set(serverTickManager.isSteppingForward());
         else runs.set(true);
     }
 
@@ -63,8 +63,8 @@ public abstract class ServerLevelMixin {
     @Inject(method = "tick",  at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiling/ProfilerFiller;popPush(Ljava/lang/String;)V", args = "ldc=blockEvents"))
     private void tick$blockEvents(CallbackInfo ci, @Local(name = "runs") LocalBooleanRef runs) {
         ServerTickRateManager serverTickManager = (ServerTickRateManager) tickRateManager();
-        if(serverTickManager.tickRate$isServerSprint()) runs.set(true);
-        else if(serverTickManager.isFrozen() && serverTickManager.tickRate$isServerOverride()) runs.set(serverTickManager.isSteppingForward());
+        if (serverTickManager.tickRate$isServerSprint()) runs.set(true);
+        else if (serverTickManager.isFrozen() && serverTickManager.tickRate$isServerOverride()) runs.set(serverTickManager.isSteppingForward());
         else runs.set(true);
     }
 
@@ -73,7 +73,7 @@ public abstract class ServerLevelMixin {
     private Consumer<Entity> tick$entity(Consumer<Entity> output) {
         ServerTickRateManager serverTickManager = (ServerTickRateManager) tickRateManager();
         return entity -> {
-            if(serverTickManager.tickRate$shouldTickEntity(entity)) output.accept(entity);
+            if (serverTickManager.tickRate$shouldTickEntity(entity)) output.accept(entity);
         };
     }
 
@@ -81,7 +81,7 @@ public abstract class ServerLevelMixin {
     @Inject(method = "tickChunk", at = @At("HEAD"), cancellable = true)
     private void tickChunk(LevelChunk chunk, int tickSpeed, CallbackInfo ci) {
         ServerTickRateManager tickManager = (ServerTickRateManager) tickRateManager();
-        if(!tickManager.tickRate$shouldTickChunk(chunk))
+        if (!tickManager.tickRate$shouldTickChunk(chunk))
             ci.cancel();
     }
 
@@ -89,7 +89,7 @@ public abstract class ServerLevelMixin {
     @Inject(method = "tickCustomSpawners", at = @At("HEAD"), cancellable = true)
     private void tickSpawners(boolean spawnEnemies, CallbackInfo ci) {
         ServerTickRateManager tickManager = (ServerTickRateManager) tickRateManager();
-        if(!tickManager.tickRate$shouldTickServer())
+        if (!tickManager.tickRate$shouldTickServer())
             ci.cancel();
     }
 
@@ -98,28 +98,28 @@ public abstract class ServerLevelMixin {
     public void shouldTickBlocksAt(long chunkPos, CallbackInfoReturnable<Boolean> cir) {
         ServerLevel level = (ServerLevel) (Object) this;
         ServerTickRateManager tickManager = (ServerTickRateManager) tickRateManager();
-        if(!tickManager.tickRate$shouldTickChunk(level, ChunkPos.unpack(chunkPos))) cir.setReturnValue(false);
+        if (!tickManager.tickRate$shouldTickChunk(level, ChunkPos.unpack(chunkPos))) cir.setReturnValue(false);
     }
 
     @Inject(method = "anyPlayerCloseEnoughForSpawning(Lnet/minecraft/world/level/ChunkPos;)Z", at = @At("HEAD"), cancellable = true)
     public void shouldTickChunkAt(ChunkPos pos, CallbackInfoReturnable<Boolean> cir) {
         ServerLevel level = (ServerLevel) (Object) this;
         ServerTickRateManager tickManager = (ServerTickRateManager) tickRateManager();
-        if(!tickManager.tickRate$shouldTickChunk(level, pos)) cir.setReturnValue(false);
+        if (!tickManager.tickRate$shouldTickChunk(level, pos)) cir.setReturnValue(false);
     }
 
     @Inject(method = "isPositionEntityTicking", at = @At("HEAD"), cancellable = true)
     public void shouldTickEntityAt(BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
         ServerLevel level = (ServerLevel) (Object) this;
         ServerTickRateManager tickManager = (ServerTickRateManager) tickRateManager();
-        if(!tickManager.tickRate$shouldTickChunk(level, ChunkPos.containing(pos))) cir.setReturnValue(false);
+        if (!tickManager.tickRate$shouldTickChunk(level, ChunkPos.containing(pos))) cir.setReturnValue(false);
     }
 
     @Inject(method = "canSpawnEntitiesInChunk", at = @At("HEAD"), cancellable = true)
     public void canSpawnEntitiesAt(ChunkPos pos, CallbackInfoReturnable<Boolean> cir) {
         ServerLevel level = (ServerLevel) (Object) this;
         ServerTickRateManager tickManager = (ServerTickRateManager) tickRateManager();
-        if(!tickManager.tickRate$shouldTickChunk(level, pos)) cir.setReturnValue(false);
+        if (!tickManager.tickRate$shouldTickChunk(level, pos)) cir.setReturnValue(false);
     }
 
 }

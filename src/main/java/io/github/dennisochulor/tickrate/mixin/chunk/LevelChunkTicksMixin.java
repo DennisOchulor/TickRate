@@ -29,7 +29,7 @@ public abstract class LevelChunkTicksMixin<T> implements TickRateLevelChunkTicks
 
     @ModifyVariable(method = "schedule", at = @At("HEAD"), argsOnly = true, name = "tick")
     public ScheduledTick<T> schedule(ScheduledTick<T> scheduledTick) {
-        if(!isFollowingServerTick) {
+        if (!isFollowingServerTick) {
             long newTriggerTick = chunkTime + (scheduledTick.triggerTick()-serverTime);
             return new ScheduledTick<>(scheduledTick.type(), scheduledTick.pos(), newTriggerTick, scheduledTick.subTickOrder());
         }
@@ -38,7 +38,7 @@ public abstract class LevelChunkTicksMixin<T> implements TickRateLevelChunkTicks
 
     @Redirect(method = "pack", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/ticks/ScheduledTick;toSavedTick(J)Lnet/minecraft/world/ticks/SavedTick;"))
     public SavedTick<T> pack(ScheduledTick<T> scheduledTick, long currentTick) {
-        if(isFollowingServerTick) return scheduledTick.toSavedTick(currentTick);
+        if (isFollowingServerTick) return scheduledTick.toSavedTick(currentTick);
         else {
             long newTriggerTick = currentTick + (scheduledTick.triggerTick() - chunkTime);
             ScheduledTick<T> orderedTick1 = new ScheduledTick<>(scheduledTick.type(), scheduledTick.pos(),newTriggerTick, scheduledTick.subTickOrder());
@@ -57,8 +57,8 @@ public abstract class LevelChunkTicksMixin<T> implements TickRateLevelChunkTicks
         chunkTime++;
         List<ScheduledTick<T>> list = new ArrayList<>();
         ScheduledTick<T> scheduledTick = peek();
-        while(scheduledTick != null) {
-            if(scheduledTick.triggerTick() <= chunkTime) {
+        while (scheduledTick != null) {
+            if (scheduledTick.triggerTick() <= chunkTime) {
                 list.add(scheduledTick);
                 poll();
                 scheduledTick = peek();
@@ -70,11 +70,11 @@ public abstract class LevelChunkTicksMixin<T> implements TickRateLevelChunkTicks
 
     @Unique
     public void tickRate$toggleMode(boolean followServerTick) {
-        if(!followServerTick && isFollowingServerTick) {
+        if (!followServerTick && isFollowingServerTick) {
             isFollowingServerTick = false;
             chunkTime = serverTime-1;
         }
-        else if(followServerTick && !isFollowingServerTick) {
+        else if (followServerTick && !isFollowingServerTick) {
             isFollowingServerTick = true;
             List<ScheduledTick<T>> list = new ArrayList<>();
             tickQueue.forEach(scheduledTick -> {

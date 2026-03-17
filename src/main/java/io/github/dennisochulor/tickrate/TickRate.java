@@ -78,16 +78,16 @@ public class TickRate implements ModInitializer {
 			ServerTickRateManager tickManager = (ServerTickRateManager) serverLevel.tickRateManager();
 			// consider chunk LOADED if FULL, BLOCK_TICKING, ENTITY_TICKING
 			// consider chunk UNLOADED if INACCESSIBLE
-			if(oldStatus == FullChunkStatus.INACCESSIBLE && newStatus.isOrAfter(FullChunkStatus.FULL)) {
+			if (oldStatus == FullChunkStatus.INACCESSIBLE && newStatus.isOrAfter(FullChunkStatus.FULL)) {
 				tickManager.tickRate$updateLoad(levelChunk, true);
 			}
-			else if(newStatus == FullChunkStatus.INACCESSIBLE) {
+			else if (newStatus == FullChunkStatus.INACCESSIBLE) {
 				tickManager.tickRate$updateLoad(levelChunk, false);
 			}
 		});
 
 		// TickRate dev-only stuff
-		if(FabricLoader.getInstance().isDevelopmentEnvironment()) {
+		if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
 			// Testing command
 			CommandRegistrationCallback.EVENT.register((dispatcher, _, _) -> {
 				dispatcher.register(Commands.literal("tickratetest").then(Commands.argument("entity", EntityArgument.entity()).executes(context -> {

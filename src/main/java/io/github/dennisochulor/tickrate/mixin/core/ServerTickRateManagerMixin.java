@@ -78,7 +78,7 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
         this.runGameElements = !this.isFrozen || this.frozenTicksToRun > 0;
         if (this.frozenTicksToRun > 0) {
             this.frozenTicksToRun--;
-            if(this.frozenTicksToRun == 0) { // for natural server step end
+            if (this.frozenTicksToRun == 0) { // for natural server step end
                 updateFastestTicker();
                 TickState newState = Objects.requireNonNull(tickRate$getServerTickState().withStepping(false));
                 tickRate$setServerTickState(newState);
@@ -115,8 +115,8 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
         TickState newState = Objects.requireNonNull(tickRate$getServerTickState().withFrozen(frozen));
         tickRate$setServerTickState(newState);
 
-        if(!IS_FROM_SPRINT_METHOD.isBound()) {
-            if(frozen && SERVER_OVERRIDE_ARG.orElse(true)) server.globalAttachments().setAttached(SERVER_FREEZE_OVERRIDE, Unit.INSTANCE);
+        if (!IS_FROM_SPRINT_METHOD.isBound()) {
+            if (frozen && SERVER_OVERRIDE_ARG.orElse(true)) server.globalAttachments().setAttached(SERVER_FREEZE_OVERRIDE, Unit.INSTANCE);
             else server.globalAttachments().removeAttached(SERVER_FREEZE_OVERRIDE);
         }
     }
@@ -137,7 +137,7 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
 
     public void tickRate$serverStarting() {
         datafile = server.getWorldPath(LevelResource.ROOT).resolve("data/TickRateData.nbt").toFile();
-        if(datafile.exists()) {
+        if (datafile.exists()) {
             try {
                 CompoundTag nbt = Objects.requireNonNull(NbtIo.read(datafile.toPath()));
                 nominalTickRateMigration = nbt.getFloat("nominalTickRate").orElse(-1.0f);
@@ -165,10 +165,10 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
         TickState serverState = server.globalAttachments().getAttachedOrCreate(TICK_STATE, () -> TickState.ofRate(20));
 
         // migration from NBT
-        if(nominalTickRateMigration != -1.0f) serverState = serverState.withRate((int) nominalTickRateMigration);
+        if (nominalTickRateMigration != -1.0f) serverState = serverState.withRate((int) nominalTickRateMigration);
 
         // migration from TICK_STATE_SERVER
-        if(server.overworld().hasAttached(TICK_STATE_SERVER)) {
+        if (server.overworld().hasAttached(TICK_STATE_SERVER)) {
             serverState = Objects.requireNonNull(serverState).withRate(server.overworld().getAttachedOrThrow(TICK_STATE_SERVER).rate());
             server.getAllLevels().forEach(serverLevel -> serverLevel.removeAttached(TICK_STATE_SERVER));
         }
@@ -182,7 +182,7 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
     public void tickRate$saveData() {
         Objects.requireNonNull(datafile);
 
-        if(!migrationData.isEmpty()) {
+        if (!migrationData.isEmpty()) {
             CompoundTag nbt = new CompoundTag();
             var entitiesNbt = NbtOps.INSTANCE.mapBuilder();
             migrationData.forEach((k,v) -> entitiesNbt.add(k, NbtOps.INSTANCE.createFloat(v)));
@@ -195,29 +195,29 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
             }
         }
         else {
-            if(datafile.exists()) //noinspection ResultOfMethodCallIgnored
+            if (datafile.exists()) //noinspection ResultOfMethodCallIgnored
                 datafile.delete();
         }
     }
 
     public boolean tickRate$shouldTickEntity(Entity entity) {
         // check server overrides
-        if(tickRate$isServerOverride()) {
-            if(tickRate$isServerSprint()) return true;
-            if(isFrozen()) return isSteppingForward();
+        if (tickRate$isServerOverride()) {
+            if (tickRate$isServerSprint()) return true;
+            if (isFrozen()) return isSteppingForward();
         }
 
         // check the ticked cache
         String key = entity.getStringUUID();
         Boolean cachedShouldTick = ticked.get(key);
-        if(cachedShouldTick != null) return cachedShouldTick;
+        if (cachedShouldTick != null) return cachedShouldTick;
 
         TickState tickState = entity.getAttachedOrElse(TICK_STATE, TickState.DEFAULT);
         boolean shouldTick;
 
-        if(tickState.sprinting()) {
+        if (tickState.sprinting()) {
             int sprintTicks = entity.getAttachedOrThrow(SPRINT_TICKS);
-            if(sprintTicks == 0) {
+            if (sprintTicks == 0) {
                 entity.removeAttached(SPRINT_TICKS);
                 //noinspection DataFlowIssue
                 entity.modifyAttached(TICK_STATE, tickState1 -> tickState1.withSprinting(false));
@@ -230,17 +230,17 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
             }
         }
 
-        else if(tickState.frozen() && !tickState.stepping()) {
+        else if (tickState.frozen() && !tickState.stepping()) {
             shouldTick = false;
         }
 
         else { // stepping OR just regular ticking
-            if(tickState.rate() != -1) shouldTick = internalShouldTick(tickState.rate());
+            if (tickState.rate() != -1) shouldTick = internalShouldTick(tickState.rate());
             else shouldTick = tickRate$shouldTickChunk(entity.level(), entity.chunkPosition());
 
-            if(shouldTick && tickState.stepping()) {
+            if (shouldTick && tickState.stepping()) {
                 int stepTicks = entity.getAttachedOrThrow(STEP_TICKS);
-                if(stepTicks == 0) {
+                if (stepTicks == 0) {
                     entity.removeAttached(STEP_TICKS);
                     //noinspection DataFlowIssue
                     entity.modifyAttached(TICK_STATE, tickState1 -> tickState1.withStepping(false));
@@ -259,10 +259,10 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
         // check the ticked cache
         String key = level.dimension().identifier() + "-" + chunkPos.pack();
         Boolean cachedShouldTick = ticked.get(key);
-        if(cachedShouldTick != null) return cachedShouldTick;
+        if (cachedShouldTick != null) return cachedShouldTick;
         else {
             LevelChunk levelChunk = (LevelChunk) level.getChunk(chunkPos.x(), chunkPos.z(), ChunkStatus.FULL, false);
-            if(levelChunk == null) { // chunk is not fully loaded and accessible yet, so just don't tick it.
+            if (levelChunk == null) { // chunk is not fully loaded and accessible yet, so just don't tick it.
                 ticked.put(key, false);
                 return false;
             }
@@ -272,22 +272,22 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
 
     public boolean tickRate$shouldTickChunk(LevelChunk chunk) {
         // check server overrides
-        if(tickRate$isServerOverride()) {
-            if(tickRate$isServerSprint()) return true;
-            if(isFrozen()) return isSteppingForward();
+        if (tickRate$isServerOverride()) {
+            if (tickRate$isServerSprint()) return true;
+            if (isFrozen()) return isSteppingForward();
         }
 
         // check the ticked cache
         String key = chunk.getLevel().dimension().identifier() + "-" + chunk.getPos().pack();
         Boolean cachedShouldTick = ticked.get(key);
-        if(cachedShouldTick != null) return cachedShouldTick;
+        if (cachedShouldTick != null) return cachedShouldTick;
 
         TickState tickState = chunk.getAttachedOrElse(TICK_STATE, TickState.DEFAULT);
         boolean shouldTick;
 
-        if(tickState.sprinting()) {
+        if (tickState.sprinting()) {
             int sprintTicks = chunk.getAttachedOrThrow(SPRINT_TICKS);
-            if(sprintTicks == 0) {
+            if (sprintTicks == 0) {
                 chunk.removeAttached(SPRINT_TICKS);
                 //noinspection DataFlowIssue
                 chunk.modifyAttached(TICK_STATE, tickState1 -> tickState1.withSprinting(false));
@@ -300,17 +300,17 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
             }
         }
 
-        else if(tickState.frozen() && !tickState.stepping()) {
+        else if (tickState.frozen() && !tickState.stepping()) {
             shouldTick = false;
         }
 
         else { // stepping OR just regular ticking
-            if(tickState.rate() != -1) shouldTick = internalShouldTick(tickState.rate());
+            if (tickState.rate() != -1) shouldTick = internalShouldTick(tickState.rate());
             else shouldTick = tickRate$shouldTickServer();
 
-            if(shouldTick && tickState.stepping()) {
+            if (shouldTick && tickState.stepping()) {
                 int stepTicks = chunk.getAttachedOrThrow(STEP_TICKS);
-                if(stepTicks == 0) {
+                if (stepTicks == 0) {
                     chunk.removeAttached(STEP_TICKS);
                     //noinspection DataFlowIssue
                     chunk.modifyAttached(TICK_STATE, tickState1 -> tickState1.withStepping(false));
@@ -327,11 +327,11 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
 
     public boolean tickRate$shouldTickServer() {
         Boolean cachedShouldTick = ticked.get("server");
-        if(cachedShouldTick != null) return cachedShouldTick;
+        if (cachedShouldTick != null) return cachedShouldTick;
 
         boolean shouldTick;
-        if(tickRate$isServerSprint()) shouldTick = true;
-        else if(isFrozen()) shouldTick = isSteppingForward();
+        if (tickRate$isServerSprint()) shouldTick = true;
+        else if (isFrozen()) shouldTick = isSteppingForward();
         else shouldTick = internalShouldTick(tickRate$getServerRate());
 
         ticked.put("server", shouldTick);
@@ -342,17 +342,17 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
         migrate(attachmentTarget);
 
         TickState tickState = attachmentTarget.getAttached(TICK_STATE);
-        if(tickState == null) return;
+        if (tickState == null) return;
 
-        if(loaded) {
-            if(tickState.sprinting()) numberOfIndividualSprints++;
-            if(tickState.rate() != -1) updateTickersMap(tickState.rate(), 1);
-            if(tickState.rate() > tickrate) updateFastestTicker();
+        if (loaded) {
+            if (tickState.sprinting()) numberOfIndividualSprints++;
+            if (tickState.rate() != -1) updateTickersMap(tickState.rate(), 1);
+            if (tickState.rate() > tickrate) updateFastestTicker();
         }
         else {
-            if(tickState.sprinting()) numberOfIndividualSprints--;
-            if(tickState.rate() != -1) updateTickersMap(tickState.rate(), -1);
-            if(tickState.rate() == tickrate) updateFastestTicker();
+            if (tickState.sprinting()) numberOfIndividualSprints--;
+            if (tickState.rate() != -1) updateTickersMap(tickState.rate(), -1);
+            if (tickState.rate() == tickrate) updateFastestTicker();
         }
     }
 
@@ -383,15 +383,15 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
     public boolean tickRate$isServerOverride() {
         TickState serverState = tickRate$getServerTickState();
 
-        if(serverState.sprinting()) return server.overworld().hasAttached(SERVER_SPRINT_OVERRIDE);
-        else if(serverState.frozen()) return server.overworld().hasAttached(SERVER_FREEZE_OVERRIDE);
+        if (serverState.sprinting()) return server.overworld().hasAttached(SERVER_SPRINT_OVERRIDE);
+        else if (serverState.frozen()) return server.overworld().hasAttached(SERVER_FREEZE_OVERRIDE);
         else return false;
     }
 
     public void tickRate$ticked() {
-        if(tickRate$isIndividualSprint()) {
+        if (tickRate$isIndividualSprint()) {
             ticks++;
-            if(ticks > sprintAvgTicksPerSecond) {
+            if (ticks > sprintAvgTicksPerSecond) {
                 ticks = 1;
                 sprintAvgTicksPerSecond = (int) (TimeUtil.NANOSECONDS_PER_SECOND / server.getAverageTickTimeNanos());
             }
@@ -399,7 +399,7 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
         else {
             sprintAvgTicksPerSecond = -1;
             ticks++;
-            if(ticks > tickrate) {
+            if (ticks > tickrate) {
                 ticks = 1;
             }
         }
@@ -420,7 +420,7 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
     public void tickRate$setRate(int rate, Collection<? extends AttachmentTarget> targets) {
         targets.forEach(target -> target.modifyAttached(TICK_STATE, tickState -> {
             tickState = tickState==null ? TickState.DEFAULT : tickState;
-            if(tickState.rate() != -1) updateTickersMap(tickState.rate(), -1);
+            if (tickState.rate() != -1) updateTickersMap(tickState.rate(), -1);
             return tickState.withRate(rate);
         }));
         updateTickersMap(rate, targets.size());
@@ -432,7 +432,7 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
         targets.forEach(target -> target.modifyAttached(TICK_STATE, tickState -> {
             tickState = tickState==null ? TickState.DEFAULT : tickState;
             tickState = tickState.withFrozen(frozen);
-            if(tickState != null && frozen) tickState = tickState.withSprinting(false); // stop any sprints
+            if (tickState != null && frozen) tickState = tickState.withSprinting(false); // stop any sprints
             return tickState;
         }));
     }
@@ -445,7 +445,7 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
             return tickState.frozen() && !tickState.sprinting(); // must be frozen AND cannot be sprinting
         });
 
-        if(canStep) {
+        if (canStep) {
             targets.forEach(target -> {
                 target.modifyAttached(TICK_STATE, tickState -> {
                     tickState = tickState==null ? TickState.DEFAULT : tickState;
@@ -464,13 +464,13 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
         // cannot be stepping
         boolean canSprint = targets.stream().noneMatch(target -> target.getAttachedOrElse(TICK_STATE, TickState.DEFAULT).stepping());
 
-        if(canSprint) {
+        if (canSprint) {
             targets.forEach(target -> {
                 target.modifyAttached(TICK_STATE, tickState -> {
                     tickState = tickState==null ? TickState.DEFAULT : tickState;
 
-                    if(tickState.sprinting() && ticks == 0) numberOfIndividualSprints--;
-                    else if(!tickState.sprinting() && ticks > 0) numberOfIndividualSprints++;
+                    if (tickState.sprinting() && ticks == 0) numberOfIndividualSprints--;
+                    else if (!tickState.sprinting() && ticks > 0) numberOfIndividualSprints++;
 
                     return tickState.withSprinting(ticks > 0);
                 });
@@ -484,21 +484,21 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
     // get tick rates specialised methods
 
     public int tickRate$getEntityRate(Entity entity) {
-        if(tickRate$isServerOverride()) return tickRate$getServerRate(); // server override
-        if(entity.isPassenger()) return tickRate$getEntityRate(entity.getRootVehicle()); //passengers follow tick rate of root vehicle
+        if (tickRate$isServerOverride()) return tickRate$getServerRate(); // server override
+        if (entity.isPassenger()) return tickRate$getEntityRate(entity.getRootVehicle()); //passengers follow tick rate of root vehicle
 
         int rate = entity.getAttachedOrElse(TICK_STATE, TickState.DEFAULT).rate();
-        if(rate != -1) return rate;
+        if (rate != -1) return rate;
 
         ChunkPos chunkPos = entity.chunkPosition();
         return tickRate$getChunkRate((LevelChunk) entity.level().getChunk(chunkPos.x(), chunkPos.z(), ChunkStatus.FULL, false));
     }
 
     public int tickRate$getChunkRate(LevelChunk chunk) {
-        if(tickRate$isServerOverride()) return tickRate$getServerRate(); // server override
+        if (tickRate$isServerOverride()) return tickRate$getServerRate(); // server override
 
         int rate = chunk.getAttachedOrElse(TICK_STATE, TickState.DEFAULT).rate();
-        if(rate != -1) return rate;
+        if (rate != -1) return rate;
         return tickRate$getServerRate();
     }
 
@@ -510,14 +510,14 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
     }
 
     public TickState tickRate$getEntityTickStateDeep(Entity entity) {
-        if(tickRate$isServerOverride()) return tickRate$getServerTickState();
-        if(entity.isPassenger()) return tickRate$getEntityTickStateDeep(entity.getRootVehicle()); // all passengers will follow TPS of the root entity
+        if (tickRate$isServerOverride()) return tickRate$getServerTickState();
+        if (entity.isPassenger()) return tickRate$getEntityTickStateDeep(entity.getRootVehicle()); // all passengers will follow TPS of the root entity
 
         TickState state = tickRate$getEntityTickStateShallow(entity);
 
-        if(state.rate() == -1) {
+        if (state.rate() == -1) {
             TickState chunkState = tickRate$getChunkTickStateDeep(entity.level(), entity.chunkPosition());
-            if(state.equals(TickState.DEFAULT)) state = chunkState;
+            if (state.equals(TickState.DEFAULT)) state = chunkState;
             else state = Objects.requireNonNull(state.withRate(chunkState.rate()));
         }
 
@@ -531,10 +531,10 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
     }
 
     public TickState tickRate$getChunkTickStateDeep(Level level, ChunkPos chunkPos) {
-        if(tickRate$isServerOverride()) return tickRate$getServerTickState();
+        if (tickRate$isServerOverride()) return tickRate$getServerTickState();
 
         TickState state = tickRate$getChunkTickStateShallow(level, chunkPos);
-        if(state.rate() == -1) state = state.withRate(tickRate$getServerTickState().rate());
+        if (state.rate() == -1) state = state.withRate(tickRate$getServerTickState().rate());
 
         return Objects.requireNonNull(state);
     }
@@ -548,24 +548,24 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
         float fastestTickRate = tickRate$isIndividualSprint() ? sprintAvgTicksPerSecond : this.tickrate;
 
         double d = (fastestTickRate-1)/(tickRate+1);
-        if(tickRate == fastestTickRate) return true;
-        if(ticks == 1) return Math.ceil(1+(1*d)) == 1;
+        if (tickRate == fastestTickRate) return true;
+        if (ticks == 1) return Math.ceil(1+(1*d)) == 1;
 
         double eventsToTick = (ticks-1)/d;
-        if(eventsToTick >= tickRate) return Math.ceil(1+(tickRate*d)) == ticks;
+        if (eventsToTick >= tickRate) return Math.ceil(1+(tickRate*d)) == ticks;
         double floorEventToTick = Math.floor(eventsToTick);
         double ceilEventToTick = Math.ceil(eventsToTick);
-        if(Math.ceil(1+(floorEventToTick*d)) == ticks) return true;
+        if (Math.ceil(1+(floorEventToTick*d)) == ticks) return true;
         return Math.ceil(1+(ceilEventToTick*d)) == ticks;
     }
 
     @Unique
     private void updateFastestTicker() {
-        if(tickRate$isServerOverride() && isSteppingForward()) return;
+        if (tickRate$isServerOverride() && isSteppingForward()) return;
 
         int fastest = tickers.firstKey();
         //TickRate.LOGGER.warn("fastest:{}, tickRate:{}", fastest, tickRate);
-        if(fastest != tickrate) {
+        if (fastest != tickrate) {
             setTickRate(fastest);
             ticks = 1; // reset it
         }
@@ -573,12 +573,12 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
 
     @Unique
     private void updateTickersMap(int rate, int change) {
-        if(change > 0) tickers.merge(rate, change, Integer::sum);
+        if (change > 0) tickers.merge(rate, change, Integer::sum);
         else if (change < 0) {
             tickers.compute(rate, (_,v) -> {
-                if(v == null) throw new IllegalStateException("When removing rate from tickers map, " + rate + " TPS already 0");
+                if (v == null) throw new IllegalStateException("When removing rate from tickers map, " + rate + " TPS already 0");
                 v += change;
-                if(v < 0) throw new IllegalStateException("When removing rate from tickers map, " + rate + " TPS deducted to below 0 (" + v + ")");
+                if (v < 0) throw new IllegalStateException("When removing rate from tickers map, " + rate + " TPS deducted to below 0 (" + v + ")");
                 return v==0 ? null : v;
             });
         }
@@ -587,7 +587,7 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
 
     @Unique
     private void migrate(AttachmentTarget target) {
-        if(migrationData.isEmpty()) return;
+        if (migrationData.isEmpty()) return;
 
         String key = switch (target) {
             case Entity e -> e.getStringUUID();
@@ -596,7 +596,7 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
         };
 
         Float tickRate = migrationData.remove(key);
-        if(tickRate != null) target.setAttached(TICK_STATE, TickState.ofRate(tickRate.intValue()));
+        if (tickRate != null) target.setAttached(TICK_STATE, TickState.ofRate(tickRate.intValue()));
     }
 
 }

@@ -23,9 +23,9 @@ public abstract class LevelMixin {
 
     @Inject(method = "guardEntityTick", at = @At("HEAD"), cancellable = true)
     public <T extends Entity> void tickEntity(Consumer<T> tickConsumer, T entity, CallbackInfo ci) {
-        if(isClientSide() && TickRateClientManager.serverHasMod()) {
+        if (isClientSide() && TickRateClientManager.serverHasMod()) {
             DeltaTracker deltaTracker = Minecraft.getInstance().getDeltaTracker();
-            if(deltaTracker.tickRate$getMovingTicksToDo() >= TickRateClientManager.getEntityDeltaTrackerInfo(entity).ticksToDo()) {
+            if (deltaTracker.tickRate$getMovingTicksToDo() >= TickRateClientManager.getEntityDeltaTrackerInfo(entity).ticksToDo()) {
                 ci.cancel();
             }
         }
@@ -33,9 +33,9 @@ public abstract class LevelMixin {
 
     @Redirect(method = "tickBlockEntities", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/block/entity/TickingBlockEntity;tick()V"))
     protected void tickBlockEntities(TickingBlockEntity instance) {
-        if(isClientSide() && TickRateClientManager.serverHasMod()) {
+        if (isClientSide() && TickRateClientManager.serverHasMod()) {
             DeltaTracker deltaTracker = Minecraft.getInstance().getDeltaTracker();
-            if(deltaTracker.tickRate$getMovingTicksToDo() < TickRateClientManager.getChunkDeltaTrackerInfo(ChunkPos.containing(instance.getPos())).ticksToDo()) {
+            if (deltaTracker.tickRate$getMovingTicksToDo() < TickRateClientManager.getChunkDeltaTrackerInfo(ChunkPos.containing(instance.getPos())).ticksToDo()) {
                 instance.tick();
             }
         }

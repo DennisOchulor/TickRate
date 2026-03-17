@@ -19,9 +19,9 @@ public class ParticleEngineMixin {
 
     @WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/particle/TrackingEmitter;tick()V"))
     private void tick$emitters(TrackingEmitter particle, Operation<Void> original) { // emitter particle ticking
-        if(TickRateClientManager.serverHasMod()) {
+        if (TickRateClientManager.serverHasMod()) {
             DeltaTracker deltaTracker = Minecraft.getInstance().getDeltaTracker();
-            if(deltaTracker.tickRate$getMovingTicksToDo() < TickRateClientManager.getChunkDeltaTrackerInfo(ChunkPos.containing(particle.tickRate$getBlockPos())).ticksToDo()) {
+            if (deltaTracker.tickRate$getMovingTicksToDo() < TickRateClientManager.getChunkDeltaTrackerInfo(ChunkPos.containing(particle.tickRate$getBlockPos())).ticksToDo()) {
                 original.call(particle);
             }
         }

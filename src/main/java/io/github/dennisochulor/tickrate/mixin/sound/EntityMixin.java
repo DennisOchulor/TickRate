@@ -18,11 +18,11 @@ public class EntityMixin {
 
     @ModifyVariable(method = "playSound(Lnet/minecraft/sounds/SoundEvent;FF)V", at = @At("HEAD"), argsOnly = true, name = "pitch")
     public float playSound(float pitch) {
-        if(level instanceof ServerLevel serverLevel) {
+        if (level instanceof ServerLevel serverLevel) {
             Entity entity = (Entity) (Object) this;
             ServerTickRateManager tickManager = serverLevel.getServer().tickRateManager();
             TickState state = tickManager.tickRate$getEntityTickStateDeep(entity);
-            if(state.sprinting()) return TickRate.MAX_SOUND_PITCH;
+            if (state.sprinting()) return TickRate.MAX_SOUND_PITCH;
             else return pitch * (state.rate() / 20.0F);
         }
         else return pitch;

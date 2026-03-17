@@ -45,31 +45,31 @@ public abstract class MinecraftMixin {
 
 	@Redirect(method = "getTickTargetMillis", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/TickRateManager;millisecondsPerTick()F"))
 	private float getMillisPerTick(TickRateManager instance) {
-		if(TickRateClientManager.serverHasMod()) return TickRateClientManager.getMillisPerServerTick();
+		if (TickRateClientManager.serverHasMod()) return TickRateClientManager.getMillisPerServerTick();
 		else return instance.millisecondsPerTick();
 	}
 
 	@Inject(method = "runTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/profiling/ProfilerFiller;pop()V", ordinal = 0))
 	private void runTick(boolean tick, CallbackInfo ci) {
-		if(!TickRateClientManager.serverHasMod()) return;
+		if (!TickRateClientManager.serverHasMod()) return;
 		Objects.requireNonNull(level);
 		Objects.requireNonNull(player);
 
 		DeltaTracker deltaTracker = getDeltaTracker();
 		int playerChunkTicksToDo = TickRateClientManager.getChunkDeltaTrackerInfo(this.player.chunkPosition()).ticksToDo();
-		for(int ticksToDo = 0; ticksToDo < 10; ticksToDo++) { // these things need to tick all 10 times
+		for (int ticksToDo = 0; ticksToDo < 10; ticksToDo++) { // these things need to tick all 10 times
 			deltaTracker.tickRate$setMovingTicksToDo(ticksToDo);
 			this.level.tickEntities();
 			this.level.tickBlockEntities();
 			this.particleEngine.tick();
 
-			if(this.isLevelRunningNormally() && ticksToDo < playerChunkTicksToDo) { // animate according to the player's chunk (not the player themself)
+			if (this.isLevelRunningNormally() && ticksToDo < playerChunkTicksToDo) { // animate according to the player's chunk (not the player themself)
 				this.level.animateTick(this.player.getBlockX(), this.player.getBlockY(), this.player.getBlockZ());
 			}
 
-			if(!this.pause && ticksToDo < deltaTracker.tickRate$getTicksToDo()) { // tick according to server, not the player
+			if (!this.pause && ticksToDo < deltaTracker.tickRate$getTicksToDo()) { // tick according to server, not the player
 				this.level.tickRateManager().tick();
-				if(this.level.tickRateManager().runsNormally()) this.levelRenderer.tick(this.gameRenderer.getMainCamera());
+				if (this.level.tickRateManager().runsNormally()) this.levelRenderer.tick(this.gameRenderer.getMainCamera());
 				this.level.tick(() -> true);
 			}
 		}
@@ -82,7 +82,7 @@ public abstract class MinecraftMixin {
 
 	@ModifyExpressionValue(method = "runTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/DeltaTracker$Timer;advanceGameTime(J)I"))
 	private int modifyPlayerTicksToDo(int ticksToDo) { // make the clientTick follow the player's tick rate (which may differ from the server)
-		if(!TickRateClientManager.serverHasMod()) return ticksToDo;
+		if (!TickRateClientManager.serverHasMod()) return ticksToDo;
 		return TickRateClientManager.getEntityDeltaTrackerInfo(Objects.requireNonNull(this.player)).ticksToDo();
 	}
 
@@ -96,37 +96,37 @@ public abstract class MinecraftMixin {
 
 	@Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientLevel;tickEntities()V"))
 	public void tick$tickEntities(ClientLevel instance) {
-		if(!TickRateClientManager.serverHasMod()) instance.tickEntities();
+		if (!TickRateClientManager.serverHasMod()) instance.tickEntities();
 		// otherwise NO-OP
 	}
 
 	@Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientLevel;tickBlockEntities()V"))
 	public void tick$tickBlockEntities(ClientLevel instance) {
-		if(!TickRateClientManager.serverHasMod()) instance.tickBlockEntities();
+		if (!TickRateClientManager.serverHasMod()) instance.tickBlockEntities();
 		// otherwise NO-OP
 	}
 
 	@Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/particle/ParticleEngine;tick()V"))
 	public void tick$tickParticles(ParticleEngine instance) {
-		if(!TickRateClientManager.serverHasMod()) instance.tick();
+		if (!TickRateClientManager.serverHasMod()) instance.tick();
 		// otherwise NO-OP
 	}
 
 	@Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientLevel;tick(Ljava/util/function/BooleanSupplier;)V"))
 	public void tick$tickLevel(ClientLevel instance, BooleanSupplier shouldKeepTicking) {
-		if(!TickRateClientManager.serverHasMod()) instance.tick(shouldKeepTicking);
+		if (!TickRateClientManager.serverHasMod()) instance.tick(shouldKeepTicking);
 		// otherwise NO-OP
 	}
 
 	@Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/TickRateManager;tick()V"))
 	public void tick$tickTickManager(TickRateManager instance) {
-		if(!TickRateClientManager.serverHasMod()) instance.tick();
+		if (!TickRateClientManager.serverHasMod()) instance.tick();
 		// otherwise NO-OP
 	}
 
 	@Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/multiplayer/ClientLevel;animateTick(III)V"))
 	public void tick$animateTick(ClientLevel instance, int centerX, int centerY, int centerZ) {
-		if(!TickRateClientManager.serverHasMod()) instance.animateTick(centerX,centerY,centerZ);
+		if (!TickRateClientManager.serverHasMod()) instance.animateTick(centerX,centerY,centerZ);
 		// otherwise NO-OP
 	}
 

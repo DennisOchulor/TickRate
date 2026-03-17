@@ -43,22 +43,22 @@ public class TickRateClientManager {
 
     public static DeltaTrackerInfo getEntityDeltaTrackerInfo(Entity entity) {
         DeltaTrackerInfo info = entityCache.get(entity.getId());
-        if(info != null) return info;
+        if (info != null) return info;
 
         Minecraft minecraft = Minecraft.getInstance();
         DeltaTracker deltaTracker = minecraft.getDeltaTracker();
 
-        if(!serverHasMod()) info = DeltaTrackerInfo.ofServer(false);
-        else if(minecraft.isPaused()) info = DeltaTrackerInfo.NO_ANIMATE;
-        else if(entity.isPassenger()) info = getEntityDeltaTrackerInfo(entity.getRootVehicle());
+        if (!serverHasMod()) info = DeltaTrackerInfo.ofServer(false);
+        else if (minecraft.isPaused()) info = DeltaTrackerInfo.NO_ANIMATE;
+        else if (entity.isPassenger()) info = getEntityDeltaTrackerInfo(entity.getRootVehicle());
         else {
             // client's own player OR entities where client player is a passenger can go above 20TPS limit
             boolean cappedAt20TPS = !(entity==minecraft.player) && !entity.hasPassenger(Objects.requireNonNull(minecraft.player));
             TickState state = getEntityState(entity); // this also handles passenger entities
-            if(state.sprinting()) // animate at max 20 TPS but for client player we don't know the TPS, so just say 100 :P
+            if (state.sprinting()) // animate at max 20 TPS but for client player we don't know the TPS, so just say 100 :P
                 info = cappedAt20TPS ? deltaTracker.tickRate$getDeltaTrackerInfo(20) : deltaTracker.tickRate$getClientPlayerDeltaTrackerInfo(100);
-            else if(state.frozen() && !state.stepping()) info = DeltaTrackerInfo.NO_ANIMATE;
-            else if(!cappedAt20TPS) info = deltaTracker.tickRate$getClientPlayerDeltaTrackerInfo(state.rate());
+            else if (state.frozen() && !state.stepping()) info = DeltaTrackerInfo.NO_ANIMATE;
+            else if (!cappedAt20TPS) info = deltaTracker.tickRate$getClientPlayerDeltaTrackerInfo(state.rate());
             else info = deltaTracker.tickRate$getDeltaTrackerInfo(state.rate());
         }
 
@@ -68,15 +68,15 @@ public class TickRateClientManager {
 
     public static DeltaTrackerInfo getChunkDeltaTrackerInfo(ChunkPos chunkPos) {
         DeltaTrackerInfo info = chunkCache.get(chunkPos.pack());
-        if(info != null) return info;
+        if (info != null) return info;
 
         DeltaTracker deltaTracker = Minecraft.getInstance().getDeltaTracker();
-        if(!serverHasMod()) info = DeltaTrackerInfo.ofServer(false);
-        else if(Minecraft.getInstance().isPaused()) info = DeltaTrackerInfo.NO_ANIMATE;
+        if (!serverHasMod()) info = DeltaTrackerInfo.ofServer(false);
+        else if (Minecraft.getInstance().isPaused()) info = DeltaTrackerInfo.NO_ANIMATE;
         else {
             TickState state = getChunkState(chunkPos);
-            if(state.sprinting()) info = deltaTracker.tickRate$getDeltaTrackerInfo(20); // animate at max 20 TPS
-            else if(state.frozen() && !state.stepping()) info = DeltaTrackerInfo.NO_ANIMATE;
+            if (state.sprinting()) info = deltaTracker.tickRate$getDeltaTrackerInfo(20); // animate at max 20 TPS
+            else if (state.frozen() && !state.stepping()) info = DeltaTrackerInfo.NO_ANIMATE;
             else info = deltaTracker.tickRate$getDeltaTrackerInfo(state.rate());
         }
 
@@ -85,13 +85,13 @@ public class TickRateClientManager {
     }
 
     public static TickState getEntityState(Entity entity) {
-        if(!serverHasMod() || isServerOverride()) return getServerState();
-        if(entity.isPassenger()) return getEntityState(entity.getRootVehicle()); // all passengers will follow TPS of the root entity
+        if (!serverHasMod() || isServerOverride()) return getServerState();
+        if (entity.isPassenger()) return getEntityState(entity.getRootVehicle()); // all passengers will follow TPS of the root entity
 
         TickState state = entity.getAttached(TICK_STATE);
-        if(state == null) return getChunkState(entity.chunkPosition());
+        if (state == null) return getChunkState(entity.chunkPosition());
 
-        if(state.rate() == -1) state = state.withRate(getChunkState(entity.chunkPosition()).rate());
+        if (state.rate() == -1) state = state.withRate(getChunkState(entity.chunkPosition()).rate());
         return Objects.requireNonNull(state);
     }
 
@@ -99,19 +99,19 @@ public class TickRateClientManager {
      * Level is assumed to be the {@link Minecraft#level}
      */
     public static TickState getChunkState(ChunkPos chunkPos) {
-        if(!serverHasMod() || isServerOverride()) return getServerState();
+        if (!serverHasMod() || isServerOverride()) return getServerState();
 
         TickState state = Objects.requireNonNull(Minecraft.getInstance().level).getChunk(chunkPos.x(), chunkPos.z()).getAttached(TICK_STATE);
-        if(state == null) return getServerState();
+        if (state == null) return getServerState();
 
-        if(state.rate() == -1) state = state.withRate(getServerState().rate());
+        if (state.rate() == -1) state = state.withRate(getServerState().rate());
 
         return Objects.requireNonNull(state);
     }
 
     public static TickState getServerState() {
         Level level = Objects.requireNonNull(Minecraft.getInstance().level);
-        if(!serverHasMod()) {
+        if (!serverHasMod()) {
             TickRateManager tickManager = level.tickRateManager();
             return new TickState((int) tickManager.tickrate(),tickManager.isFrozen(),tickManager.isSteppingForward(),false); // Client does not have any sprint info
         }
@@ -122,8 +122,8 @@ public class TickRateClientManager {
         ClientLevel level = Objects.requireNonNull(Minecraft.getInstance().level);
         TickState serverTickState = getServerState();
 
-        if(serverTickState.sprinting()) return level.globalAttachments().hasAttached(SERVER_SPRINT_OVERRIDE);
-        else if(serverTickState.frozen()) return level.globalAttachments().hasAttached(SERVER_FREEZE_OVERRIDE);
+        if (serverTickState.sprinting()) return level.globalAttachments().hasAttached(SERVER_SPRINT_OVERRIDE);
+        else if (serverTickState.frozen()) return level.globalAttachments().hasAttached(SERVER_FREEZE_OVERRIDE);
         else return false;
     }
 

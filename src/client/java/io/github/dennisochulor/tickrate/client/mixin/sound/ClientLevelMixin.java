@@ -39,17 +39,17 @@ public class ClientLevelMixin {
             case MASTER,MUSIC,UI,RECORDS,VOICE,NEUTRAL,HOSTILE -> pitch;
             case PLAYERS -> {
                 TickState state = TickRateClientManager.getEntityState(minecraft.player);
-                if(state.sprinting()) yield TickRate.MAX_SOUND_PITCH;
+                if (state.sprinting()) yield TickRate.MAX_SOUND_PITCH;
                 else yield pitch * (state.rate() / 20.0F);
             }
             case WEATHER -> {
                 TickState state = TickRateClientManager.getServerState();
-                if(state.sprinting()) yield TickRate.MAX_SOUND_PITCH;
+                if (state.sprinting()) yield TickRate.MAX_SOUND_PITCH;
                 else yield pitch * (state.rate() / 20.0F);
             }
             case BLOCKS, AMBIENT -> {
                 TickState state = TickRateClientManager.getChunkState(ChunkPos.containing(new BlockPos(Mth.floor(x), Mth.floor(y), Mth.floor(z))));
-                if(state.sprinting()) yield TickRate.MAX_SOUND_PITCH;
+                if (state.sprinting()) yield TickRate.MAX_SOUND_PITCH;
                 else yield pitch * (state.rate() / 20.0F);
             }
         };
@@ -68,17 +68,17 @@ public class ClientLevelMixin {
             case MASTER,MUSIC,UI,RECORDS,VOICE,NEUTRAL,HOSTILE -> pitch;
             case PLAYERS -> {
                 TickState state = TickRateClientManager.getEntityState(minecraft.player);
-                if(state.sprinting()) yield TickRate.MAX_SOUND_PITCH;
+                if (state.sprinting()) yield TickRate.MAX_SOUND_PITCH;
                 else yield pitch * (state.rate() / 20.0F);
             }
             case WEATHER -> {
                 TickState state = TickRateClientManager.getServerState();
-                if(state.sprinting()) yield TickRate.MAX_SOUND_PITCH;
+                if (state.sprinting()) yield TickRate.MAX_SOUND_PITCH;
                 else yield pitch * (state.rate() / 20.0F);
             }
             case BLOCKS, AMBIENT -> {
                 TickState state = TickRateClientManager.getChunkState(minecraft.player.chunkPosition());
-                if(state.sprinting()) yield TickRate.MAX_SOUND_PITCH;
+                if (state.sprinting()) yield TickRate.MAX_SOUND_PITCH;
                 else yield pitch * (state.rate() / 20.0F);
             }
         };
@@ -88,7 +88,7 @@ public class ClientLevelMixin {
             at = @At("HEAD"), argsOnly = true, name = "pitch")
     public float playSeededSound$Entity(float pitch, @Local(argsOnly = true, name = "sourceEntity") Entity sourceEntity) {
         TickState state = TickRateClientManager.getEntityState(sourceEntity);
-        if(state.sprinting()) return TickRate.MAX_SOUND_PITCH;
+        if (state.sprinting()) return TickRate.MAX_SOUND_PITCH;
         else return pitch * (state.rate() / 20.0F);
     }
 
@@ -96,7 +96,7 @@ public class ClientLevelMixin {
             at = @At("HEAD"), argsOnly = true, name = "pitch")
     public float playLocalSound$Entity(float pitch, @Local(argsOnly = true, name = "sourceEntity") Entity sourceEntity) {
         TickState state = TickRateClientManager.getEntityState(sourceEntity);
-        if(state.sprinting()) return TickRate.MAX_SOUND_PITCH;
+        if (state.sprinting()) return TickRate.MAX_SOUND_PITCH;
         else return pitch * (state.rate() / 20.0F);
     }
 

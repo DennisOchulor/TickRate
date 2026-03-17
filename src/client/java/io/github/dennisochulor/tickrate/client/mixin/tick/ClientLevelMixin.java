@@ -26,9 +26,9 @@ public class ClientLevelMixin {
         Objects.requireNonNull(minecraft.player);
         float playerChunkRate = Math.min(20, TickRateClientManager.getChunkState(minecraft.player.chunkPosition()).rate());
         float chunkRate = TickRateClientManager.getChunkState(ChunkPos.containing(pos)).rate();
-        if(playerChunkRate > chunkRate) { // slow it down by chance if player's chunk ticking faster than the random chunk, otherwise ignore
+        if (playerChunkRate > chunkRate) { // slow it down by chance if player's chunk ticking faster than the random chunk, otherwise ignore
             int chance = (int) (chunkRate / playerChunkRate * 100);
-            if(chance < random.nextIntBetweenInclusive(1,100)) ci.cancel();
+            if (chance < random.nextIntBetweenInclusive(1,100)) ci.cancel();
         }
     }
 

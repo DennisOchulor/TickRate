@@ -17,7 +17,7 @@ public abstract class TickRateManagerMixin {
      */
     @Overwrite
     public boolean runsNormally() { // if not override, then just true
-        if(!TickRateClientManager.serverHasMod()) return runGameElements;
+        if (!TickRateClientManager.serverHasMod()) return runGameElements;
         else return !TickRateClientManager.isServerOverride() || runGameElements;
     }
 

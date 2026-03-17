@@ -213,7 +213,7 @@ public final class Test {
     }
 
     private static void register() {
-        if(!registered) { // only do it once
+        if (!registered) { // only do it once
             TickRateEvents.SERVER_RATE.register((_, rate) -> LOGGER.info("server rate {}", rate));
             TickRateEvents.SERVER_FREEZE.register((_, freeze) -> LOGGER.info("server freeze {}", freeze));
             TickRateEvents.SERVER_STEP.register((_, stepTicks) -> LOGGER.info("server step {}", stepTicks));
