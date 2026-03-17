@@ -15,12 +15,12 @@ import java.util.Objects;
 public class EnchantmentScreenMixin {
 
     @Redirect(method = "extractRenderState", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/DeltaTracker;getGameTimeDeltaPartialTick(Z)F"))
-    public float render(DeltaTracker instance, boolean ignoreFreeze) {
+    public float extractRenderState(DeltaTracker instance, boolean ignoreFreeze) {
         return TickRateClientManager.getEntityDeltaTrackerInfo(Objects.requireNonNull(Minecraft.getInstance().player)).partialTick();
     }
 
     @ModifyExpressionValue(method = "extractBook", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/DeltaTracker;getGameTimeDeltaPartialTick(Z)F"))
-    private float renderBook(float original) {
+    private float extractBook(float original) {
         return TickRateClientManager.getEntityDeltaTrackerInfo(Objects.requireNonNull(Minecraft.getInstance().player)).partialTick();
     }
 
