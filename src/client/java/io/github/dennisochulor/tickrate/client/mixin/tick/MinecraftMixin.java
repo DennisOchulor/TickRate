@@ -21,9 +21,7 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Objects;
 import java.util.function.BooleanSupplier;
@@ -49,9 +47,16 @@ public abstract class MinecraftMixin {
 		else return instance.millisecondsPerTick();
 	}
 
-	@Inject(method = "runTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/profiling/ProfilerFiller;pop()V", ordinal = 0))
-	private void runTick(boolean tick, CallbackInfo ci) {
-		if (!TickRateClientManager.serverHasMod()) return;
+	@Definition(id = "i", local = @Local(type = int.class, name = "i"))
+	@Definition(id = "min", method = "Ljava/lang/Math;min(II)I")
+	@Definition(id = "ticksToDo", local = @Local(type = int.class, name = "ticksToDo"))
+	@Expression("i < min(10, ticksToDo)")
+	@ModifyExpressionValue(method = "runTick", at = @At("MIXINEXTRAS:EXPRESSION"))
+	private boolean runTick(boolean original) {
+		// not modifying the value, just reading it
+		// once loop condition is false, then run our logic, effectively targeting right after the client tick loop
+		if (!TickRateClientManager.serverHasMod()) return original;
+		if (original) return original;
 		Objects.requireNonNull(level);
 		Objects.requireNonNull(player);
 
@@ -78,6 +83,8 @@ public abstract class MinecraftMixin {
 			this.openChatScreen(ChatComponent.ChatMethod.MESSAGE);
 		}
 		TickIndicator.tick();
+
+		return original;
 	}
 
 	@ModifyExpressionValue(method = "runTick", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/DeltaTracker$Timer;advanceGameTime(J)I"))
@@ -88,7 +95,7 @@ public abstract class MinecraftMixin {
 
 	@Definition(id = "ticksToDo", local = @Local(type = int.class))
 	@Expression("ticksToDo > 0")
-	@ModifyExpressionValue(method = "runTick", at = @At("MIXINEXTRAS:EXPRESSION"))
+	@ModifyExpressionValue(method = "runTick", at = @At(value = "MIXINEXTRAS:EXPRESSION", ordinal = 0))
 	private boolean tickTexturesFollowingPlayerChunk(boolean original) {
 		if (this.player == null) return original;
 		else return TickRateClientManager.getChunkDeltaTrackerInfo(this.player.chunkPosition()).ticksToDo() > 0;
