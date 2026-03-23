@@ -21,6 +21,7 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
 import java.util.Objects;
@@ -40,11 +41,17 @@ public abstract class MinecraftMixin {
 	@Shadow @Final public LevelRenderer levelRenderer;
 	@Shadow @Final public GameRenderer gameRenderer;
 
-
 	@Redirect(method = "getTickTargetMillis", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/TickRateManager;millisecondsPerTick()F"))
 	private float getMillisPerTick(TickRateManager instance) {
 		if (TickRateClientManager.serverHasMod()) return TickRateClientManager.getMillisPerServerTick();
 		else return instance.millisecondsPerTick();
+	}
+
+	@ModifyVariable(method = "pick", at = @At("HEAD"), argsOnly = true)
+	private float pickPartialTick(float partialTicks) {
+		// change picking crosshair target to use camera entity partial ticks instead of world's
+		return TickRateClientManager.serverHasMod() ?
+				gameRenderer.getMainCamera().getCameraEntityPartialTicks(getDeltaTracker()) : partialTicks;
 	}
 
 	@Definition(id = "i", local = @Local(type = int.class, name = "i"))
