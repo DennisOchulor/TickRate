@@ -383,8 +383,8 @@ public abstract class ServerTickRateManagerMixin extends TickRateManager impleme
     public boolean tickRate$isServerOverride() {
         TickState serverState = tickRate$getServerTickState();
 
-        if (serverState.sprinting()) return server.overworld().hasAttached(SERVER_SPRINT_OVERRIDE);
-        else if (serverState.frozen()) return server.overworld().hasAttached(SERVER_FREEZE_OVERRIDE);
+        if (serverState.sprinting()) return server.globalAttachments().hasAttached(SERVER_SPRINT_OVERRIDE);
+        else if (serverState.frozen()) return server.globalAttachments().hasAttached(SERVER_FREEZE_OVERRIDE);
         else return false;
     }
 
