@@ -29,7 +29,8 @@
     "misc.EntityHitboxDebugRendererMixin",
     "misc.MobEffectUtilMixin",
     "render.CameraMixin",
-    "tick.TickRateManagerMixin"
+    "tick.TickRateManagerMixin",
+    "compat.fabric_api.ClientTickEventsMixin"
   ],
   "mixinextras": {
     "minVersion": "0.5.0"
