@@ -9,12 +9,12 @@ import io.github.dennisochulor.tickrate.client.TickRateClientManager;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
+import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.components.ChatComponent;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.ParticleEngine;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.world.TickRateManager;
 import org.jspecify.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
@@ -36,10 +36,9 @@ public abstract class MinecraftMixin {
 	@Shadow @Final public ParticleEngine particleEngine;
 	@Shadow @Final public Options options;
 	@Shadow protected abstract boolean isLevelRunningNormally();
-	@Shadow public abstract void openChatScreen(ChatComponent.ChatMethod chatMethod);
 	@Shadow private volatile boolean pause;
-	@Shadow @Final public LevelRenderer levelRenderer;
 	@Shadow @Final public GameRenderer gameRenderer;
+	@Shadow @Final public Gui gui;
 
 	@Redirect(method = "getTickTargetMillis", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/TickRateManager;millisecondsPerTick()F"))
 	private float getMillisPerTick(TickRateManager instance) {
@@ -51,7 +50,7 @@ public abstract class MinecraftMixin {
 	private float pickPartialTick(float partialTicks) {
 		// change picking crosshair target to use camera entity partial ticks instead of world's
 		return TickRateClientManager.serverHasMod() ?
-				gameRenderer.getMainCamera().getCameraEntityPartialTicks(getDeltaTracker()) : partialTicks;
+				gameRenderer.mainCamera().getCameraEntityPartialTicks(getDeltaTracker()) : partialTicks;
 	}
 
 	@Definition(id = "i", local = @Local(type = int.class, name = "i"))
@@ -79,15 +78,15 @@ public abstract class MinecraftMixin {
 				this.level.animateTick(this.player.getBlockX(), this.player.getBlockY(), this.player.getBlockZ());
 			}
 
-			if (!this.pause && ticksToDo < deltaTracker.tickRate$getTicksToDo()) { // tick according to server, not the player
+			if (!this.pause && ticksToDo < deltaTracker.tickRate$getTicksToDo()) { // tick according to world, not the player
+				gameRenderer.mainCamera().attributeProbe().tick(this.level, gameRenderer.mainCamera().position());
 				this.level.tickRateManager().tick();
-				if (this.level.tickRateManager().runsNormally()) this.levelRenderer.tick(this.gameRenderer.getMainCamera());
 				this.level.tick(() -> true);
 			}
 		}
 
 		while (this.options.keyChat.consumeClick()) { // to allow player to chat even when FROZEN
-			this.openChatScreen(ChatComponent.ChatMethod.MESSAGE);
+			this.gui.openChatScreen(ChatComponent.ChatMethod.MESSAGE);
 		}
 		TickIndicator.tick();
 

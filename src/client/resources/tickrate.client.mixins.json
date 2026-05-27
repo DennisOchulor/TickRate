@@ -15,7 +15,6 @@
     "render.DeltaTrackerMixin",
     "render.EntityRenderDispatcherMixin",
     "render.GameRendererMixin",
-    "render.LevelRendererMixin",
     "sound.ClientLevelMixin",
     "sound.SoundSystemMixin",
     "tick.ClientLevelMixin",
