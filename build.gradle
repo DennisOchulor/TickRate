@@ -58,6 +58,10 @@ dependencies {
 
 	// Iris compatibility
 	clientCompileOnly "maven.modrinth:iris:${project.iris_version}"
+
+	// EMF compatibility
+	clientCompileOnly "maven.modrinth:entitytexturefeatures:${project.etf_version}"
+	clientCompileOnly "maven.modrinth:entity-model-features:${project.emf_version}"
 }
 
 processResources {
