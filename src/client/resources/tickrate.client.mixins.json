@@ -3,9 +3,10 @@
   "package": "io.github.dennisochulor.tickrate.mixin.client",
   "compatibilityLevel": "JAVA_21",
   "client": [
+    "compat.fabric_api.ClientTickEventsMixin",
+    "misc.EnchantmentScreenMixin",
     "misc.ParticleManagerMixin",
     "misc.ParticleMixin",
-    "misc.EnchantmentScreenMixin",
     "render.BlockEntityRenderDispatcherMixin",
     "render.EntityRenderDispatcherMixin",
     "render.GameRendererMixin",
