@@ -25,11 +25,12 @@
     "defaultRequire": 1
   },
   "mixins": [
+    "compat.fabric_api.ClientTickEventsMixin",
     "misc.EntityHitboxDebugRendererMixin",
     "misc.MobEffectUtilMixin",
     "render.CameraMixin",
-    "tick.TickRateManagerMixin",
-    "compat.fabric_api.ClientTickEventsMixin"
+    "render.LevelExtractorMixin",
+    "tick.TickRateManagerMixin"
   ],
   "mixinextras": {
     "minVersion": "0.5.0"

@@ -95,11 +95,11 @@ public abstract class ServerGamePacketListenerImplMixin implements TickRateServe
         // for placing blocks
         if (!hasClientMod && wasFrozen) {
             ServerGamePacketListenerImpl handler = ((ServerGamePacketListenerImpl)(Object)this);
-            BlockPos pos = packet.getHitResult().getBlockPos();
-            ackBlockChangesUpTo(packet.getSequence()); // sequence is checked in handler.tick(), so must update it else client won't process block updates
+            BlockPos pos = packet.hitResult().getBlockPos();
+            ackBlockChangesUpTo(packet.sequence()); // sequence is checked in handler.tick(), so must update it else client won't process block updates
             player.resetLastActionTime(); // to avoid potential erroneous idle timeout
             handler.send(new ClientboundBlockUpdatePacket(player.level(), pos));
-            handler.send(new ClientboundBlockUpdatePacket(player.level(), pos.relative(packet.getHitResult().getDirection())));
+            handler.send(new ClientboundBlockUpdatePacket(player.level(), pos.relative(packet.hitResult().getDirection())));
             ci.cancel();
         }
     }
