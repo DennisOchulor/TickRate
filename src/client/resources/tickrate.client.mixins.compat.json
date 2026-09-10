@@ -9,6 +9,6 @@
     "defaultRequire": 0
   },
   "mixins": [
-    "emf.EMFAnimationEntityContextMixin"
+    "emf.EMFMathMixin"
   ]
 }
