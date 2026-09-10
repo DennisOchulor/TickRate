@@ -5,28 +5,21 @@ import io.github.dennisochulor.tickrate.client.TickRateClientManager;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import traben.entity_model_features.models.animation.EMFAnimationEntityContext;
+import traben.entity_model_features.models.animation.math.EMFMath;
 import traben.entity_model_features.utils.EMFEntity;
 
 /**
  * EMF compat,
- * see <a href="https://github.com/Traben-0/Entity_Model_Features/blob/216bcd4b0ebbfac00e837eb0f4fb37f9206d1bbf/src/main/java/traben/entity_model_features/models/animation/EMFAnimationEntityContext.java#L1373">here</a>
- *
- * <p>The class is deprecated and will be removed as per the comment:
- * "todomove most func into EMFRenderState where appropriate"
- *
- * <p>Until that refactor is done, not much I can do to avoid using deprecated stuff :(
+ * see <a href="https://github.com/Traben-0/Entity_Model_Features/blob/02034eb0f102040b16900be7c900eff88da89e9e/src/main/java/traben/entity_model_features/models/animation/math/EMFMath.java#L591">here</a>
  */
-@SuppressWarnings("deprecation")
-@Mixin(EMFAnimationEntityContext.class)
-abstract class EMFAnimationEntityContextMixin {
+@Mixin(EMFMath.class)
+abstract class EMFMathMixin {
     @Shadow
-    private static EMFEntity emfEntity() {
-        throw new UnsupportedOperationException("Implemented via mixin");
-    }
+    private static @Nullable EMFEntity emfEntity() { return null; }
 
     @ModifyReturnValue(method = "getTickDelta", at = @At("RETURN"))
     private static float getTickDelta(float original) {
